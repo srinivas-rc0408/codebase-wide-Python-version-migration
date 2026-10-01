@@ -358,19 +358,19 @@ def test_locate_never_proposes_a_test_file(tmp_path: Path) -> None:
 
 
 def test_router_is_unavailable_without_a_key_instead_of_crashing() -> None:
-    """No key must mean "skip the live path", never an import-time explosion."""
-    router = Router(api_key="")
+    """No usable provider must mean "skip the live path", never an explosion."""
+    router = Router(roles={})
     assert router.available is False
-    with pytest.raises(RuntimeError, match="DEEPSEEK_API_KEY"):
+    with pytest.raises(RuntimeError, match="no provider configured"):
         router.complete("classify", "s", "u")
 
 
 def test_router_bills_each_tier_separately() -> None:
     """M3 needs per-tier counts: routing everything to V4-Pro must be visible."""
     tokens = new_state("r", "p", {"task_id": "t"})["tokens"]
-    router = Router(tokens)
-    router._bill("edit", "deepseek-v4-pro", 1000, 200)
-    router._bill("classify", "deepseek-v4-flash", 500, 10)
+    router = Router(tokens, roles={})
+    router._bill("recover", "strong-model", 1000, 200)
+    router._bill("classify", "cheap-model", 500, 10)
     assert tokens == {"pro_in": 1000, "pro_out": 200, "flash_in": 500,
                       "flash_out": 10, "tool_calls": 2}
     assert total_tokens(tokens) == 1710

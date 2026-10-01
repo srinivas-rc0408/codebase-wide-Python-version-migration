@@ -95,7 +95,7 @@ def summarize(state: dict[str, Any], router: Router | None = None) -> str:
     previous = (state.get("summary") or "").strip()
     prompt = digest if not previous else f"previous note: {previous}\ncurrent facts: {digest}"
     try:
-        text = router.complete("summary", SUMMARY_SYSTEM, prompt, max_tokens=200).strip()
+        text = router.complete("summarize", SUMMARY_SYSTEM, prompt, max_tokens=200).strip()
     except Exception:
         # A summariser is a convenience. Losing it must not fail the migration.
         return digest[:SUMMARY_MAX_CHARS]

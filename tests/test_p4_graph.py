@@ -26,7 +26,6 @@ import shutil
 import sqlite3
 import subprocess
 from pathlib import Path
-from types import SimpleNamespace
 from typing import Any
 
 import libcst as cst
@@ -53,7 +52,8 @@ from mra.memory import (
     progress_facts,
     summarize,
 )
-from mra.models import Router
+from mra.models import ROLES, TIER, Endpoint, Router
+from mra.models.providers import FakeProvider
 from mra.nodes.correct_node import LLMCorrector, is_test_path
 from mra.nodes.plan_node import DEFAULT_EDIT_BATCH_SIZE, cycles, plan_batches, violations
 from mra.recovery import DEFAULT_MAX_FIX_ATTEMPTS
@@ -101,8 +101,8 @@ def _codemod(source: str) -> str:
     return command.transform_module(cst.parse_module(source)).code
 
 
-class FakeDeepSeek:
-    """An OpenAI-compatible client that answers from the codemod instead of a model.
+class FakeDeepSeek(FakeProvider):
+    """A provider that answers from the codemod instead of a model.
 
     Exists so the whole LLM path — routing, prompt assembly, token accounting,
     fence extraction, libcst validation, NB-4 refusal — is exercised with no
@@ -111,26 +111,23 @@ class FakeDeepSeek:
     """
 
     def __init__(self) -> None:
+        super().__init__("fake-deepseek", reply=self._reply)
         self.prompts: list[tuple[str, str]] = []
-        self.chat = SimpleNamespace(
-            completions=SimpleNamespace(create=self._create)
-        )
 
-    def _create(self, *, model: str, messages: list[dict[str, str]], **_: Any) -> Any:
+    def _reply(self, messages: list[dict[str, str]], model: str) -> str:
         system, user = messages[0]["content"], messages[1]["content"]
         self.prompts.append((model, user))
-        if "one word" in system:               # classify (V4-Flash)
-            content = "behaviour"
-        elif "progress note" in system:        # rolling summary (V4-Flash)
-            content = "Most files migrated; one cross-module break outstanding."
-        else:                                  # corrective patch (V4-Pro)
-            source = user.split("```python\n", 1)[1].rsplit("```", 1)[0]
-            content = f"```python\n{_codemod(source)}```"
-        return SimpleNamespace(
-            choices=[SimpleNamespace(message=SimpleNamespace(content=content))],
-            usage=SimpleNamespace(prompt_tokens=len(user) // 4,
-                                  completion_tokens=len(content) // 4),
-        )
+        if "one word" in system:               # classify (cheap tier)
+            return "behaviour"
+        if "progress note" in system:          # rolling summary (cheap tier)
+            return "Most files migrated; one cross-module break outstanding."
+        source = user.split("```python\n", 1)[1].rsplit("```", 1)[0]  # corrective patch
+        return f"```python\n{_codemod(source)}```"
+
+
+def fake_router(provider: FakeProvider) -> Router:
+    """Every role served by ``provider``, the model named after the role's tier."""
+    return Router(roles={role: [Endpoint(provider, f"fake-{TIER[role]}")] for role in ROLES})
 
 
 def _tree_digest(root: Path) -> str:
@@ -424,7 +421,7 @@ def payload_sizes(tmp_path: Path) -> dict[str, int]:
                    "signature": "sig", "file": leave,
                    "message": "can't subtract offset-naive and offset-aware datetimes",
                    "trace": f"{leave}:20: TypeError"}
-        corrector = LLMCorrector(Router(client=FakeDeepSeek()), TARGET, {
+        corrector = LLMCorrector(fake_router(FakeDeepSeek()), TARGET, {
             "source_api": "datetime.utcnow", "target_api": "datetime.now(timezone.utc)"})
         changed = corrector(work, failure, {"summary": summarize(state)})
         assert changed == [leave], "the fake client must apply a real patch"
@@ -479,14 +476,14 @@ def test_graph_slice_is_truncated_to_a_constant_number_of_neighbours() -> None:
 def test_summarization_is_billed_to_the_cheap_model() -> None:
     """The rolling note is a V4-Flash job; paying V4-Pro rates for it is an M3 bug."""
     client = FakeDeepSeek()
-    router = Router(client=client)
+    router = fake_router(client)
     summary = summarize({"edit_batches": [["a.py"]], "current_batch": 1,
                          "file_status": {"a.py": "migrated"}, "fix_attempts": {},
                          "last_test_report": {"total": 3, "failed": 0, "errors": 0}},
                         router)
     assert summary
     assert router.tokens["flash_in"] > 0 and router.tokens["pro_in"] == 0
-    assert client.prompts[0][0] == "deepseek-v4-flash"
+    assert client.prompts[0][0] == "fake-flash"
 
 
 # -- 5. boundaries still hold ----------------------------------------------

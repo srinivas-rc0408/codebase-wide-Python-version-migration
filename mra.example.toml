@@ -1,0 +1,67 @@
+# mra.example.toml — copy to mra.toml (gitignored) and edit. See CONFIGURATION.md §3.
+#
+# Every model name and base URL the agent uses lives here, never in code.
+# `api_key_env` is the NAME of an environment variable holding the key (set it
+# in .env); it is never the key itself. Omit it for a local runtime with no key.
+#
+# Nothing below is contacted by the deterministic path. `mra providers check`
+# pings every [providers.*] entry with a tiny prompt.
+
+# ---- Roles --------------------------------------------------------------
+# Each role is an ordered chain of [providers.*] names. The first is the
+# primary; the rest are tried only if an earlier one errors or times out.
+# Under MRA_PRIVACY=local-only any non-local entry in a chain is refused,
+# including a fallback — e.g. ["ollama", "deepseek-pro"] stops at ollama.
+[roles]
+edit      = ["deepseek-pro"]     # LLM edits (strong tier)
+recover   = ["deepseek-pro"]     # corrective patches in the CORRECT loop (strong tier)
+summarize = ["deepseek-flash"]   # rolling progress note (cheap tier)
+classify  = ["deepseek-flash"]   # failure classification (cheap tier)
+
+# ---- Providers ----------------------------------------------------------
+# provider = "openai-compatible" | "anthropic"
+# Optional per entry: timeout_s (default 120), redact_secrets (default: true
+# for remote hosts, false for localhost / private-network hosts).
+
+# DeepSeek — verify base URL/model in the provider's docs.
+[providers.deepseek-pro]
+provider = "openai-compatible"
+base_url = "https://api.deepseek.com"
+model = "deepseek-v4-pro"
+api_key_env = "DEEPSEEK_API_KEY"
+
+# DeepSeek, cheap tier — verify base URL/model in the provider's docs.
+[providers.deepseek-flash]
+provider = "openai-compatible"
+base_url = "https://api.deepseek.com"
+model = "deepseek-v4-flash"
+api_key_env = "DEEPSEEK_API_KEY"
+
+# OpenAI — verify base URL/model in the provider's docs.
+[providers.openai]
+provider = "openai-compatible"
+base_url = "https://api.openai.com/v1"
+model = "gpt-5"
+api_key_env = "OPENAI_API_KEY"
+
+# Anthropic (native SDK) — verify base URL/model in the provider's docs.
+[providers.anthropic]
+provider = "anthropic"
+base_url = "https://api.anthropic.com"
+model = "claude-sonnet-5-5"
+api_key_env = "ANTHROPIC_API_KEY"
+
+# GLM (Zhipu) — verify base URL/model in the provider's docs.
+[providers.glm]
+provider = "openai-compatible"
+base_url = "https://open.bigmodel.cn/api/paas/v4"
+model = "glm-4.6"
+api_key_env = "GLM_API_KEY"
+
+# Local Ollama (OpenAI-compatible endpoint, no key) — verify base URL/model in
+# the provider's docs. vLLM, llama.cpp server and LM Studio work the same way
+# with their own base_url. Pull the model first: `ollama pull <model>`.
+[providers.ollama]
+provider = "openai-compatible"
+base_url = "http://localhost:11434/v1"
+model = "qwen2.5-coder:7b"

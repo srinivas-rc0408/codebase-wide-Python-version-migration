@@ -1,5 +1,16 @@
-"""LLM routing and token accounting. The only place a model name is chosen."""
+"""LLM routing, providers, privacy and token accounting. Models come from mra.toml."""
 
-from mra.models.router import TIER, Router, Task, cost_usd, model_id, total_tokens
+from mra.models.privacy import PrivacyError, redact_secrets
+from mra.models.router import (
+           ROLES,
+           TIER,
+           Endpoint,
+           Role,
+           Router,
+           cost_usd,
+           load_roles,
+           total_tokens,
+)
 
-__all__ = ["TIER", "Router", "Task", "cost_usd", "model_id", "total_tokens"]
+__all__ = ["ROLES", "TIER", "Endpoint", "PrivacyError", "Role", "Router", "cost_usd",
+           "load_roles", "redact_secrets", "total_tokens"]

@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "mra"
-version = "0.1.0"
+version = "0.2.0"
 description = "Codebase-Wide Version Migration & Refactoring Agent"
 requires-python = "==3.12.*"
 dependencies = [
@@ -18,10 +18,14 @@ dependencies = [
     "GitPython==3.1.62",
     "python-dotenv==1.2.3",
     "openai==3.16.2",
+    "anthropic==1.11.0",
 ]
 
 [project.optional-dependencies]
 dev = ["mypy==2.3.1", "jsonschema==4.26.0", "pyupgrade==3.21.2"]
+
+[project.scripts]
+mra = "mra.cli:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]

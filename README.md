@@ -50,8 +50,7 @@ Full component diagram and node contracts: [`docs/04_ARCHITECTURE_HLD_LLD.md`](d
 | Verification | `pytest` + `pytest-json-report` + `ruff` |
 | Git / patches | `GitPython` |
 | Sandbox | Docker `python:3.12-slim` (or rootless Podman) |
-| LLM (edits) | DeepSeek V4-Pro |
-| LLM (summaries/classification) | DeepSeek V4-Flash |
+| LLM providers | Any OpenAI-compatible endpoint (DeepSeek, OpenAI, GLM, or a local Ollama / vLLM / llama.cpp / LM Studio server) and Anthropic's native SDK, chosen per role in `mra.toml` — default DeepSeek V4-Pro (edits, recovery) and V4-Flash (summaries, classification) |
 
 Verified current as of Sep 2026. See [`docs/RESOURCE_PACK.md`](docs/RESOURCE_PACK.md) for versions and rationale.
 
@@ -63,6 +62,7 @@ mra/
 ├── CLAUDE.md                     # instructions for AI coding assistants
 ├── CONFIGURATION.md              # how to set API keys & config (no secrets here)
 ├── .env.example                  # copy to .env and fill in (gitignored)
+├── mra.example.toml              # copy to mra.toml: providers, models, role chains
 ├── .gitignore
 ├── LICENSE
 ├── pyproject.toml
@@ -92,7 +92,7 @@ mra/
 │   ├── analysis/                 # libcst visitors, networkx graph builder
 │   ├── codemods/                 # deterministic libcst transforms (per task)
 │   ├── sandbox/                  # docker run wrappers, git snapshot/rollback
-│   ├── models/                   # DeepSeek router, token accounting (M3)
+│   ├── models/                   # role router, providers/, privacy, token accounting (M3)
 │   └── metrics/                  # M1 + M2 computation
 ├── corpus/
 │   ├── tierA/                    # controlled repos + ground_truth.json
@@ -106,7 +106,8 @@ mra/
 
 ## Quickstart
 
-Prerequisites: Python 3.12, Docker (or Podman), a DeepSeek API key.
+Prerequisites: Python 3.12, Docker (or Podman). An LLM provider is optional: the
+deterministic path needs none.
 
 ```bash
 # 1. clone + create environment
@@ -116,7 +117,9 @@ pip install -e ".[dev]"
 
 # 2. configure secrets (see CONFIGURATION.md — never commit .env)
 cp .env.example .env
-$EDITOR .env                      # add DEEPSEEK_API_KEY
+$EDITOR .env                      # add the key(s) your providers name, e.g. DEEPSEEK_API_KEY
+cp mra.example.toml mra.toml      # pick providers/models per role (or a local Ollama)
+mra providers check               # reachable / WARN per provider; never fatal
 
 # 3. build the sandbox image
 docker build -f Dockerfile.sandbox -t mra-sandbox:py312 .
@@ -141,6 +144,17 @@ with `TypeError: can't subtract offset-naive and offset-aware datetimes`, and
 the CORRECT loop has to finish the job. Its deterministic tests need no API key
 — `pytest tests/test_recovery.py` runs the whole state machine offline and skips
 only the live-model case.
+
+### LLM providers and privacy
+
+Each LLM role (`edit`, `recover`, `summarize`, `classify`) is served by an ordered
+chain of providers from `mra.toml`, falling back only when the primary errors or
+times out. A local model works through its OpenAI-compatible endpoint, e.g.
+Ollama at `http://localhost:11434/v1` with no key. `MRA_PRIVACY=local-only`
+refuses every non-local host — including as a fallback — before any network
+I/O; remote calls have secret-shaped strings redacted from the code context, and
+`Router.egress` counts calls and bytes sent per remote host. Details:
+[CONFIGURATION.md §3–§5](CONFIGURATION.md).
 
 ## Evaluation
 

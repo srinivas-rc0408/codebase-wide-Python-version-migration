@@ -1,15 +1,26 @@
-"""Model router: which DeepSeek model answers which question, and what it cost.
+"""Model router: which provider answers which role, and what it cost.
 
-Two models, one rule (docs/RESOURCE_PACK.md §1): the strong model does the work
-that has to be *right* — corrective edits and reading a stack trace — and the
-cheap model does the work that only has to be *labelled* — classification and
-summaries. Routing every call to the strong model is the easiest way to lose
-M3 for no M1 gain.
+Four roles, one rule (docs/RESOURCE_PACK.md §1): the strong tier does the work
+that has to be *right* — edits and corrective patches — and the cheap tier does
+the work that only has to be *labelled* — classification and summaries.
+Routing every call to the strong tier is the easiest way to lose M3 for no M1
+gain.
 
-The key comes from the environment, never from code (golden rule 2, and
-CONFIGURATION.md §2). With no key the router is simply unavailable: callers
-check :attr:`Router.available` and skip the live path rather than crashing, so
-the suite runs without a paid account.
+Which endpoint serves a role is configuration, not code: ``mra.toml`` maps each
+role to an ordered chain of ``[providers.<name>]`` entries (CONFIGURATION.md
+§3). The first entry is the primary; later ones are tried only when an earlier
+one raises or times out. No model name or base URL is written in this file.
+
+Keys come from the environment, never from code (golden rule 2): a provider
+entry names the *variable* that holds its key. With nothing usable configured
+the router is simply unavailable: callers check :attr:`Router.available` and
+take the offline path rather than crashing, so the suite runs without a paid
+account and the deterministic path never needs a provider.
+
+Before any byte leaves the machine the router applies the privacy policy
+(:mod:`mra.models.privacy`): ``MRA_PRIVACY=local-only`` refuses non-local
+hosts outright, remote calls are secret-redacted by default, and every byte
+sent to a remote host is counted in :attr:`Router.egress`.
 
 Temperature is pinned low (NFR-6) because a migration that produces a different
 patch on every run is not reproducible, and reproducibility is the deliverable.
@@ -18,23 +29,35 @@ patch on every run is not reproducible, and reproducibility is the deliverable.
 from __future__ import annotations
 
 import os
+import tomllib
+from dataclasses import dataclass
+from pathlib import Path
 from typing import Any, Literal
 
 from dotenv import load_dotenv
 
+from mra.models.privacy import (
+    PrivacyError,
+    host_of,
+    is_local,
+    privacy_mode,
+    redact_secrets,
+)
+from mra.models.providers import Message, Provider, make_provider
 from mra.state import Tokens, new_tokens
 
 load_dotenv()
 
-#: What a call is *for*. The task, not the model, is what callers name.
-Task = Literal["edit", "trace", "classify", "summary"]
+#: What a call is *for*. The role, not the model, is what callers name.
+Role = Literal["edit", "recover", "summarize", "classify"]
+ROLES: tuple[Role, ...] = ("edit", "recover", "summarize", "classify")
 
-#: Task -> tier. Edits and trace reasoning are the accuracy-critical half.
-TIER: dict[Task, str] = {
+#: Role -> billing tier. Edits and corrective patches are the accuracy-critical half.
+TIER: dict[Role, str] = {
     "edit": "pro",
-    "trace": "pro",
+    "recover": "pro",
+    "summarize": "flash",
     "classify": "flash",
-    "summary": "flash",
 }
 
 #: Off-peak DeepSeek list price, USD per million tokens, (input, output).
@@ -45,14 +68,61 @@ PRICES_USD_PER_MTOK: dict[str, tuple[float, float]] = {
     "flash": (0.22, 0.66),
 }
 
-DEFAULT_BASE_URL = "https://api.deepseek.com"
+
+@dataclass
+class Endpoint:
+    """One link of a role's chain: a provider, the model to ask it for, its policy."""
+
+    provider: Provider
+    model: str
+    redact: bool | None = None  # None: redact iff the host is remote
+
+    @property
+    def local(self) -> bool:
+        return is_local(self.provider.base_url)
 
 
-def model_id(task: Task) -> str:
-    """The configured model name for a task class."""
-    if TIER[task] == "pro":
-        return os.getenv("MRA_EDIT_MODEL", "deepseek-v4-pro")
-    return os.getenv("MRA_UTILITY_MODEL", "deepseek-v4-flash")
+Roles = dict[Role, list[Endpoint]]
+
+
+def config_path() -> Path:
+    return Path(os.getenv("MRA_CONFIG", "mra.toml"))
+
+
+def load_config(path: Path | str | None = None) -> dict[str, Any]:
+    """Parse ``mra.toml``; a missing file is an empty config, not an error."""
+    path = Path(path) if path is not None else config_path()
+    if not path.is_file():
+        return {}
+    with path.open("rb") as handle:
+        return tomllib.load(handle)
+
+
+def endpoints(config: dict[str, Any]) -> dict[str, Endpoint]:
+    """Every ``[providers.<name>]`` entry, built but not contacted."""
+    built = {}
+    for name, entry in (config.get("providers") or {}).items():
+        if not entry.get("model"):
+            raise ValueError(f"providers.{name}: model is required")
+        built[name] = Endpoint(make_provider(name, entry), entry["model"],
+                               entry.get("redact_secrets"))
+    return built
+
+
+def load_roles(config: dict[str, Any] | None = None) -> Roles:
+    """Resolve ``[roles]`` chains against ``[providers]``. Unknown names fail loudly."""
+    config = load_config() if config is None else config
+    built = endpoints(config)
+    roles: Roles = {}
+    for role, chain in (config.get("roles") or {}).items():
+        if role not in ROLES:
+            raise ValueError(f"roles.{role}: unknown role; expected one of {ROLES}")
+        chain = [chain] if isinstance(chain, str) else chain
+        missing = [name for name in chain if name not in built]
+        if missing:
+            raise ValueError(f"roles.{role}: no [providers.{missing[0]}] entry")
+        roles[role] = [built[name] for name in chain]
+    return roles
 
 
 def cost_usd(tokens: Tokens | dict[str, int]) -> float:
@@ -71,75 +141,101 @@ def total_tokens(tokens: Tokens | dict[str, int]) -> int:
 
 
 class Router:
-    """Routes a task to its model and bills the result to a token ledger.
+    """Routes a role to its provider chain and bills the result to a token ledger.
 
     ``tokens`` is the live ``MigrationState.tokens`` mapping (SRS §4.1); the
     router mutates it in place so that M3 is accumulated at the point of spend
-    rather than reconstructed afterwards from logs.
+    rather than reconstructed afterwards from logs. ``roles`` defaults to the
+    chains in ``mra.toml``.
     """
 
     def __init__(
         self,
         tokens: Tokens | None = None,
         *,
-        api_key: str | None = None,
-        base_url: str | None = None,
+        roles: Roles | None = None,
         temperature: float | None = None,
-        client: Any = None,
     ) -> None:
         self.tokens: Tokens = tokens if tokens is not None else new_tokens()
-        self.api_key = api_key or os.getenv("DEEPSEEK_API_KEY") or ""
-        self.base_url = base_url or os.getenv("DEEPSEEK_BASE_URL", DEFAULT_BASE_URL)
+        self.roles: Roles = load_roles() if roles is None else roles
         self.temperature = (
             temperature if temperature is not None
             else float(os.getenv("MRA_LLM_TEMPERATURE", "0.1"))
         )
-        self._client = client
-        #: (task, model, in, out) per call, for the trajectory.
+        self.privacy = privacy_mode()
+        #: One record per served call: role, provider, model, tokens, latency, redactions.
         self.calls: list[dict[str, Any]] = []
+        #: Remote host -> {"calls", "bytes_sent"}: what left the machine this run.
+        self.egress: dict[str, dict[str, int]] = {}
 
     @property
     def available(self) -> bool:
         """True when a live call can be made. False means: skip, do not fail."""
-        return bool(self._client or self.api_key)
+        return any(e.provider.available for chain in self.roles.values() for e in chain)
 
-    @property
-    def client(self) -> Any:
-        if self._client is None:
-            from openai import OpenAI  # imported lazily: no key, no client, no import cost
-
-            self._client = OpenAI(api_key=self.api_key, base_url=self.base_url)
-        return self._client
-
-    def complete(self, task: Task, system: str, user: str, *, max_tokens: int = 4096) -> str:
+    def complete(self, task: Role, system: str, user: str, *, max_tokens: int = 4096) -> str:
         """One chat completion for ``task``; bills its tokens and returns the text."""
-        if not self.available:
-            raise RuntimeError("DEEPSEEK_API_KEY is not set; check Router.available first")
-        model = model_id(task)
-        response = self.client.chat.completions.create(
-            model=model,
-            temperature=self.temperature,
-            max_tokens=max_tokens,
-            messages=[
-                {"role": "system", "content": system},
-                {"role": "user", "content": user},
-            ],
-        )
-        usage = getattr(response, "usage", None)
-        tokens_in = int(getattr(usage, "prompt_tokens", 0) or 0)
-        tokens_out = int(getattr(usage, "completion_tokens", 0) or 0)
-        self._bill(task, model, tokens_in, tokens_out)
-        return response.choices[0].message.content or ""
+        chain = self.roles.get(task)
+        if not chain:
+            raise RuntimeError(f"no provider configured for role {task!r}; see mra.toml")
+        error: Exception | None = None
+        failed: str | None = None
+        for endpoint in chain:
+            # Checked per link, before the provider is touched: a remote fallback
+            # behind a failed local primary is refused exactly like a remote primary.
+            self._check_privacy(endpoint)
+            try:
+                if not endpoint.provider.available:
+                    raise RuntimeError(f"provider {endpoint.provider.name!r}: key env var "
+                                       "is not set")
+                return self._call(task, endpoint, system, user, max_tokens,
+                                  fallback_from=failed)
+            except Exception as exc:  # error or timeout: try the next link
+                error, failed = exc, endpoint.provider.name
+        assert error is not None
+        raise error
 
-    def _bill(self, task: Task, model: str, tokens_in: int, tokens_out: int) -> None:
+    def _check_privacy(self, endpoint: Endpoint) -> None:
+        if self.privacy == "local-only" and not endpoint.local:
+            raise PrivacyError(
+                f"MRA_PRIVACY=local-only refused provider {endpoint.provider.name!r} "
+                f"at {host_of(endpoint.provider.base_url)!r}"
+            )
+
+    def _call(self, task: Role, endpoint: Endpoint, system: str, user: str,
+              max_tokens: int, *, fallback_from: str | None) -> str:
+        redact = (not endpoint.local) if endpoint.redact is None else endpoint.redact
+        redactions = 0
+        if redact:
+            system, n_system = redact_secrets(system)
+            user, n_user = redact_secrets(user)
+            redactions = n_system + n_user
+        messages: list[Message] = [
+            {"role": "system", "content": system},
+            {"role": "user", "content": user},
+        ]
+        host = host_of(endpoint.provider.base_url)
+        if not endpoint.local and host is not None:
+            # Counted before the call: a request that times out has still left.
+            sent = self.egress.setdefault(host, {"calls": 0, "bytes_sent": 0})
+            sent["calls"] += 1
+            sent["bytes_sent"] += len(system.encode()) + len(user.encode())
+        result = endpoint.provider.complete(messages, endpoint.model, self.temperature,
+                                            max_tokens)
+        self._bill(task, result["model"], result["tokens_in"], result["tokens_out"],
+                   provider=result["provider"], latency_s=result["latency_s"],
+                   redactions=redactions, fallback_from=fallback_from)
+        return result["text"]
+
+    def _bill(self, task: Role, model: str, tokens_in: int, tokens_out: int,
+              **detail: Any) -> None:
         tier = TIER[task]
         self.tokens[f"{tier}_in"] = self.tokens.get(f"{tier}_in", 0) + tokens_in  # type: ignore[literal-required]
         self.tokens[f"{tier}_out"] = self.tokens.get(f"{tier}_out", 0) + tokens_out  # type: ignore[literal-required]
         self.tokens["tool_calls"] = self.tokens.get("tool_calls", 0) + 1
         # The model ID and the counts are loggable; the key never is (CONFIGURATION.md §6).
-        self.calls.append(
-            {"task": task, "model": model, "tokens_in": tokens_in, "tokens_out": tokens_out}
-        )
+        self.calls.append({"task": task, "model": model, "tokens_in": tokens_in,
+                           "tokens_out": tokens_out, **detail})
 
     def cost_usd(self) -> float:
         return cost_usd(self.tokens)

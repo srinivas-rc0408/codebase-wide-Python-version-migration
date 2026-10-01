@@ -236,7 +236,7 @@ def run_one(
     router = None
     state = None
     if config.recovery and config.requires_key:
-        from mra.models import Router
+        from mra.models import Router, load_roles
         from mra.nodes.correct_node import LLMCorrector
         from mra.state import new_state
 
@@ -244,15 +244,17 @@ def run_one(
         state = new_state(run_id, "", {"task_id": task_dir.name,
                                        "source_api": truth["source_api"],
                                        "target_api": truth["target_api"]})
-        router = Router(state["tokens"])
+        roles = load_roles()
+        if config.model == "v4-flash":
+            # Ablation C: corrective edits served by the cheap role's chain.
+            roles["recover"] = roles.get("classify", [])
+        router = Router(state["tokens"], roles=roles)
         corrector = LLMCorrector(router, target, state["contract"])
 
     # A cap of zero is how recovery is switched off; see the module docstring.
     environment = {"MRA_EDIT_BATCH_SIZE": str(config.batch_size)}
     if not config.recovery:
         environment["MRA_MAX_FIX_ATTEMPTS"] = "0"
-    if config.model == "v4-flash":
-        environment["MRA_EDIT_MODEL"] = os.getenv("MRA_UTILITY_MODEL", "deepseek-v4-flash")
 
     started = time.perf_counter()
     with _env(**environment):
@@ -596,8 +598,8 @@ def _ablation_c(results: dict[str, Any]) -> list[str]:
                                                 or "No live configuration") +
             " needs `DEEPSEEK_API_KEY`; the offline matrix above is complete without it.",
             "",
-            "Caveat for when it does run: `Router.TIER` bills an *edit* to the pro tier "
-            "whatever `MRA_EDIT_MODEL` names, so the cost column for the V4-Flash arm "
+            "Caveat for when it does run: `Router.TIER` bills a *recover* call to the pro "
+            "tier whatever model serves it, so the cost column for the V4-Flash arm "
             "is an upper bound, not a quote.", "",
         ]
         return lines

@@ -18,57 +18,110 @@ git check-ignore .env     # should print: .env
 git status                # .env must NOT appear as a tracked/staged file
 ```
 
-## 2. Required keys
+## 2. Keys
 
-| Variable | What it is | Where to get it |
+Keys live only in environment variables. Which variable each provider reads is
+set by `api_key_env` in `mra.toml` (§3) — the config holds the variable's
+**name**, never the key.
+
+| Variable | Used by (in `mra.example.toml`) | Notes |
 |---|---|---|
-| `DEEPSEEK_API_KEY` | DeepSeek API key (edits + recovery + summaries) | Sign up at `platform.deepseek.com`; new accounts get 5M free tokens. |
+| `DEEPSEEK_API_KEY` | `deepseek-pro`, `deepseek-flash` | Also gates the live benchmark arms (`edit-v4-pro`, `edit-v4-flash`). |
+| `OPENAI_API_KEY` | `openai` | |
+| `ANTHROPIC_API_KEY` | `anthropic` | |
+| `GLM_API_KEY` | `glm` | |
+| *(none)* | `ollama` and other local runtimes | A local server needs no key; omit `api_key_env`. |
 
-## 3. Optional keys
+No key is required at all for the deterministic path (codemods + deterministic
+corrector). With nothing usable configured, `Router.available` is false and
+every node takes its offline branch.
 
-| Variable | Purpose |
+## 3. Providers and roles — `mra.toml`
+
+Every model name and base URL comes from `mra.toml` (gitignored). Start from the
+committed template:
+
+```bash
+cp mra.example.toml mra.toml
+mra providers check          # ping each entry: reachable / WARN + latency
+```
+
+`MRA_CONFIG=/path/to/file.toml` points at a different file.
+
+**Providers.** Each `[providers.<name>]` table is one endpoint:
+
+| Key | Meaning |
 |---|---|
-| `GROQ_API_KEY` | Only if you route some calls to Groq. |
-| `OPENROUTER_API_KEY` | Only if you route via OpenRouter. |
+| `provider` | `openai-compatible` (DeepSeek, OpenAI, GLM, Ollama, vLLM, llama.cpp server, LM Studio) or `anthropic` (native SDK) |
+| `base_url` | Endpoint root, e.g. `http://localhost:11434/v1` for Ollama. Required. |
+| `model` | Model name sent to that endpoint. Required. |
+| `api_key_env` | Name of the env var holding the key. Omit for a keyless local runtime. |
+| `timeout_s` | Per-call timeout before falling back (default `120`). |
+| `redact_secrets` | Scrub secret-shaped strings before sending (default: `true` for remote hosts, `false` for local ones). |
+
+**Roles.** `[roles]` maps each of the four roles to an ordered chain of provider
+names. The first is the primary; later entries are tried only if an earlier one
+raises or times out:
+
+| Role | Used for | Billing tier (M3) |
+|---|---|---|
+| `edit` | LLM edits | pro |
+| `recover` | Corrective patches in the CORRECT loop | pro |
+| `summarize` | Rolling progress note | flash |
+| `classify` | Failure classification | flash |
+
+```toml
+[roles]
+recover = ["ollama", "deepseek-pro"]   # local first, DeepSeek if Ollama is down
+```
+
+Every served call is recorded in `Router.calls` with role, provider, model,
+`tokens_in`/`tokens_out`, latency, redaction count and, when it was a fallback,
+`fallback_from`. The example's base URLs and model names are starting points —
+verify them in each provider's docs. Note the pinned Anthropic SDK takes no
+`temperature`, so `MRA_LLM_TEMPERATURE` does not apply to the `anthropic` provider.
+
+The benchmark's `edit-v4-flash` arm serves `recover` with the `classify` chain.
 
 ## 4. Configuration variables (non-secret)
 
-These tune the agent and mirror the non-functional constraints in `docs/03_SRS.md §6`. Defaults are in `.env.example`.
+These tune the agent and mirror the non-functional constraints in `docs/03_SRS.md §6`.
 
 | Variable | Meaning | Default |
 |---|---|---|
-| `MRA_EDIT_MODEL` | Strong model for edits/trace reasoning | `deepseek-v4-pro` |
-| `MRA_UTILITY_MODEL` | Cheap model for summaries/classification | `deepseek-v4-flash` |
+| `MRA_CONFIG` | Path to the provider/role config | `mra.toml` |
+| `MRA_PRIVACY` | `local-only` to forbid every non-local provider (§5) | unset |
 | `MRA_MAX_FIX_ATTEMPTS` | Recovery retry ceiling per failure signature | `3` |
 | `MRA_TOKEN_BUDGET` | Hard per-task token ceiling (abort + flag if exceeded) | `2000000` |
 | `MRA_RUN_TIMEOUT_SEC` | Per-run wall-clock timeout | `1800` |
 | `MRA_PYTEST_TIMEOUT_SEC` | Per-`pytest` invocation timeout (in sandbox) | `120` |
 | `MRA_EDIT_BATCH_SIZE` | Files per EDIT batch (ablation variable) | `3` |
-| `MRA_LLM_TEMPERATURE` | Edit temperature (determinism) | `0.1` |
+| `MRA_LLM_TEMPERATURE` | LLM temperature (determinism) | `0.1` |
 | `MRA_SANDBOX_IMAGE` | Docker image tag for the sandbox | `mra-sandbox:py312` |
 | `MRA_CONTAINER_RUNTIME` | `docker` or `podman` | `docker` |
 
-## 5. Loading config in code
+`MRA_EDIT_MODEL`, `MRA_UTILITY_MODEL` and `DEEPSEEK_BASE_URL` were removed in
+0.2.0; set `model` / `base_url` in `mra.toml` instead.
 
-Use `python-dotenv` (add to `pyproject.toml`) and read from the environment. Never hard-code a key.
+## 5. Privacy
 
-```python
-import os
-from dotenv import load_dotenv
+The router enforces these before any byte reaches a provider (`src/mra/models/privacy.py`):
 
-load_dotenv()  # reads .env in development; in CI/containers use real env vars
-
-DEEPSEEK_API_KEY = os.environ["DEEPSEEK_API_KEY"]   # KeyError early if missing — good
-BASE_URL = os.getenv("DEEPSEEK_BASE_URL", "https://api.deepseek.com")
-EDIT_MODEL = os.getenv("MRA_EDIT_MODEL", "deepseek-v4-pro")
-```
-
-Pass the key to the OpenAI-compatible client:
-
-```python
-from openai import OpenAI
-client = OpenAI(api_key=DEEPSEEK_API_KEY, base_url=BASE_URL)
-```
+- **`MRA_PRIVACY=local-only`** — only providers whose `base_url` host is
+  `localhost`, a loopback address (`127.0.0.1`, `::1`) or a private-network
+  address (`10/8`, `172.16/12`, `192.168/16`, …) may be called. Anything else
+  raises `PrivacyError` before a socket opens or a DNS lookup happens. This
+  applies to fallbacks too: in `["ollama", "deepseek-pro"]`, an Ollama failure
+  raises `PrivacyError` rather than sending the prompt to DeepSeek. The check is
+  on the configured URL text, not on DNS, so a hostname is always treated as
+  remote. An unrecognised `MRA_PRIVACY` value is an error, not "off".
+- **Secret redaction** — for remote providers (by default), strings shaped like
+  API keys and tokens (`sk-…`, AWS `AKIA…`, GitHub `ghp_…`/`github_pat_…`, Slack
+  `xox…-`, Google `AIza…`, JWTs, PEM private keys, and `*key|secret|token|password
+  = "…"` assignments) are replaced with `[REDACTED]` in the code context before
+  sending. The count is logged per call as `redactions`.
+- **Data-egress log** — `Router.egress` records, per remote host, the number of
+  calls and bytes sent this run. Local hosts are not counted.
 
 ## 6. Security rules
 

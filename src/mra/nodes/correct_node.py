@@ -201,7 +201,7 @@ def corrective_patch(
 ) -> str:
     """Ask V4-Pro for the corrected file (whole-file, libcst-validated)."""
     reply = router.complete(
-        "edit", PATCH_SYSTEM, patch_prompt(failure, located, contract, klass, summary)
+        "recover", PATCH_SYSTEM, patch_prompt(failure, located, contract, klass, summary)
     )
     return extract_source(reply)
 

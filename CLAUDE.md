@@ -27,7 +27,7 @@ The agent is a **LangGraph 1.x state machine**: `MAP → PLAN → EDIT → TEST 
 - **pytest** + **pytest-json-report** + **ruff** — verification
 - **GitPython** — snapshot / rollback / patch
 - **Docker** `python:3.12-slim` (or rootless Podman) — sandbox
-- **DeepSeek V4-Pro** (edits, trace reasoning) and **V4-Flash** (summaries, classification) via the OpenAI-compatible endpoint `https://api.deepseek.com`
+- **LLM providers per role from `mra.toml`** (CONFIGURATION.md §3) — default **DeepSeek V4-Pro** (edit, recover) and **V4-Flash** (summarize, classify) over the OpenAI-compatible endpoint; any OpenAI-compatible server (incl. local Ollama/vLLM) or the pinned `anthropic` SDK. Never write a model name or base URL in code.
 
 Do not swap frameworks or add new heavy dependencies without updating `docs/` and getting sign-off.
 
