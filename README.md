@@ -1,3 +1,5 @@
+<img src=".github/banner.png" width="100%" alt="codebase-migration-agent" />
+
 # Codebase-Wide Version Migration & Refactoring Agent (MRA)
 
 > An autonomous agent that upgrades an entire Python codebase across a breaking library/language version change — mapping every affected call site with a dependency graph, planning a safe edit order, and running a test-driven self-correction loop until the suite passes.
