@@ -1,0 +1,12 @@
+{
+  "category": "rare",
+  "expect": "GREEN",
+  "code": "",
+  "evidence": "",
+  "mode": "deterministic",
+  "env": {},
+  "note": "",
+  "gold": [
+    "src/pkg/core.py"
+  ]
+}

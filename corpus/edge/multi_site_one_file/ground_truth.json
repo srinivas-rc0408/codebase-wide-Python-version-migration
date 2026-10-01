@@ -1,0 +1,35 @@
+{
+  "task_id": "multi_site_one_file",
+  "source_api": "datetime.utcnow",
+  "target_api": "datetime.now(timezone.utc)",
+  "call_sites": [
+    {
+      "file": "src/pkg/core.py",
+      "line": 5,
+      "col": 11,
+      "symbol": "datetime.datetime.utcnow",
+      "kind": "call"
+    },
+    {
+      "file": "src/pkg/core.py",
+      "line": 9,
+      "col": 12,
+      "symbol": "datetime.datetime.utcnow",
+      "kind": "call"
+    },
+    {
+      "file": "src/pkg/core.py",
+      "line": 10,
+      "col": 46,
+      "symbol": "datetime.datetime.utcnow",
+      "kind": "call"
+    },
+    {
+      "file": "src/pkg/core.py",
+      "line": 14,
+      "col": 12,
+      "symbol": "datetime.datetime.utcnow",
+      "kind": "call"
+    }
+  ]
+}

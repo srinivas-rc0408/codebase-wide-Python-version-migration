@@ -1,0 +1,10 @@
+{
+  "category": "failure",
+  "expect": "RED",
+  "code": "precondition",
+  "evidence": "",
+  "mode": "deterministic",
+  "env": {},
+  "note": "NB-10: refuse to migrate",
+  "gold": []
+}

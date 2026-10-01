@@ -1,0 +1,21 @@
+{
+  "task_id": "utcfromtimestamp_alongside_utcnow",
+  "source_api": "datetime.utcnow",
+  "target_api": "datetime.now(timezone.utc)",
+  "call_sites": [
+    {
+      "file": "src/pkg/core.py",
+      "line": 5,
+      "col": 11,
+      "symbol": "datetime.datetime.utcnow",
+      "kind": "call"
+    },
+    {
+      "file": "src/pkg/core.py",
+      "line": 9,
+      "col": 11,
+      "symbol": "datetime.datetime.utcfromtimestamp",
+      "kind": "call"
+    }
+  ]
+}

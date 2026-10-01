@@ -1,0 +1,10 @@
+{
+  "category": "twisted",
+  "expect": "YELLOW",
+  "code": "residual",
+  "evidence": "bare-reference",
+  "mode": "deterministic",
+  "env": {},
+  "note": "known gap: a reference is not a call",
+  "gold": []
+}

@@ -1,0 +1,10 @@
+{
+  "category": "twisted",
+  "expect": "YELLOW",
+  "code": "residual",
+  "evidence": "tests/test_core.py",
+  "mode": "deterministic",
+  "env": {},
+  "note": "the test oracle is never edited; its own deprecated call is reported",
+  "gold": []
+}

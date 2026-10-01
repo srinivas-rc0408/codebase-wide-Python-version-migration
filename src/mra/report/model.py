@@ -205,6 +205,20 @@ def _lint_text(lint: dict[str, Any]) -> str:
     return text
 
 
+def _edge_row(suite: dict[str, Any] | None, version: str | None) -> dict[str, Any]:
+    """The agent's own accuracy on corpus/edge: context for how far to trust this verdict."""
+    check = "Edge-case accuracy suite (corpus/edge)"
+    if suite is None:
+        return {"check": check, "passed": None, "evidence": "not run"}
+    if suite["agent_version"] != version:
+        return {"check": check, "passed": None,
+                "evidence": f"results are for agent {suite['agent_version']}, not {version}"}
+    failing = ", ".join(suite["failing"][:4])
+    return {"check": check, "passed": suite["passed"] == suite["total"],
+            "evidence": f"{suite['passed']}/{suite['total']} cases give the expected verdict"
+                        + (f"; mismatches: {failing}" if failing else "")}
+
+
 def _checks(a: dict[str, Any]) -> list[dict[str, Any]]:
     """The verification table: one row per check, aggregated so it never grows with N."""
     pre, post, evidence = a["pre_report"] or {}, a["post_report"] or {}, a["evidence"]
@@ -244,6 +258,7 @@ def _checks(a: dict[str, Any]) -> list[dict[str, Any]]:
             else f"none defined for {evidence.get('target', 'this target')}"),
         row("No new ruff errors", None if None in (lint.get("pre"), lint.get("post"))
             else not new_lint(lint), _lint_text(lint)),
+        _edge_row(evidence.get("edge_suite"), a["meta"].get("agent_version")),
         row("Edited files executed by tests",
             (not cold) if coverage.get("available") and cov_files else None,
             (f"{len(cov_files) - len(cold)}/{len(cov_files)} files; not run: "

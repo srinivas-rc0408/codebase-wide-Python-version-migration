@@ -1,0 +1,12 @@
+{
+  "category": "rare",
+  "expect": "GREEN",
+  "code": "",
+  "evidence": "",
+  "mode": "deterministic",
+  "env": {},
+  "note": "CRLF must survive byte-exact",
+  "gold": [
+    "src/pkg/core.py"
+  ]
+}

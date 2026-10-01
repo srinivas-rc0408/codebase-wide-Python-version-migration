@@ -1,0 +1,10 @@
+{
+  "category": "failure",
+  "expect": "RED",
+  "code": "gave_up",
+  "evidence": "",
+  "mode": "deterministic",
+  "env": {},
+  "note": "the oracle pins naive datetimes; nothing can fix it",
+  "gold": []
+}

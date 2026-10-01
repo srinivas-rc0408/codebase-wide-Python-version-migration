@@ -1,0 +1,467 @@
+{
+  "agent_version": "0.2.0",
+  "generated_at": "2026-10-01T15:09:35+00:00",
+  "passed": 39,
+  "total": 39,
+  "cases": [
+    {
+      "case": "aliased_class",
+      "category": "common",
+      "expected": "GREEN",
+      "actual": "GREEN",
+      "pass": true,
+      "problems": [],
+      "reasons": [],
+      "note": "",
+      "pdf": "runs/edge/aliased_class/aliased_class_MigrationReport_v0.2.0_20261001-2038.pdf"
+    },
+    {
+      "case": "aliased_module",
+      "category": "common",
+      "expected": "GREEN",
+      "actual": "GREEN",
+      "pass": true,
+      "problems": [],
+      "reasons": [],
+      "note": "",
+      "pdf": "runs/edge/aliased_module/aliased_module_MigrationReport_v0.2.0_20261001-2038.pdf"
+    },
+    {
+      "case": "cross_file_recovery",
+      "category": "common",
+      "expected": "GREEN",
+      "actual": "GREEN",
+      "pass": true,
+      "problems": [],
+      "reasons": [],
+      "note": "core moves first; report breaks until CORRECT migrates it",
+      "pdf": "runs/edge/cross_file_recovery/cross_file_recovery_MigrationReport_v0.2.0_20261001-2038.pdf"
+    },
+    {
+      "case": "cross_file_recovery_llm",
+      "category": "common",
+      "expected": "GREEN",
+      "actual": "GREEN",
+      "pass": true,
+      "problems": [],
+      "reasons": [],
+      "note": "same break, repaired by the LLM corrector through FakeProvider (offline)",
+      "pdf": "runs/edge/cross_file_recovery_llm/cross_file_recovery_llm_MigrationReport_v0.2.0_20261001-2038.pdf"
+    },
+    {
+      "case": "from_import",
+      "category": "common",
+      "expected": "GREEN",
+      "actual": "GREEN",
+      "pass": true,
+      "problems": [],
+      "reasons": [],
+      "note": "",
+      "pdf": "runs/edge/from_import/from_import_MigrationReport_v0.2.0_20261001-2038.pdf"
+    },
+    {
+      "case": "import_cycle",
+      "category": "common",
+      "expected": "GREEN",
+      "actual": "GREEN",
+      "pass": true,
+      "problems": [],
+      "reasons": [],
+      "note": "",
+      "pdf": "runs/edge/import_cycle/import_cycle_MigrationReport_v0.2.0_20261001-2038.pdf"
+    },
+    {
+      "case": "module_import",
+      "category": "common",
+      "expected": "GREEN",
+      "actual": "GREEN",
+      "pass": true,
+      "problems": [],
+      "reasons": [],
+      "note": "",
+      "pdf": "runs/edge/module_import/module_import_MigrationReport_v0.2.0_20261001-2038.pdf"
+    },
+    {
+      "case": "multi_site_one_file",
+      "category": "common",
+      "expected": "GREEN",
+      "actual": "GREEN",
+      "pass": true,
+      "problems": [],
+      "reasons": [],
+      "note": "",
+      "pdf": "runs/edge/multi_site_one_file/multi_site_one_file_MigrationReport_v0.2.0_20261001-2038.pdf"
+    },
+    {
+      "case": "sites_across_six_files",
+      "category": "common",
+      "expected": "GREEN",
+      "actual": "GREEN",
+      "pass": true,
+      "problems": [],
+      "reasons": [],
+      "note": "",
+      "pdf": "runs/edge/sites_across_six_files/sites_across_six_files_MigrationReport_v0.2.0_20261001-2038.pdf"
+    },
+    {
+      "case": "utcfromtimestamp_alongside_utcnow",
+      "category": "common",
+      "expected": "GREEN",
+      "actual": "GREEN",
+      "pass": true,
+      "problems": [],
+      "reasons": [],
+      "note": "",
+      "pdf": "runs/edge/utcfromtimestamp_alongside_utcnow/utcfromtimestamp_alongside_utcnow_MigrationReport_v0.2.0_20261001-2038.pdf"
+    },
+    {
+      "case": "class_body_and_classmethod",
+      "category": "rare",
+      "expected": "GREEN",
+      "actual": "GREEN",
+      "pass": true,
+      "problems": [],
+      "reasons": [],
+      "note": "",
+      "pdf": "runs/edge/class_body_and_classmethod/class_body_and_classmethod_MigrationReport_v0.2.0_20261001-2038.pdf"
+    },
+    {
+      "case": "conditional_import",
+      "category": "rare",
+      "expected": "GREEN",
+      "actual": "GREEN",
+      "pass": true,
+      "problems": [],
+      "reasons": [],
+      "note": "",
+      "pdf": "runs/edge/conditional_import/conditional_import_MigrationReport_v0.2.0_20261001-2038.pdf"
+    },
+    {
+      "case": "crlf_line_endings",
+      "category": "rare",
+      "expected": "GREEN",
+      "actual": "GREEN",
+      "pass": true,
+      "problems": [],
+      "reasons": [],
+      "note": "CRLF must survive byte-exact",
+      "pdf": "runs/edge/crlf_line_endings/crlf_line_endings_MigrationReport_v0.2.0_20261001-2038.pdf"
+    },
+    {
+      "case": "default_argument",
+      "category": "rare",
+      "expected": "GREEN",
+      "actual": "GREEN",
+      "pass": true,
+      "problems": [],
+      "reasons": [],
+      "note": "",
+      "pdf": "runs/edge/default_argument/default_argument_MigrationReport_v0.2.0_20261001-2038.pdf"
+    },
+    {
+      "case": "encoding_cookie_non_ascii",
+      "category": "rare",
+      "expected": "GREEN",
+      "actual": "GREEN",
+      "pass": true,
+      "problems": [],
+      "reasons": [],
+      "note": "latin-1 source with a coding cookie and non-ASCII identifiers",
+      "pdf": "runs/edge/encoding_cookie_non_ascii/encoding_cookie_non_ascii_MigrationReport_v0.2.0_20261001-2038.pdf"
+    },
+    {
+      "case": "inside_decorator_argument",
+      "category": "rare",
+      "expected": "GREEN",
+      "actual": "GREEN",
+      "pass": true,
+      "problems": [],
+      "reasons": [],
+      "note": "",
+      "pdf": "runs/edge/inside_decorator_argument/inside_decorator_argument_MigrationReport_v0.2.0_20261001-2038.pdf"
+    },
+    {
+      "case": "inside_fstring",
+      "category": "rare",
+      "expected": "GREEN",
+      "actual": "GREEN",
+      "pass": true,
+      "problems": [],
+      "reasons": [],
+      "note": "",
+      "pdf": "runs/edge/inside_fstring/inside_fstring_MigrationReport_v0.2.0_20261001-2038.pdf"
+    },
+    {
+      "case": "inside_lambda",
+      "category": "rare",
+      "expected": "GREEN",
+      "actual": "GREEN",
+      "pass": true,
+      "problems": [],
+      "reasons": [],
+      "note": "",
+      "pdf": "runs/edge/inside_lambda/inside_lambda_MigrationReport_v0.2.0_20261001-2038.pdf"
+    },
+    {
+      "case": "other_object_with_utcnow",
+      "category": "rare",
+      "expected": "GREEN",
+      "actual": "GREEN",
+      "pass": true,
+      "problems": [],
+      "reasons": [],
+      "note": "",
+      "pdf": "runs/edge/other_object_with_utcnow/other_object_with_utcnow_MigrationReport_v0.2.0_20261001-2038.pdf"
+    },
+    {
+      "case": "reexport_through_init",
+      "category": "rare",
+      "expected": "GREEN",
+      "actual": "GREEN",
+      "pass": true,
+      "problems": [],
+      "reasons": [],
+      "note": "`datetime` reaches core.py through the package's re-export",
+      "pdf": "runs/edge/reexport_through_init/reexport_through_init_MigrationReport_v0.2.0_20261001-2038.pdf"
+    },
+    {
+      "case": "relative_imports",
+      "category": "rare",
+      "expected": "GREEN",
+      "actual": "GREEN",
+      "pass": true,
+      "problems": [],
+      "reasons": [],
+      "note": "",
+      "pdf": "runs/edge/relative_imports/relative_imports_MigrationReport_v0.2.0_20261001-2038.pdf"
+    },
+    {
+      "case": "shadowed_local_name",
+      "category": "rare",
+      "expected": "GREEN",
+      "actual": "GREEN",
+      "pass": true,
+      "problems": [],
+      "reasons": [],
+      "note": "",
+      "pdf": "runs/edge/shadowed_local_name/shadowed_local_name_MigrationReport_v0.2.0_20261001-2038.pdf"
+    },
+    {
+      "case": "tab_indentation",
+      "category": "rare",
+      "expected": "GREEN",
+      "actual": "GREEN",
+      "pass": true,
+      "problems": [],
+      "reasons": [],
+      "note": "",
+      "pdf": "runs/edge/tab_indentation/tab_indentation_MigrationReport_v0.2.0_20261001-2038.pdf"
+    },
+    {
+      "case": "utcnow_in_strings_comments_docstrings",
+      "category": "rare",
+      "expected": "GREEN",
+      "actual": "GREEN",
+      "pass": true,
+      "problems": [],
+      "reasons": [],
+      "note": "only the real call may change",
+      "pdf": "runs/edge/utcnow_in_strings_comments_docstrings/utcnow_in_strings_comments_docstrings_MigrationReport_v0.2.0_20261001-2038.pdf"
+    },
+    {
+      "case": "very_long_file",
+      "category": "rare",
+      "expected": "GREEN",
+      "actual": "GREEN",
+      "pass": true,
+      "problems": [],
+      "reasons": [],
+      "note": "5209 lines",
+      "pdf": "runs/edge/very_long_file/very_long_file_MigrationReport_v0.2.0_20261001-2039.pdf"
+    },
+    {
+      "case": "already_migrated",
+      "category": "twisted",
+      "expected": "GREEN",
+      "actual": "GREEN",
+      "pass": true,
+      "problems": [],
+      "reasons": [],
+      "note": "idempotence: zero edits, empty patch",
+      "pdf": "runs/edge/already_migrated/already_migrated_MigrationReport_v0.2.0_20261001-2039.pdf"
+    },
+    {
+      "case": "bare_reference",
+      "category": "twisted",
+      "expected": "YELLOW",
+      "actual": "YELLOW",
+      "pass": true,
+      "problems": [],
+      "reasons": [
+        "YELLOW residual: 1 site(s): src/pkg/core.py:3 (bare-reference)"
+      ],
+      "note": "known gap: a reference is not a call",
+      "pdf": "runs/edge/bare_reference/bare_reference_MigrationReport_v0.2.0_20261001-2039.pdf"
+    },
+    {
+      "case": "deprecated_call_in_test_file",
+      "category": "twisted",
+      "expected": "YELLOW",
+      "actual": "YELLOW",
+      "pass": true,
+      "problems": [],
+      "reasons": [
+        "YELLOW residual: 1 site(s): tests/test_core.py:7"
+      ],
+      "note": "the test oracle is never edited; its own deprecated call is reported",
+      "pdf": "runs/edge/deprecated_call_in_test_file/deprecated_call_in_test_file_MigrationReport_v0.2.0_20261001-2039.pdf"
+    },
+    {
+      "case": "empty_and_comment_only_files",
+      "category": "twisted",
+      "expected": "GREEN",
+      "actual": "GREEN",
+      "pass": true,
+      "problems": [],
+      "reasons": [],
+      "note": "",
+      "pdf": "runs/edge/empty_and_comment_only_files/empty_and_comment_only_files_MigrationReport_v0.2.0_20261001-2039.pdf"
+    },
+    {
+      "case": "half_migrated",
+      "category": "twisted",
+      "expected": "GREEN",
+      "actual": "GREEN",
+      "pass": true,
+      "problems": [],
+      "reasons": [],
+      "note": "",
+      "pdf": "runs/edge/half_migrated/half_migrated_MigrationReport_v0.2.0_20261001-2039.pdf"
+    },
+    {
+      "case": "star_import",
+      "category": "twisted",
+      "expected": "YELLOW",
+      "actual": "YELLOW",
+      "pass": true,
+      "problems": [],
+      "reasons": [
+        "YELLOW residual: 1 site(s): src/pkg/legacy.py:1 (star-import)"
+      ],
+      "note": "known gap: names behind a star import are not resolved",
+      "pdf": "runs/edge/star_import/star_import_MigrationReport_v0.2.0_20261001-2039.pdf"
+    },
+    {
+      "case": "syntax_error_file",
+      "category": "twisted",
+      "expected": "YELLOW",
+      "actual": "YELLOW",
+      "pass": true,
+      "problems": [],
+      "reasons": [
+        "YELLOW unparseable: src/pkg/broken.py"
+      ],
+      "note": "skipped and reported; core.py still migrated",
+      "pdf": "runs/edge/syntax_error_file/syntax_error_file_MigrationReport_v0.2.0_20261001-2039.pdf"
+    },
+    {
+      "case": "edit_causes_infinite_loop",
+      "category": "failure",
+      "expected": "RED",
+      "actual": "RED",
+      "pass": true,
+      "problems": [],
+      "reasons": [
+        "RED gave_up: metrics.json: outcome=gave_up",
+        "RED suite_red: test_report.json: 0 failed, 1 errors \u2014 <sandbox> (Timeout: pytest exceeded the sandbox timeout)",
+        "YELLOW unexecuted: coverage.json unreadable (FileNotFoundError)"
+      ],
+      "note": "",
+      "pdf": "runs/edge/edit_causes_infinite_loop/edit_causes_infinite_loop_MigrationReport_v0.2.0_20261001-2039.pdf"
+    },
+    {
+      "case": "local_only_with_remote_providers",
+      "category": "failure",
+      "expected": "RED",
+      "actual": "RED",
+      "pass": true,
+      "problems": [],
+      "reasons": [
+        "RED refused: PrivacyError: MRA_PRIVACY=local-only: role 'edit' has only remote providers (deepseek (api.deepseek.com)); refusing before any network I/O"
+      ],
+      "note": "",
+      "pdf": "runs/edge/local_only_with_remote_providers/local_only_with_remote_providers_MigrationReport_v0.2.0_20261001-2039.pdf"
+    },
+    {
+      "case": "pre_suite_failing",
+      "category": "failure",
+      "expected": "RED",
+      "actual": "RED",
+      "pass": true,
+      "problems": [],
+      "reasons": [
+        "RED precondition: test_report_pre.json: 1/2 passed, 1 failed, 0 errors",
+        "YELLOW residual: 1 site(s): src/pkg/core.py:5"
+      ],
+      "note": "NB-10: refuse to migrate",
+      "pdf": "runs/edge/pre_suite_failing/pre_suite_failing_MigrationReport_v0.2.0_20261001-2039.pdf"
+    },
+    {
+      "case": "provider_unreachable",
+      "category": "failure",
+      "expected": "RED",
+      "actual": "RED",
+      "pass": true,
+      "problems": [],
+      "reasons": [
+        "RED provider: ProviderError: role 'classify': every provider was unreachable or failed \u2014 local-dead at 127.0.0.1: APIConnectionError: Connection error.",
+        "RED suite_red: test_report.json: 1 failed, 0 errors \u2014 tests/test_report.py::test_age_is_small (TypeError)",
+        "YELLOW residual: 1 site(s): src/pkg/report.py:7"
+      ],
+      "note": "",
+      "pdf": "runs/edge/provider_unreachable/provider_unreachable_MigrationReport_v0.2.0_20261001-2039.pdf"
+    },
+    {
+      "case": "test_needs_network",
+      "category": "failure",
+      "expected": "RED",
+      "actual": "RED",
+      "pass": true,
+      "problems": [],
+      "reasons": [
+        "RED precondition: test_report_pre.json: 1/2 passed, 1 failed, 0 errors; tests/test_core.py::test_fetch need(s) the network, which the sandbox does not have (--network none)",
+        "YELLOW residual: 1 site(s): src/pkg/core.py:5"
+      ],
+      "note": "",
+      "pdf": "runs/edge/test_needs_network/test_needs_network_MigrationReport_v0.2.0_20261001-2039.pdf"
+    },
+    {
+      "case": "unfixable_break",
+      "category": "failure",
+      "expected": "RED",
+      "actual": "RED",
+      "pass": true,
+      "problems": [],
+      "reasons": [
+        "RED gave_up: metrics.json: outcome=gave_up",
+        "RED suite_red: test_report.json: 1 failed, 0 errors \u2014 tests/test_core.py::test_naive_contract (AssertionError)"
+      ],
+      "note": "the oracle pins naive datetimes; nothing can fix it",
+      "pdf": "runs/edge/unfixable_break/unfixable_break_MigrationReport_v0.2.0_20261001-2039.pdf"
+    },
+    {
+      "case": "zero_tests",
+      "category": "failure",
+      "expected": "RED",
+      "actual": "RED",
+      "pass": true,
+      "problems": [],
+      "reasons": [
+        "RED precondition: test_report_pre.json: 0/0 passed, 0 failed, 0 errors",
+        "YELLOW residual: 1 site(s): src/pkg/core.py:5"
+      ],
+      "note": "",
+      "pdf": "runs/edge/zero_tests/zero_tests_MigrationReport_v0.2.0_20261001-2039.pdf"
+    }
+  ]
+}

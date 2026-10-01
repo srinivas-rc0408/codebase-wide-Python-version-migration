@@ -289,6 +289,18 @@ def _step(evidence: dict[str, Any], key: str, compute: Any) -> Any:
     return evidence.get(key)
 
 
+def edge_suite() -> dict[str, Any] | None:
+    """The last edge-case accuracy suite result (``corpus/edge/results.json``), summarised."""
+    from mra.benchmark.edge import DEFAULT_EDGE
+
+    try:
+        results = json.loads((DEFAULT_EDGE / "results.json").read_text())
+    except (OSError, ValueError):
+        return None
+    return {key: results[key] for key in ("agent_version", "generated_at", "passed", "total")} | {
+        "failing": [row["case"] for row in results["cases"] if not row["pass"]]}
+
+
 def collect(out_dir: Path, target: str, task_id: str, run_id: str) -> dict[str, Any]:
     """Measure everything and write ``verification.json``. Never raises."""
     repo, patch_path = out_dir / "repo", out_dir / "migration.patch"
@@ -312,6 +324,7 @@ def collect(out_dir: Path, target: str, task_id: str, run_id: str) -> dict[str, 
                                                             .splitlines())}
         for p in python_files(repo)])
     _step(evidence, "residual", lambda: residual_scan(repo, target))
+    evidence["edge_suite"] = edge_suite()
     fresh = _step(evidence, "fresh_checkout",
                   lambda: str(export_tree(repo, sha, verify_dir / "fresh"))) if sha else None
     fresh_path = Path(fresh) if fresh else None

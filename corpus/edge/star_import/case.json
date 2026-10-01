@@ -1,0 +1,10 @@
+{
+  "category": "twisted",
+  "expect": "YELLOW",
+  "code": "residual",
+  "evidence": "star-import",
+  "mode": "deterministic",
+  "env": {},
+  "note": "known gap: names behind a star import are not resolved",
+  "gold": []
+}

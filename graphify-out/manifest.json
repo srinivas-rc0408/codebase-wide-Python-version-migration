@@ -135,28 +135,28 @@
     "semantic_hash": ""
   },
   "src/mra/analysis/analyzer.py": {
-    "mtime": 1789874817.5148706,
-    "ast_hash": "81d02e4b73faa5b6ad3737c0f6955d55",
+    "mtime": 1790866505.037042,
+    "ast_hash": "c7c71be0171545f5f7297a011162e3a3",
     "semantic_hash": ""
   },
   "src/mra/analysis/call_sites.py": {
-    "mtime": 1789875227.503906,
-    "ast_hash": "b2b1e5a6547463d2528f2fe32f65efd3",
+    "mtime": 1790866486.1825805,
+    "ast_hash": "2c73fc851a685cb947f27fd2272b8539",
     "semantic_hash": ""
   },
   "src/mra/analysis/dep_graph.py": {
-    "mtime": 1789914409.6562471,
-    "ast_hash": "e15ff6e9c92d32acaf89009da2d7e307",
+    "mtime": 1790866495.9595962,
+    "ast_hash": "6ab3882ef8992657d442fcb49afb6e9c",
     "semantic_hash": ""
   },
   "src/mra/codemods/__init__.py": {
-    "mtime": 1790864198.508727,
-    "ast_hash": "28fb5fb0a02c708921c7113e3cd1c4fd",
+    "mtime": 1790866541.1330965,
+    "ast_hash": "e48737e593676558f52b1d5888b84ae3",
     "semantic_hash": ""
   },
   "src/mra/graph.py": {
-    "mtime": 1790864198.5089152,
-    "ast_hash": "a7ce4ed9f9096420237e612c86450156",
+    "mtime": 1790866807.7630756,
+    "ast_hash": "e52c6b7180ee75a4624ef7ae6c7732df",
     "semantic_hash": ""
   },
   "src/mra/metrics/__init__.py": {
@@ -170,8 +170,8 @@
     "semantic_hash": ""
   },
   "src/mra/models/__init__.py": {
-    "mtime": 1790860965.1492662,
-    "ast_hash": "8f2c80c32f88d6740444a6cd98b6d207",
+    "mtime": 1790866637.9253058,
+    "ast_hash": "ee543b9c22828f832e2de68786fa9cdd",
     "semantic_hash": ""
   },
   "src/mra/nodes/__init__.py": {
@@ -180,18 +180,18 @@
     "semantic_hash": ""
   },
   "src/mra/nodes/correct_node.py": {
-    "mtime": 1790860881.428255,
-    "ast_hash": "2836111c99896a98b6eef703192ea6fd",
+    "mtime": 1790866505.0368297,
+    "ast_hash": "e073e8122c1f140721bc9b45ac8a6d04",
     "semantic_hash": ""
   },
   "src/mra/nodes/edit_node.py": {
-    "mtime": 1789914434.4408276,
-    "ast_hash": "9b9bffd518ae35a1fb87ad819ba381c7",
+    "mtime": 1790866553.2696807,
+    "ast_hash": "bd2848164555d12d6bea596ecae9e2e8",
     "semantic_hash": ""
   },
   "src/mra/nodes/map_node.py": {
-    "mtime": 1789914434.4234805,
-    "ast_hash": "5432c64c9feb30e60e9104d253d5f19e",
+    "mtime": 1790866505.0373585,
+    "ast_hash": "1a5488137567b1ea7399ca554ef21709",
     "semantic_hash": ""
   },
   "src/mra/nodes/plan_node.py": {
@@ -205,8 +205,8 @@
     "semantic_hash": ""
   },
   "src/mra/run.py": {
-    "mtime": 1789912436.0185354,
-    "ast_hash": "7f6f92f04d2b69dd3c73d355c89aa259",
+    "mtime": 1790866819.6207728,
+    "ast_hash": "59fb1deb4dc257dcddf9f40d753ea86a",
     "semantic_hash": ""
   },
   "src/mra/sandbox/__init__.py": {
@@ -220,8 +220,8 @@
     "semantic_hash": ""
   },
   "src/mra/sandbox/runner.py": {
-    "mtime": 1790862368.8598306,
-    "ast_hash": "7d130fd09cab8efa076b7f5317aeb1bc",
+    "mtime": 1790867233.713105,
+    "ast_hash": "2e9d94cbb01eb6a5aec71f396931b188",
     "semantic_hash": ""
   },
   "src/mra/state.py": {
@@ -235,13 +235,13 @@
     "semantic_hash": ""
   },
   "tests/test_analyzer.py": {
-    "mtime": 1789874953.156185,
-    "ast_hash": "2de4e5061ec2a0a13f6577eabee503af",
+    "mtime": 1790867156.279251,
+    "ast_hash": "cafa62e4926fb29d2902018436d1adf5",
     "semantic_hash": ""
   },
   "tests/test_sandbox.py": {
-    "mtime": 1789873993.5026774,
-    "ast_hash": "dfecd74d79fd0ce4f000106e4bebc5e9",
+    "mtime": 1790867156.277251,
+    "ast_hash": "cef908d42097c7f5a59ae8e610f38d25",
     "semantic_hash": ""
   },
   "CLAUDE.md": {
@@ -255,8 +255,8 @@
     "semantic_hash": ""
   },
   "README.md": {
-    "mtime": 1790864546.3800585,
-    "ast_hash": "e1bcab8110a0f2a17df2ba3f9a7b7489",
+    "mtime": 1790867290.1465225,
+    "ast_hash": "117ba75f97731e93509e407a4f35cb08",
     "semantic_hash": ""
   },
   "corpus/tierA/task01_datetime/README.md": {
@@ -320,8 +320,8 @@
     "semantic_hash": ""
   },
   "src/mra/codemods/datetime_utcnow.py": {
-    "mtime": 1790864198.5086083,
-    "ast_hash": "8202d1cb1cdb7b203fe5a1d243d261e8",
+    "mtime": 1790866905.9304922,
+    "ast_hash": "898e01e29f8350e2912756cc92fe155f",
     "semantic_hash": ""
   },
   "src/mra/metrics/m2.py": {
@@ -590,8 +590,8 @@
     "semantic_hash": ""
   },
   "src/mra/models/router.py": {
-    "mtime": 1790861040.503684,
-    "ast_hash": "86503ec7e7d35dc17f2fe6834bb98fa6",
+    "mtime": 1790866807.7623477,
+    "ast_hash": "8ab525b65fa3255f879235c511e5c892",
     "semantic_hash": ""
   },
   "src/mra/recovery/__init__.py": {
@@ -845,8 +845,8 @@
     "semantic_hash": ""
   },
   "tests/test_providers.py": {
-    "mtime": 1790861028.6970096,
-    "ast_hash": "ef6944d6defff30d0637b36ad851cc7c",
+    "mtime": 1790867156.3138762,
+    "ast_hash": "2d6ce2e7169a819326e12618f8d598d1",
     "semantic_hash": ""
   },
   "docs/paper/paper.md": {
@@ -855,18 +855,18 @@
     "semantic_hash": ""
   },
   "src/mra/report/__init__.py": {
-    "mtime": 1790864406.0705714,
-    "ast_hash": "fb0fc85a4c6bbe13b34473d5e30d62a1",
+    "mtime": 1790866683.5385063,
+    "ast_hash": "5cd9f6254af968d0c7a536cdddfb010d",
     "semantic_hash": ""
   },
   "src/mra/report/evidence.py": {
-    "mtime": 1790864504.4089186,
-    "ast_hash": "042d2214c5eeb32e68f6c884738465ec",
+    "mtime": 1790868370.608617,
+    "ast_hash": "b0c7127909e7e9462eb8b9d80522e8df",
     "semantic_hash": ""
   },
   "src/mra/report/model.py": {
-    "mtime": 1790864495.873752,
-    "ast_hash": "03166fe8912d48d67ac7f8aacba59149",
+    "mtime": 1790868370.6087372,
+    "ast_hash": "b01e680a3645b1810c17577f46e0794d",
     "semantic_hash": ""
   },
   "src/mra/report/pdf.py": {
@@ -875,13 +875,928 @@
     "semantic_hash": ""
   },
   "src/mra/verdict.py": {
-    "mtime": 1790864511.954955,
-    "ast_hash": "1304932adc17372f36302467bcc6b9a2",
+    "mtime": 1790866671.063994,
+    "ast_hash": "c7ea43ff7c470c10b9dbb746efdda450",
     "semantic_hash": ""
   },
   "tests/test_report.py": {
-    "mtime": 1790864384.6697094,
-    "ast_hash": "125d36a05d56491c0d84129cb8bcef4a",
+    "mtime": 1790867163.0259314,
+    "ast_hash": "f55cee769785e64548f266cdfdd07cb3",
+    "semantic_hash": ""
+  },
+  "corpus/edge/_build.py": {
+    "mtime": 1790865033.1013927,
+    "ast_hash": "17913e0f7dbb4d9f330b4f97e1b65d61",
+    "semantic_hash": ""
+  },
+  "corpus/edge/aliased_class/old/pyproject.toml": {
+    "mtime": 1790866082.7979774,
+    "ast_hash": "6a7321293737a4d663c98dfbd857c9b9",
+    "semantic_hash": ""
+  },
+  "corpus/edge/aliased_class/old/src/pkg/__init__.py": {
+    "mtime": 1790866082.7979774,
+    "ast_hash": "d41d8cd98f00b204e9800998ecf8427e",
+    "semantic_hash": ""
+  },
+  "corpus/edge/aliased_class/old/src/pkg/core.py": {
+    "mtime": 1790866082.7983012,
+    "ast_hash": "50a8ae06406d2edb8b13a3ec61aaf537",
+    "semantic_hash": ""
+  },
+  "corpus/edge/aliased_class/old/tests/test_core.py": {
+    "mtime": 1790866082.798511,
+    "ast_hash": "0ac9b5e67ce0e811e2f314152194f90c",
+    "semantic_hash": ""
+  },
+  "corpus/edge/aliased_module/old/pyproject.toml": {
+    "mtime": 1790866082.7972128,
+    "ast_hash": "6a7321293737a4d663c98dfbd857c9b9",
+    "semantic_hash": ""
+  },
+  "corpus/edge/aliased_module/old/src/pkg/__init__.py": {
+    "mtime": 1790866082.7972128,
+    "ast_hash": "d41d8cd98f00b204e9800998ecf8427e",
+    "semantic_hash": ""
+  },
+  "corpus/edge/aliased_module/old/src/pkg/core.py": {
+    "mtime": 1790866082.7973976,
+    "ast_hash": "00074eda8125703692f3981806988fe9",
+    "semantic_hash": ""
+  },
+  "corpus/edge/aliased_module/old/tests/test_core.py": {
+    "mtime": 1790866082.7975106,
+    "ast_hash": "0ac9b5e67ce0e811e2f314152194f90c",
+    "semantic_hash": ""
+  },
+  "corpus/edge/already_migrated/old/pyproject.toml": {
+    "mtime": 1790866082.8239746,
+    "ast_hash": "6a7321293737a4d663c98dfbd857c9b9",
+    "semantic_hash": ""
+  },
+  "corpus/edge/already_migrated/old/src/pkg/__init__.py": {
+    "mtime": 1790866082.8239746,
+    "ast_hash": "d41d8cd98f00b204e9800998ecf8427e",
+    "semantic_hash": ""
+  },
+  "corpus/edge/already_migrated/old/src/pkg/core.py": {
+    "mtime": 1790866082.824171,
+    "ast_hash": "162cc2f39d695e7fa5f8b89a03b50935",
+    "semantic_hash": ""
+  },
+  "corpus/edge/already_migrated/old/tests/test_core.py": {
+    "mtime": 1790866082.8242671,
+    "ast_hash": "0ac9b5e67ce0e811e2f314152194f90c",
+    "semantic_hash": ""
+  },
+  "corpus/edge/bare_reference/old/pyproject.toml": {
+    "mtime": 1790866082.8253489,
+    "ast_hash": "6a7321293737a4d663c98dfbd857c9b9",
+    "semantic_hash": ""
+  },
+  "corpus/edge/bare_reference/old/src/pkg/__init__.py": {
+    "mtime": 1790866082.8253741,
+    "ast_hash": "d41d8cd98f00b204e9800998ecf8427e",
+    "semantic_hash": ""
+  },
+  "corpus/edge/bare_reference/old/src/pkg/core.py": {
+    "mtime": 1790866082.8255503,
+    "ast_hash": "c4ea30c4cb54e495a8438c131e43a32e",
+    "semantic_hash": ""
+  },
+  "corpus/edge/bare_reference/old/tests/test_core.py": {
+    "mtime": 1790866082.8256493,
+    "ast_hash": "f3d0b792c082ae30d16bf066f48007e0",
+    "semantic_hash": ""
+  },
+  "corpus/edge/class_body_and_classmethod/old/pyproject.toml": {
+    "mtime": 1790866082.8075433,
+    "ast_hash": "6a7321293737a4d663c98dfbd857c9b9",
+    "semantic_hash": ""
+  },
+  "corpus/edge/class_body_and_classmethod/old/src/pkg/__init__.py": {
+    "mtime": 1790866082.8075433,
+    "ast_hash": "d41d8cd98f00b204e9800998ecf8427e",
+    "semantic_hash": ""
+  },
+  "corpus/edge/class_body_and_classmethod/old/src/pkg/core.py": {
+    "mtime": 1790866082.8077292,
+    "ast_hash": "7968fd565a42c15c90888a62eb94f0e4",
+    "semantic_hash": ""
+  },
+  "corpus/edge/class_body_and_classmethod/old/tests/test_core.py": {
+    "mtime": 1790866082.80782,
+    "ast_hash": "6d189c461ecf8846bcc26a5469d87939",
+    "semantic_hash": ""
+  },
+  "corpus/edge/conditional_import/old/pyproject.toml": {
+    "mtime": 1790866082.8082075,
+    "ast_hash": "6a7321293737a4d663c98dfbd857c9b9",
+    "semantic_hash": ""
+  },
+  "corpus/edge/conditional_import/old/src/pkg/__init__.py": {
+    "mtime": 1790866082.8082075,
+    "ast_hash": "d41d8cd98f00b204e9800998ecf8427e",
+    "semantic_hash": ""
+  },
+  "corpus/edge/conditional_import/old/src/pkg/core.py": {
+    "mtime": 1790866082.8083854,
+    "ast_hash": "50ccfa8d6343c1dd00fd82a8706ff6b6",
+    "semantic_hash": ""
+  },
+  "corpus/edge/conditional_import/old/tests/test_core.py": {
+    "mtime": 1790866082.8085027,
+    "ast_hash": "0ac9b5e67ce0e811e2f314152194f90c",
+    "semantic_hash": ""
+  },
+  "corpus/edge/crlf_line_endings/gold/src/pkg/core.py": {
+    "mtime": 1790866082.8113396,
+    "ast_hash": "84d3be312db2273f4e6c08e478a6381c",
+    "semantic_hash": ""
+  },
+  "corpus/edge/crlf_line_endings/old/pyproject.toml": {
+    "mtime": 1790866082.8104572,
+    "ast_hash": "6a7321293737a4d663c98dfbd857c9b9",
+    "semantic_hash": ""
+  },
+  "corpus/edge/crlf_line_endings/old/src/pkg/__init__.py": {
+    "mtime": 1790866082.8104572,
+    "ast_hash": "d41d8cd98f00b204e9800998ecf8427e",
+    "semantic_hash": ""
+  },
+  "corpus/edge/crlf_line_endings/old/src/pkg/core.py": {
+    "mtime": 1790866082.810821,
+    "ast_hash": "a8246d5ce3d8e8d5804b182c943315dc",
+    "semantic_hash": ""
+  },
+  "corpus/edge/crlf_line_endings/old/tests/test_core.py": {
+    "mtime": 1790866082.8110468,
+    "ast_hash": "0ac9b5e67ce0e811e2f314152194f90c",
+    "semantic_hash": ""
+  },
+  "corpus/edge/cross_file_recovery/old/pyproject.toml": {
+    "mtime": 1790866082.8009367,
+    "ast_hash": "6a7321293737a4d663c98dfbd857c9b9",
+    "semantic_hash": ""
+  },
+  "corpus/edge/cross_file_recovery/old/src/pkg/__init__.py": {
+    "mtime": 1790866082.8009367,
+    "ast_hash": "d41d8cd98f00b204e9800998ecf8427e",
+    "semantic_hash": ""
+  },
+  "corpus/edge/cross_file_recovery/old/src/pkg/core.py": {
+    "mtime": 1790866082.8011236,
+    "ast_hash": "c85cb36d0152f28709e3db7f86449c43",
+    "semantic_hash": ""
+  },
+  "corpus/edge/cross_file_recovery/old/src/pkg/report.py": {
+    "mtime": 1790866082.801192,
+    "ast_hash": "3bc7d508317646c57716c795cbc777e6",
+    "semantic_hash": ""
+  },
+  "corpus/edge/cross_file_recovery/old/tests/test_core.py": {
+    "mtime": 1790866082.8012857,
+    "ast_hash": "0ac9b5e67ce0e811e2f314152194f90c",
+    "semantic_hash": ""
+  },
+  "corpus/edge/cross_file_recovery/old/tests/test_report.py": {
+    "mtime": 1790866082.8013766,
+    "ast_hash": "5384aa605f5b2489a5ee25391888034c",
+    "semantic_hash": ""
+  },
+  "corpus/edge/cross_file_recovery_llm/old/pyproject.toml": {
+    "mtime": 1790866082.8017583,
+    "ast_hash": "6a7321293737a4d663c98dfbd857c9b9",
+    "semantic_hash": ""
+  },
+  "corpus/edge/cross_file_recovery_llm/old/src/pkg/__init__.py": {
+    "mtime": 1790866082.8017583,
+    "ast_hash": "d41d8cd98f00b204e9800998ecf8427e",
+    "semantic_hash": ""
+  },
+  "corpus/edge/cross_file_recovery_llm/old/src/pkg/core.py": {
+    "mtime": 1790866082.8019278,
+    "ast_hash": "c85cb36d0152f28709e3db7f86449c43",
+    "semantic_hash": ""
+  },
+  "corpus/edge/cross_file_recovery_llm/old/src/pkg/report.py": {
+    "mtime": 1790866082.80203,
+    "ast_hash": "3bc7d508317646c57716c795cbc777e6",
+    "semantic_hash": ""
+  },
+  "corpus/edge/cross_file_recovery_llm/old/tests/test_core.py": {
+    "mtime": 1790866082.8021603,
+    "ast_hash": "0ac9b5e67ce0e811e2f314152194f90c",
+    "semantic_hash": ""
+  },
+  "corpus/edge/cross_file_recovery_llm/old/tests/test_report.py": {
+    "mtime": 1790866082.8022525,
+    "ast_hash": "5384aa605f5b2489a5ee25391888034c",
+    "semantic_hash": ""
+  },
+  "corpus/edge/default_argument/old/pyproject.toml": {
+    "mtime": 1790866082.8044698,
+    "ast_hash": "6a7321293737a4d663c98dfbd857c9b9",
+    "semantic_hash": ""
+  },
+  "corpus/edge/default_argument/old/src/pkg/__init__.py": {
+    "mtime": 1790866082.8044698,
+    "ast_hash": "d41d8cd98f00b204e9800998ecf8427e",
+    "semantic_hash": ""
+  },
+  "corpus/edge/default_argument/old/src/pkg/core.py": {
+    "mtime": 1790866082.8047152,
+    "ast_hash": "ecdb54167daad102896d150f9ea4ef63",
+    "semantic_hash": ""
+  },
+  "corpus/edge/default_argument/old/tests/test_core.py": {
+    "mtime": 1790866082.8048255,
+    "ast_hash": "159142264e3870bf5a491cbd9067924f",
+    "semantic_hash": ""
+  },
+  "corpus/edge/deprecated_call_in_test_file/old/pyproject.toml": {
+    "mtime": 1790866082.8276784,
+    "ast_hash": "6a7321293737a4d663c98dfbd857c9b9",
+    "semantic_hash": ""
+  },
+  "corpus/edge/deprecated_call_in_test_file/old/src/pkg/__init__.py": {
+    "mtime": 1790866082.8276784,
+    "ast_hash": "d41d8cd98f00b204e9800998ecf8427e",
+    "semantic_hash": ""
+  },
+  "corpus/edge/deprecated_call_in_test_file/old/src/pkg/core.py": {
+    "mtime": 1790866082.828225,
+    "ast_hash": "c85cb36d0152f28709e3db7f86449c43",
+    "semantic_hash": ""
+  },
+  "corpus/edge/deprecated_call_in_test_file/old/tests/test_core.py": {
+    "mtime": 1790866082.8283744,
+    "ast_hash": "7107fd4be39e37f63e2d00d28fea5772",
+    "semantic_hash": ""
+  },
+  "corpus/edge/edit_causes_infinite_loop/old/pyproject.toml": {
+    "mtime": 1790866082.8333774,
+    "ast_hash": "6a7321293737a4d663c98dfbd857c9b9",
+    "semantic_hash": ""
+  },
+  "corpus/edge/edit_causes_infinite_loop/old/src/pkg/__init__.py": {
+    "mtime": 1790866082.8333774,
+    "ast_hash": "d41d8cd98f00b204e9800998ecf8427e",
+    "semantic_hash": ""
+  },
+  "corpus/edge/edit_causes_infinite_loop/old/src/pkg/core.py": {
+    "mtime": 1790866082.833576,
+    "ast_hash": "e35902c4b4d0f79cb91dc1e09a3d227e",
+    "semantic_hash": ""
+  },
+  "corpus/edge/edit_causes_infinite_loop/old/tests/test_core.py": {
+    "mtime": 1790866082.8336642,
+    "ast_hash": "65f60cf59e237eeb3758007546400a75",
+    "semantic_hash": ""
+  },
+  "corpus/edge/empty_and_comment_only_files/old/pyproject.toml": {
+    "mtime": 1790866082.8302543,
+    "ast_hash": "6a7321293737a4d663c98dfbd857c9b9",
+    "semantic_hash": ""
+  },
+  "corpus/edge/empty_and_comment_only_files/old/src/pkg/__init__.py": {
+    "mtime": 1790866082.8302543,
+    "ast_hash": "d41d8cd98f00b204e9800998ecf8427e",
+    "semantic_hash": ""
+  },
+  "corpus/edge/empty_and_comment_only_files/old/src/pkg/core.py": {
+    "mtime": 1790866082.8303745,
+    "ast_hash": "c85cb36d0152f28709e3db7f86449c43",
+    "semantic_hash": ""
+  },
+  "corpus/edge/empty_and_comment_only_files/old/src/pkg/empty.py": {
+    "mtime": 1790866082.8305736,
+    "ast_hash": "d41d8cd98f00b204e9800998ecf8427e",
+    "semantic_hash": ""
+  },
+  "corpus/edge/empty_and_comment_only_files/old/src/pkg/notes.py": {
+    "mtime": 1790866082.8308325,
+    "ast_hash": "f070de06d9b01961205fbaed3bd205b9",
+    "semantic_hash": ""
+  },
+  "corpus/edge/empty_and_comment_only_files/old/tests/test_core.py": {
+    "mtime": 1790866082.8305736,
+    "ast_hash": "0ac9b5e67ce0e811e2f314152194f90c",
+    "semantic_hash": ""
+  },
+  "corpus/edge/encoding_cookie_non_ascii/gold/src/pkg/core.py": {
+    "mtime": 1790866082.816083,
+    "ast_hash": "1677a16015485635becb61970f94ab23",
+    "semantic_hash": ""
+  },
+  "corpus/edge/encoding_cookie_non_ascii/old/pyproject.toml": {
+    "mtime": 1790866082.8132896,
+    "ast_hash": "6a7321293737a4d663c98dfbd857c9b9",
+    "semantic_hash": ""
+  },
+  "corpus/edge/encoding_cookie_non_ascii/old/src/pkg/__init__.py": {
+    "mtime": 1790866082.8133738,
+    "ast_hash": "d41d8cd98f00b204e9800998ecf8427e",
+    "semantic_hash": ""
+  },
+  "corpus/edge/encoding_cookie_non_ascii/old/src/pkg/core.py": {
+    "mtime": 1790866082.8140156,
+    "ast_hash": "fa5c22efb30dfe3d518c4dae410cb301",
+    "semantic_hash": ""
+  },
+  "corpus/edge/encoding_cookie_non_ascii/old/tests/test_core.py": {
+    "mtime": 1790866082.815179,
+    "ast_hash": "0ac9b5e67ce0e811e2f314152194f90c",
+    "semantic_hash": ""
+  },
+  "corpus/edge/from_import/old/pyproject.toml": {
+    "mtime": 1790866082.795377,
+    "ast_hash": "6a7321293737a4d663c98dfbd857c9b9",
+    "semantic_hash": ""
+  },
+  "corpus/edge/from_import/old/src/pkg/__init__.py": {
+    "mtime": 1790866082.795377,
+    "ast_hash": "d41d8cd98f00b204e9800998ecf8427e",
+    "semantic_hash": ""
+  },
+  "corpus/edge/from_import/old/src/pkg/core.py": {
+    "mtime": 1790866082.795764,
+    "ast_hash": "c85cb36d0152f28709e3db7f86449c43",
+    "semantic_hash": ""
+  },
+  "corpus/edge/from_import/old/tests/test_core.py": {
+    "mtime": 1790866082.7958956,
+    "ast_hash": "0ac9b5e67ce0e811e2f314152194f90c",
+    "semantic_hash": ""
+  },
+  "corpus/edge/half_migrated/old/pyproject.toml": {
+    "mtime": 1790866082.8246284,
+    "ast_hash": "6a7321293737a4d663c98dfbd857c9b9",
+    "semantic_hash": ""
+  },
+  "corpus/edge/half_migrated/old/src/pkg/__init__.py": {
+    "mtime": 1790866082.8246284,
+    "ast_hash": "d41d8cd98f00b204e9800998ecf8427e",
+    "semantic_hash": ""
+  },
+  "corpus/edge/half_migrated/old/src/pkg/core.py": {
+    "mtime": 1790866082.8248134,
+    "ast_hash": "ba77e18349309bd97d04fbe96b4fd1b6",
+    "semantic_hash": ""
+  },
+  "corpus/edge/half_migrated/old/src/pkg/done.py": {
+    "mtime": 1790866082.8248837,
+    "ast_hash": "ae904ee137701302e98a1dd7fd97a900",
+    "semantic_hash": ""
+  },
+  "corpus/edge/half_migrated/old/tests/test_core.py": {
+    "mtime": 1790866082.8249874,
+    "ast_hash": "c64faf472240f5aa5da173e762e623df",
+    "semantic_hash": ""
+  },
+  "corpus/edge/import_cycle/old/pyproject.toml": {
+    "mtime": 1790866082.8028724,
+    "ast_hash": "6a7321293737a4d663c98dfbd857c9b9",
+    "semantic_hash": ""
+  },
+  "corpus/edge/import_cycle/old/src/pkg/__init__.py": {
+    "mtime": 1790866082.8028724,
+    "ast_hash": "d41d8cd98f00b204e9800998ecf8427e",
+    "semantic_hash": ""
+  },
+  "corpus/edge/import_cycle/old/src/pkg/a.py": {
+    "mtime": 1790866082.8031578,
+    "ast_hash": "13a59b4aa435366339de034342483725",
+    "semantic_hash": ""
+  },
+  "corpus/edge/import_cycle/old/src/pkg/b.py": {
+    "mtime": 1790866082.8032541,
+    "ast_hash": "6d34114c7f9deb1f76553da0878e5a57",
+    "semantic_hash": ""
+  },
+  "corpus/edge/import_cycle/old/tests/test_cycle.py": {
+    "mtime": 1790866082.8033524,
+    "ast_hash": "5ca1617ce03006bb281cb7b693e6b1d1",
+    "semantic_hash": ""
+  },
+  "corpus/edge/inside_decorator_argument/old/pyproject.toml": {
+    "mtime": 1790866082.806782,
+    "ast_hash": "6a7321293737a4d663c98dfbd857c9b9",
+    "semantic_hash": ""
+  },
+  "corpus/edge/inside_decorator_argument/old/src/pkg/__init__.py": {
+    "mtime": 1790866082.806782,
+    "ast_hash": "d41d8cd98f00b204e9800998ecf8427e",
+    "semantic_hash": ""
+  },
+  "corpus/edge/inside_decorator_argument/old/src/pkg/core.py": {
+    "mtime": 1790866082.8070545,
+    "ast_hash": "548f8d1b49c4f51fefbb5516ed37e909",
+    "semantic_hash": ""
+  },
+  "corpus/edge/inside_decorator_argument/old/tests/test_core.py": {
+    "mtime": 1790866082.8071609,
+    "ast_hash": "ad037082b5600f992f28864fed6b135c",
+    "semantic_hash": ""
+  },
+  "corpus/edge/inside_fstring/old/pyproject.toml": {
+    "mtime": 1790866082.8060558,
+    "ast_hash": "6a7321293737a4d663c98dfbd857c9b9",
+    "semantic_hash": ""
+  },
+  "corpus/edge/inside_fstring/old/src/pkg/__init__.py": {
+    "mtime": 1790866082.8060558,
+    "ast_hash": "d41d8cd98f00b204e9800998ecf8427e",
+    "semantic_hash": ""
+  },
+  "corpus/edge/inside_fstring/old/src/pkg/core.py": {
+    "mtime": 1790866082.8062387,
+    "ast_hash": "06bbd02e177cb9630283554790d4f222",
+    "semantic_hash": ""
+  },
+  "corpus/edge/inside_fstring/old/tests/test_core.py": {
+    "mtime": 1790866082.8063304,
+    "ast_hash": "3125d6f6f1b7174be17256d5448767e7",
+    "semantic_hash": ""
+  },
+  "corpus/edge/inside_lambda/old/pyproject.toml": {
+    "mtime": 1790866082.805278,
+    "ast_hash": "6a7321293737a4d663c98dfbd857c9b9",
+    "semantic_hash": ""
+  },
+  "corpus/edge/inside_lambda/old/src/pkg/__init__.py": {
+    "mtime": 1790866082.8053734,
+    "ast_hash": "d41d8cd98f00b204e9800998ecf8427e",
+    "semantic_hash": ""
+  },
+  "corpus/edge/inside_lambda/old/src/pkg/core.py": {
+    "mtime": 1790866082.8055618,
+    "ast_hash": "95b94158e8cf14afb1a347f915160724",
+    "semantic_hash": ""
+  },
+  "corpus/edge/inside_lambda/old/tests/test_core.py": {
+    "mtime": 1790866082.805673,
+    "ast_hash": "0ac9b5e67ce0e811e2f314152194f90c",
+    "semantic_hash": ""
+  },
+  "corpus/edge/local_only_with_remote_providers/old/pyproject.toml": {
+    "mtime": 1790866082.8360713,
+    "ast_hash": "6a7321293737a4d663c98dfbd857c9b9",
+    "semantic_hash": ""
+  },
+  "corpus/edge/local_only_with_remote_providers/old/src/pkg/__init__.py": {
+    "mtime": 1790866082.8360713,
+    "ast_hash": "d41d8cd98f00b204e9800998ecf8427e",
+    "semantic_hash": ""
+  },
+  "corpus/edge/local_only_with_remote_providers/old/src/pkg/core.py": {
+    "mtime": 1790866082.8362935,
+    "ast_hash": "c85cb36d0152f28709e3db7f86449c43",
+    "semantic_hash": ""
+  },
+  "corpus/edge/local_only_with_remote_providers/old/tests/test_core.py": {
+    "mtime": 1790866082.8363886,
+    "ast_hash": "0ac9b5e67ce0e811e2f314152194f90c",
+    "semantic_hash": ""
+  },
+  "corpus/edge/module_import/old/pyproject.toml": {
+    "mtime": 1790866082.7965279,
+    "ast_hash": "6a7321293737a4d663c98dfbd857c9b9",
+    "semantic_hash": ""
+  },
+  "corpus/edge/module_import/old/src/pkg/__init__.py": {
+    "mtime": 1790866082.7965279,
+    "ast_hash": "d41d8cd98f00b204e9800998ecf8427e",
+    "semantic_hash": ""
+  },
+  "corpus/edge/module_import/old/src/pkg/core.py": {
+    "mtime": 1790866082.796734,
+    "ast_hash": "d193171b2af7d6d85c3e7fbc7f36fd48",
+    "semantic_hash": ""
+  },
+  "corpus/edge/module_import/old/tests/test_core.py": {
+    "mtime": 1790866082.7968276,
+    "ast_hash": "0ac9b5e67ce0e811e2f314152194f90c",
+    "semantic_hash": ""
+  },
+  "corpus/edge/multi_site_one_file/old/pyproject.toml": {
+    "mtime": 1790866082.7989666,
+    "ast_hash": "6a7321293737a4d663c98dfbd857c9b9",
+    "semantic_hash": ""
+  },
+  "corpus/edge/multi_site_one_file/old/src/pkg/__init__.py": {
+    "mtime": 1790866082.7989666,
+    "ast_hash": "d41d8cd98f00b204e9800998ecf8427e",
+    "semantic_hash": ""
+  },
+  "corpus/edge/multi_site_one_file/old/src/pkg/core.py": {
+    "mtime": 1790866082.7991514,
+    "ast_hash": "43c453b074bf86dd9a62372a27af3323",
+    "semantic_hash": ""
+  },
+  "corpus/edge/multi_site_one_file/old/tests/test_core.py": {
+    "mtime": 1790866082.799241,
+    "ast_hash": "054680bd53f8d2147c9e9149a80ba128",
+    "semantic_hash": ""
+  },
+  "corpus/edge/other_object_with_utcnow/old/pyproject.toml": {
+    "mtime": 1790866082.8219726,
+    "ast_hash": "6a7321293737a4d663c98dfbd857c9b9",
+    "semantic_hash": ""
+  },
+  "corpus/edge/other_object_with_utcnow/old/src/pkg/__init__.py": {
+    "mtime": 1790866082.8219726,
+    "ast_hash": "d41d8cd98f00b204e9800998ecf8427e",
+    "semantic_hash": ""
+  },
+  "corpus/edge/other_object_with_utcnow/old/src/pkg/core.py": {
+    "mtime": 1790866082.8221762,
+    "ast_hash": "00dcb4a5e645e2636d6814f32e4ab155",
+    "semantic_hash": ""
+  },
+  "corpus/edge/other_object_with_utcnow/old/tests/test_core.py": {
+    "mtime": 1790866082.8223019,
+    "ast_hash": "089ba93f095bcaac88cddfdcf8c5009b",
+    "semantic_hash": ""
+  },
+  "corpus/edge/pre_suite_failing/old/pyproject.toml": {
+    "mtime": 1790866082.8314376,
+    "ast_hash": "6a7321293737a4d663c98dfbd857c9b9",
+    "semantic_hash": ""
+  },
+  "corpus/edge/pre_suite_failing/old/src/pkg/__init__.py": {
+    "mtime": 1790866082.8314376,
+    "ast_hash": "d41d8cd98f00b204e9800998ecf8427e",
+    "semantic_hash": ""
+  },
+  "corpus/edge/pre_suite_failing/old/src/pkg/core.py": {
+    "mtime": 1790866082.8316593,
+    "ast_hash": "c85cb36d0152f28709e3db7f86449c43",
+    "semantic_hash": ""
+  },
+  "corpus/edge/pre_suite_failing/old/tests/test_core.py": {
+    "mtime": 1790866082.831766,
+    "ast_hash": "f5f7674812cb4582733b884ea0170c8b",
+    "semantic_hash": ""
+  },
+  "corpus/edge/provider_unreachable/old/pyproject.toml": {
+    "mtime": 1790866082.8347938,
+    "ast_hash": "6a7321293737a4d663c98dfbd857c9b9",
+    "semantic_hash": ""
+  },
+  "corpus/edge/provider_unreachable/old/src/pkg/__init__.py": {
+    "mtime": 1790866082.8347938,
+    "ast_hash": "d41d8cd98f00b204e9800998ecf8427e",
+    "semantic_hash": ""
+  },
+  "corpus/edge/provider_unreachable/old/src/pkg/core.py": {
+    "mtime": 1790866082.8349621,
+    "ast_hash": "c85cb36d0152f28709e3db7f86449c43",
+    "semantic_hash": ""
+  },
+  "corpus/edge/provider_unreachable/old/src/pkg/report.py": {
+    "mtime": 1790866082.835033,
+    "ast_hash": "3bc7d508317646c57716c795cbc777e6",
+    "semantic_hash": ""
+  },
+  "corpus/edge/provider_unreachable/old/tests/test_core.py": {
+    "mtime": 1790866082.8351228,
+    "ast_hash": "0ac9b5e67ce0e811e2f314152194f90c",
+    "semantic_hash": ""
+  },
+  "corpus/edge/provider_unreachable/old/tests/test_report.py": {
+    "mtime": 1790866082.8351865,
+    "ast_hash": "5384aa605f5b2489a5ee25391888034c",
+    "semantic_hash": ""
+  },
+  "corpus/edge/reexport_through_init/old/pyproject.toml": {
+    "mtime": 1790866082.8089898,
+    "ast_hash": "6a7321293737a4d663c98dfbd857c9b9",
+    "semantic_hash": ""
+  },
+  "corpus/edge/reexport_through_init/old/src/pkg/__init__.py": {
+    "mtime": 1790866082.809106,
+    "ast_hash": "e078da9a5cea95cb29f224c313fed9f1",
+    "semantic_hash": ""
+  },
+  "corpus/edge/reexport_through_init/old/src/pkg/core.py": {
+    "mtime": 1790866082.8091884,
+    "ast_hash": "2e53636facd7cbdaa8711356d7630b92",
+    "semantic_hash": ""
+  },
+  "corpus/edge/reexport_through_init/old/tests/test_core.py": {
+    "mtime": 1790866082.809265,
+    "ast_hash": "0ac9b5e67ce0e811e2f314152194f90c",
+    "semantic_hash": ""
+  },
+  "corpus/edge/relative_imports/old/pyproject.toml": {
+    "mtime": 1790866082.8095865,
+    "ast_hash": "6a7321293737a4d663c98dfbd857c9b9",
+    "semantic_hash": ""
+  },
+  "corpus/edge/relative_imports/old/src/pkg/__init__.py": {
+    "mtime": 1790866082.8095865,
+    "ast_hash": "d41d8cd98f00b204e9800998ecf8427e",
+    "semantic_hash": ""
+  },
+  "corpus/edge/relative_imports/old/src/pkg/compat.py": {
+    "mtime": 1790866082.809753,
+    "ast_hash": "e078da9a5cea95cb29f224c313fed9f1",
+    "semantic_hash": ""
+  },
+  "corpus/edge/relative_imports/old/src/pkg/core.py": {
+    "mtime": 1790866082.8098297,
+    "ast_hash": "2bf6566aa3114f1f732b8a015385c846",
+    "semantic_hash": ""
+  },
+  "corpus/edge/relative_imports/old/src/pkg/report.py": {
+    "mtime": 1790866082.8098984,
+    "ast_hash": "35bf933df3e9c8d34f58cc1dd62282c5",
+    "semantic_hash": ""
+  },
+  "corpus/edge/relative_imports/old/tests/test_core.py": {
+    "mtime": 1790866082.8099837,
+    "ast_hash": "0ac9b5e67ce0e811e2f314152194f90c",
+    "semantic_hash": ""
+  },
+  "corpus/edge/relative_imports/old/tests/test_report.py": {
+    "mtime": 1790866082.8100514,
+    "ast_hash": "771740eb885f5882e4be0ed8ed3606ce",
+    "semantic_hash": ""
+  },
+  "corpus/edge/shadowed_local_name/old/pyproject.toml": {
+    "mtime": 1790866082.823221,
+    "ast_hash": "6a7321293737a4d663c98dfbd857c9b9",
+    "semantic_hash": ""
+  },
+  "corpus/edge/shadowed_local_name/old/src/pkg/__init__.py": {
+    "mtime": 1790866082.823221,
+    "ast_hash": "d41d8cd98f00b204e9800998ecf8427e",
+    "semantic_hash": ""
+  },
+  "corpus/edge/shadowed_local_name/old/src/pkg/core.py": {
+    "mtime": 1790866082.823471,
+    "ast_hash": "224b7f47d4a1bf86efee25880a444e7d",
+    "semantic_hash": ""
+  },
+  "corpus/edge/shadowed_local_name/old/tests/test_core.py": {
+    "mtime": 1790866082.8235798,
+    "ast_hash": "7d4d2f1efb81aae265dfc291a6310a10",
+    "semantic_hash": ""
+  },
+  "corpus/edge/sites_across_six_files/old/pyproject.toml": {
+    "mtime": 1790866082.7998002,
+    "ast_hash": "6a7321293737a4d663c98dfbd857c9b9",
+    "semantic_hash": ""
+  },
+  "corpus/edge/sites_across_six_files/old/src/pkg/__init__.py": {
+    "mtime": 1790866082.7998002,
+    "ast_hash": "d41d8cd98f00b204e9800998ecf8427e",
+    "semantic_hash": ""
+  },
+  "corpus/edge/sites_across_six_files/old/src/pkg/m0.py": {
+    "mtime": 1790866082.799981,
+    "ast_hash": "4be2b78ff013022a3ae2391f39c635c3",
+    "semantic_hash": ""
+  },
+  "corpus/edge/sites_across_six_files/old/src/pkg/m1.py": {
+    "mtime": 1790866082.8000476,
+    "ast_hash": "8b29e538019e025f16fe4fe5711066c9",
+    "semantic_hash": ""
+  },
+  "corpus/edge/sites_across_six_files/old/src/pkg/m2.py": {
+    "mtime": 1790866082.8001115,
+    "ast_hash": "04eb00818d86ae688e0a27ce3332c451",
+    "semantic_hash": ""
+  },
+  "corpus/edge/sites_across_six_files/old/src/pkg/m3.py": {
+    "mtime": 1790866082.8001819,
+    "ast_hash": "4010e32af4c1b9e5e6a6922cf3a99e41",
+    "semantic_hash": ""
+  },
+  "corpus/edge/sites_across_six_files/old/src/pkg/m4.py": {
+    "mtime": 1790866082.8002467,
+    "ast_hash": "1102a5d841c12c95ed09a46e08a2c3a9",
+    "semantic_hash": ""
+  },
+  "corpus/edge/sites_across_six_files/old/src/pkg/m5.py": {
+    "mtime": 1790866082.800313,
+    "ast_hash": "342f66bb605047bd80b931f564714444",
+    "semantic_hash": ""
+  },
+  "corpus/edge/sites_across_six_files/old/tests/test_many.py": {
+    "mtime": 1790866082.800401,
+    "ast_hash": "b99180c3c1080114df345bdb2f98f581",
+    "semantic_hash": ""
+  },
+  "corpus/edge/star_import/old/pyproject.toml": {
+    "mtime": 1790866082.8266504,
+    "ast_hash": "6a7321293737a4d663c98dfbd857c9b9",
+    "semantic_hash": ""
+  },
+  "corpus/edge/star_import/old/src/pkg/__init__.py": {
+    "mtime": 1790866082.8266504,
+    "ast_hash": "d41d8cd98f00b204e9800998ecf8427e",
+    "semantic_hash": ""
+  },
+  "corpus/edge/star_import/old/src/pkg/core.py": {
+    "mtime": 1790866082.8269475,
+    "ast_hash": "c85cb36d0152f28709e3db7f86449c43",
+    "semantic_hash": ""
+  },
+  "corpus/edge/star_import/old/src/pkg/legacy.py": {
+    "mtime": 1790866082.8270383,
+    "ast_hash": "dcf5c934ebe9238966120b5b9f148532",
+    "semantic_hash": ""
+  },
+  "corpus/edge/star_import/old/tests/test_core.py": {
+    "mtime": 1790866082.827155,
+    "ast_hash": "f53988af3263333e00ec7c3416b041e9",
+    "semantic_hash": ""
+  },
+  "corpus/edge/syntax_error_file/old/pyproject.toml": {
+    "mtime": 1790866082.8293588,
+    "ast_hash": "6a7321293737a4d663c98dfbd857c9b9",
+    "semantic_hash": ""
+  },
+  "corpus/edge/syntax_error_file/old/src/pkg/__init__.py": {
+    "mtime": 1790866082.8293743,
+    "ast_hash": "d41d8cd98f00b204e9800998ecf8427e",
+    "semantic_hash": ""
+  },
+  "corpus/edge/syntax_error_file/old/src/pkg/broken.py": {
+    "mtime": 1790866082.8299015,
+    "ast_hash": "809120d414365c7be761ad9273f31a08",
+    "semantic_hash": ""
+  },
+  "corpus/edge/syntax_error_file/old/src/pkg/core.py": {
+    "mtime": 1790866082.8296204,
+    "ast_hash": "c85cb36d0152f28709e3db7f86449c43",
+    "semantic_hash": ""
+  },
+  "corpus/edge/syntax_error_file/old/tests/test_core.py": {
+    "mtime": 1790866082.8297963,
+    "ast_hash": "0ac9b5e67ce0e811e2f314152194f90c",
+    "semantic_hash": ""
+  },
+  "corpus/edge/tab_indentation/gold/src/pkg/core.py": {
+    "mtime": 1790866082.8128562,
+    "ast_hash": "9f2bb62bb54ec0b1c095e2719bda8895",
+    "semantic_hash": ""
+  },
+  "corpus/edge/tab_indentation/old/pyproject.toml": {
+    "mtime": 1790866082.8118498,
+    "ast_hash": "6a7321293737a4d663c98dfbd857c9b9",
+    "semantic_hash": ""
+  },
+  "corpus/edge/tab_indentation/old/src/pkg/__init__.py": {
+    "mtime": 1790866082.8118498,
+    "ast_hash": "d41d8cd98f00b204e9800998ecf8427e",
+    "semantic_hash": ""
+  },
+  "corpus/edge/tab_indentation/old/src/pkg/core.py": {
+    "mtime": 1790866082.8124769,
+    "ast_hash": "c9b52bedc4e0d9e6ff211e00a0b564a1",
+    "semantic_hash": ""
+  },
+  "corpus/edge/tab_indentation/old/tests/test_core.py": {
+    "mtime": 1790866082.8126223,
+    "ast_hash": "0ac9b5e67ce0e811e2f314152194f90c",
+    "semantic_hash": ""
+  },
+  "corpus/edge/test_needs_network/old/pyproject.toml": {
+    "mtime": 1790866082.8327873,
+    "ast_hash": "6a7321293737a4d663c98dfbd857c9b9",
+    "semantic_hash": ""
+  },
+  "corpus/edge/test_needs_network/old/src/pkg/__init__.py": {
+    "mtime": 1790866082.8327873,
+    "ast_hash": "d41d8cd98f00b204e9800998ecf8427e",
+    "semantic_hash": ""
+  },
+  "corpus/edge/test_needs_network/old/src/pkg/core.py": {
+    "mtime": 1790866082.8329742,
+    "ast_hash": "c85cb36d0152f28709e3db7f86449c43",
+    "semantic_hash": ""
+  },
+  "corpus/edge/test_needs_network/old/tests/test_core.py": {
+    "mtime": 1790866082.8330638,
+    "ast_hash": "d77033043eed3189714ac93a88835173",
+    "semantic_hash": ""
+  },
+  "corpus/edge/unfixable_break/old/pyproject.toml": {
+    "mtime": 1790866082.8340077,
+    "ast_hash": "6a7321293737a4d663c98dfbd857c9b9",
+    "semantic_hash": ""
+  },
+  "corpus/edge/unfixable_break/old/src/pkg/__init__.py": {
+    "mtime": 1790866082.8340077,
+    "ast_hash": "d41d8cd98f00b204e9800998ecf8427e",
+    "semantic_hash": ""
+  },
+  "corpus/edge/unfixable_break/old/src/pkg/core.py": {
+    "mtime": 1790866082.8343217,
+    "ast_hash": "c85cb36d0152f28709e3db7f86449c43",
+    "semantic_hash": ""
+  },
+  "corpus/edge/unfixable_break/old/tests/test_core.py": {
+    "mtime": 1790866082.8344352,
+    "ast_hash": "ebc643972370f2836b270a52f3368be7",
+    "semantic_hash": ""
+  },
+  "corpus/edge/utcfromtimestamp_alongside_utcnow/old/pyproject.toml": {
+    "mtime": 1790866082.8037717,
+    "ast_hash": "6a7321293737a4d663c98dfbd857c9b9",
+    "semantic_hash": ""
+  },
+  "corpus/edge/utcfromtimestamp_alongside_utcnow/old/src/pkg/__init__.py": {
+    "mtime": 1790866082.8037717,
+    "ast_hash": "d41d8cd98f00b204e9800998ecf8427e",
+    "semantic_hash": ""
+  },
+  "corpus/edge/utcfromtimestamp_alongside_utcnow/old/src/pkg/core.py": {
+    "mtime": 1790866082.803959,
+    "ast_hash": "0cea778e2d37ef95ef0f0263a4091339",
+    "semantic_hash": ""
+  },
+  "corpus/edge/utcfromtimestamp_alongside_utcnow/old/tests/test_core.py": {
+    "mtime": 1790866082.804059,
+    "ast_hash": "7b75d071a21cda4d66980147c1ac3f6c",
+    "semantic_hash": ""
+  },
+  "corpus/edge/utcnow_in_strings_comments_docstrings/old/pyproject.toml": {
+    "mtime": 1790866082.8203049,
+    "ast_hash": "6a7321293737a4d663c98dfbd857c9b9",
+    "semantic_hash": ""
+  },
+  "corpus/edge/utcnow_in_strings_comments_docstrings/old/src/pkg/__init__.py": {
+    "mtime": 1790866082.8209789,
+    "ast_hash": "d41d8cd98f00b204e9800998ecf8427e",
+    "semantic_hash": ""
+  },
+  "corpus/edge/utcnow_in_strings_comments_docstrings/old/src/pkg/core.py": {
+    "mtime": 1790866082.821248,
+    "ast_hash": "ce1598e247ba005492c7d634b2681801",
+    "semantic_hash": ""
+  },
+  "corpus/edge/utcnow_in_strings_comments_docstrings/old/tests/test_core.py": {
+    "mtime": 1790866082.821457,
+    "ast_hash": "ba2f75aa2876d695b7d1e4d0d8061046",
+    "semantic_hash": ""
+  },
+  "corpus/edge/very_long_file/old/pyproject.toml": {
+    "mtime": 1790866082.8169963,
+    "ast_hash": "6a7321293737a4d663c98dfbd857c9b9",
+    "semantic_hash": ""
+  },
+  "corpus/edge/very_long_file/old/src/pkg/__init__.py": {
+    "mtime": 1790866082.817374,
+    "ast_hash": "d41d8cd98f00b204e9800998ecf8427e",
+    "semantic_hash": ""
+  },
+  "corpus/edge/very_long_file/old/src/pkg/core.py": {
+    "mtime": 1790866082.818152,
+    "ast_hash": "74fca8ffc94728e1726a4c1321b12e34",
+    "semantic_hash": ""
+  },
+  "corpus/edge/very_long_file/old/tests/test_core.py": {
+    "mtime": 1790866082.818374,
+    "ast_hash": "699aa3f92fde196f761a116fbaffa70d",
+    "semantic_hash": ""
+  },
+  "corpus/edge/zero_tests/old/pyproject.toml": {
+    "mtime": 1790866082.8321397,
+    "ast_hash": "6a7321293737a4d663c98dfbd857c9b9",
+    "semantic_hash": ""
+  },
+  "corpus/edge/zero_tests/old/src/pkg/__init__.py": {
+    "mtime": 1790866082.8321397,
+    "ast_hash": "d41d8cd98f00b204e9800998ecf8427e",
+    "semantic_hash": ""
+  },
+  "corpus/edge/zero_tests/old/src/pkg/core.py": {
+    "mtime": 1790866082.8323412,
+    "ast_hash": "c85cb36d0152f28709e3db7f86449c43",
+    "semantic_hash": ""
+  },
+  "corpus/edge/zero_tests/old/tests/test_core.py": {
+    "mtime": 1790866082.8324645,
+    "ast_hash": "685ebed4aaf619e6039569f2301d98b0",
+    "semantic_hash": ""
+  },
+  "src/mra/benchmark/edge.py": {
+    "mtime": 1790866683.5387793,
+    "ast_hash": "dc1f959bc8d991976258d790c31ac3f5",
+    "semantic_hash": ""
+  },
+  "tests/test_edge.py": {
+    "mtime": 1790867275.6109202,
+    "ast_hash": "184e16c106a4c1c8038e8cead11f6360",
+    "semantic_hash": ""
+  },
+  "corpus/edge/RESULTS.md": {
+    "mtime": 1790867375.9952083,
+    "ast_hash": "9b39e736f6b982766248ced972e50fae",
     "semantic_hash": ""
   }
 }

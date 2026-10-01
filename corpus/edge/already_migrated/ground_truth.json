@@ -1,0 +1,6 @@
+{
+  "task_id": "already_migrated",
+  "source_api": "datetime.utcnow",
+  "target_api": "datetime.now(timezone.utc)",
+  "call_sites": []
+}

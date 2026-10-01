@@ -1,0 +1,10 @@
+{
+  "category": "twisted",
+  "expect": "YELLOW",
+  "code": "unparseable",
+  "evidence": "src/pkg/broken.py",
+  "mode": "deterministic",
+  "env": {},
+  "note": "skipped and reported; core.py still migrated",
+  "gold": []
+}

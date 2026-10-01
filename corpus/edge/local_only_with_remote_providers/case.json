@@ -1,0 +1,12 @@
+{
+  "category": "failure",
+  "expect": "RED",
+  "code": "refused",
+  "evidence": "local-only",
+  "mode": "llm-remote",
+  "env": {
+    "MRA_PRIVACY": "local-only"
+  },
+  "note": "",
+  "gold": []
+}

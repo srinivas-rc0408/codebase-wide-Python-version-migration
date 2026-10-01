@@ -1,0 +1,21 @@
+{
+  "task_id": "relative_imports",
+  "source_api": "datetime.utcnow",
+  "target_api": "datetime.now(timezone.utc)",
+  "call_sites": [
+    {
+      "file": "src/pkg/core.py",
+      "line": 5,
+      "col": 11,
+      "symbol": "datetime.datetime.utcnow",
+      "kind": "call"
+    },
+    {
+      "file": "src/pkg/report.py",
+      "line": 7,
+      "col": 12,
+      "symbol": "datetime.datetime.utcnow",
+      "kind": "call"
+    }
+  ]
+}

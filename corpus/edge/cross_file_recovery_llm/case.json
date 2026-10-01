@@ -1,0 +1,10 @@
+{
+  "category": "common",
+  "expect": "GREEN",
+  "code": "",
+  "evidence": "",
+  "mode": "llm-fake",
+  "env": {},
+  "note": "same break, repaired by the LLM corrector through FakeProvider (offline)",
+  "gold": []
+}

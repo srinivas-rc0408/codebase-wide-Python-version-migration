@@ -1,0 +1,10 @@
+{
+  "category": "twisted",
+  "expect": "GREEN",
+  "code": "",
+  "evidence": "",
+  "mode": "deterministic",
+  "env": {},
+  "note": "idempotence: zero edits, empty patch",
+  "gold": []
+}

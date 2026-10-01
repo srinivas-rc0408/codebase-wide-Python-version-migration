@@ -1,0 +1,14 @@
+{
+  "task_id": "edit_causes_infinite_loop",
+  "source_api": "datetime.utcnow",
+  "target_api": "datetime.now(timezone.utc)",
+  "call_sites": [
+    {
+      "file": "src/pkg/core.py",
+      "line": 7,
+      "col": 15,
+      "symbol": "datetime.datetime.utcnow",
+      "kind": "call"
+    }
+  ]
+}

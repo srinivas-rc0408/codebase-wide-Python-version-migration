@@ -1,0 +1,10 @@
+{
+  "category": "rare",
+  "expect": "GREEN",
+  "code": "",
+  "evidence": "",
+  "mode": "deterministic",
+  "env": {},
+  "note": "only the real call may change",
+  "gold": []
+}

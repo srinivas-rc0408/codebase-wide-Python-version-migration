@@ -1,0 +1,10 @@
+{
+  "category": "failure",
+  "expect": "RED",
+  "code": "provider",
+  "evidence": "unreachable",
+  "mode": "llm-unreachable",
+  "env": {},
+  "note": "",
+  "gold": []
+}

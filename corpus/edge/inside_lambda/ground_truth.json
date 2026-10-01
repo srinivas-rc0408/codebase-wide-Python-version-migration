@@ -1,0 +1,14 @@
+{
+  "task_id": "inside_lambda",
+  "source_api": "datetime.utcnow",
+  "target_api": "datetime.now(timezone.utc)",
+  "call_sites": [
+    {
+      "file": "src/pkg/core.py",
+      "line": 3,
+      "col": 16,
+      "symbol": "datetime.datetime.utcnow",
+      "kind": "call"
+    }
+  ]
+}

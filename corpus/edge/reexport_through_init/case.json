@@ -1,0 +1,10 @@
+{
+  "category": "rare",
+  "expect": "GREEN",
+  "code": "",
+  "evidence": "",
+  "mode": "deterministic",
+  "env": {},
+  "note": "`datetime` reaches core.py through the package's re-export",
+  "gold": []
+}

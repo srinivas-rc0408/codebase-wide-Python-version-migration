@@ -1,0 +1,13 @@
+{
+  "category": "failure",
+  "expect": "RED",
+  "code": "suite_red",
+  "evidence": "Timeout",
+  "mode": "deterministic",
+  "env": {
+    "MRA_PYTEST_TIMEOUT_SEC": "8",
+    "MRA_MAX_FIX_ATTEMPTS": "1"
+  },
+  "note": "",
+  "gold": []
+}

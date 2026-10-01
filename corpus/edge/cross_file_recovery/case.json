@@ -1,0 +1,10 @@
+{
+  "category": "common",
+  "expect": "GREEN",
+  "code": "",
+  "evidence": "",
+  "mode": "deterministic",
+  "env": {},
+  "note": "core moves first; report breaks until CORRECT migrates it",
+  "gold": []
+}
