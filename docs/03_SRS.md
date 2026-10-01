@@ -14,6 +14,7 @@
 | Ver | Date | Change |
 |---|---|---|
 | 0.1 | 24 Aug 2026 | Initial draft; contracts, boundaries, and NFRs defined |
+| 0.2 | 1 Oct 2026 | §4.1 `contract.expected_lint`: ruff rules the target API itself triggers, exempted (and listed) by the run report |
 
 > This SRS deliberately departs from a prose-heavy template. For an LLM-agent system the highest-risk ambiguity is **data-shape ambiguity**: agents cannot reliably infer types from prose. Section 4 therefore fixes the exact JSON contracts, Section 5 fixes the functional boundaries (what the agent must *not* do), and Section 6 fixes the non-functional constraints (budgets, retries, timeouts). These three sections are the load-bearing part of the document.
 
@@ -85,7 +86,9 @@ All schemas are JSON Schema draft 2020-12. These are the authoritative data shap
         "task_id":    { "type": "string" },
         "source_api": { "type": "string", "description": "e.g. datetime.utcnow" },
         "target_api": { "type": "string", "description": "e.g. datetime.now(timezone.utc)" },
-        "guide_excerpt": { "type": "string", "description": "Relevant migration-guide text" }
+        "guide_excerpt": { "type": "string", "description": "Relevant migration-guide text" },
+        "expected_lint": { "type": "array", "items": { "type": "string" },
+                           "description": "Ruff rule codes the target API itself triggers (e.g. UP017 for timezone.utc); the run report lists them as exempted, never silently" }
       }
     },
     "call_sites": {

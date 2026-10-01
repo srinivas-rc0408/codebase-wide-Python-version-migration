@@ -9,6 +9,7 @@ first and fails the second, which is why both exist.
 from __future__ import annotations
 
 import hashlib
+import re
 import shutil
 import subprocess
 from pathlib import Path
@@ -22,7 +23,7 @@ from mra.sandbox import SandboxRunner
 REPO_ROOT = Path(__file__).resolve().parents[1]
 CORPUS = REPO_ROOT / "corpus" / "tierA"
 TASKS = ("task01_datetime", "task02_datetime_aliased")
-ADDED_IMPORT = "from datetime import timezone"
+ADDED_IMPORT = re.compile(r"^\+from datetime import .*\btimezone\b")
 
 needs_docker = pytest.mark.skipif(
     shutil.which("docker") is None
@@ -54,11 +55,8 @@ def runs(
 
 
 def _added_import_lines(patch: str) -> list[str]:
-    """Added lines that introduce `from datetime import timezone`."""
-    return [
-        line for line in patch.splitlines()
-        if line.startswith("+") and not line.startswith("+++") and ADDED_IMPORT in line
-    ]
+    """Added `from datetime import ...` lines that bind `timezone`, in any position."""
+    return [line for line in patch.splitlines() if ADDED_IMPORT.match(line)]
 
 
 # -- scoring ---------------------------------------------------------------

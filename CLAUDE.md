@@ -71,6 +71,9 @@ docker build -f Dockerfile.sandbox -t mra-sandbox:py312 .
 
 # run a migration on a controlled task
 python -m mra.run --task-dir corpus/tierA/task01_datetime
+
+# full agent + GREEN/YELLOW/RED verdict + PDF report (src/mra/verdict.py, src/mra/report/)
+mra run --task-dir corpus/tierA/task04_multimodule
 ```
 
 Before proposing a change as done: `pytest tests/` passes, `ruff check .` is clean, and no schema in `docs/03_SRS.md §4` was changed without updating the doc.

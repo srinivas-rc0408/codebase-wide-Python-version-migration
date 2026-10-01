@@ -92,13 +92,14 @@ These tune the agent and mirror the non-functional constraints in `docs/03_SRS.m
 | `MRA_CONFIG` | Path to the provider/role config | `mra.toml` |
 | `MRA_PRIVACY` | `local-only` to forbid every non-local provider (§5) | unset |
 | `MRA_MAX_FIX_ATTEMPTS` | Recovery retry ceiling per failure signature | `3` |
-| `MRA_TOKEN_BUDGET` | Hard per-task token ceiling (abort + flag if exceeded) | `2000000` |
-| `MRA_RUN_TIMEOUT_SEC` | Per-run wall-clock timeout | `1800` |
+| `MRA_TOKEN_BUDGET` | Per-task token ceiling; a run over it is reported RED (recorded in `run_meta.json`; the run is not aborted) | `2000000` |
+| `MRA_RUN_TIMEOUT_SEC` | Per-run wall-clock limit; a run over it is reported RED (not aborted) | `1800` |
 | `MRA_PYTEST_TIMEOUT_SEC` | Per-`pytest` invocation timeout (in sandbox) | `120` |
 | `MRA_EDIT_BATCH_SIZE` | Files per EDIT batch (ablation variable) | `3` |
 | `MRA_LLM_TEMPERATURE` | LLM temperature (determinism) | `0.1` |
 | `MRA_SANDBOX_IMAGE` | Docker image tag for the sandbox | `mra-sandbox:py312` |
 | `MRA_CONTAINER_RUNTIME` | `docker` or `podman` | `docker` |
+| `NO_COLOR` | Any non-empty value turns off the coloured verdict banner in `mra run` / `mra report` | unset |
 
 `MRA_EDIT_MODEL`, `MRA_UTILITY_MODEL` and `DEEPSEEK_BASE_URL` were removed in
 0.2.0; set `model` / `base_url` in `mra.toml` instead.

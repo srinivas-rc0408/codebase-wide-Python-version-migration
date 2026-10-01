@@ -19,7 +19,8 @@ RUN apt-get update \
 RUN pip install --no-cache-dir \
       pytest==9.1.1 \
       pytest-json-report==1.5.0 \
-      ruff==0.16.8
+      ruff==0.16.8 \
+      coverage==7.16.2
 
 # The container runs as the calling user's uid:gid so bind-mounted output is not
 # root-owned on a Linux host. That uid has no passwd entry and no home, so make

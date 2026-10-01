@@ -162,8 +162,12 @@ class SandboxRunner:
         self.timeout_s = timeout_s or int(os.getenv("MRA_PYTEST_TIMEOUT_SEC", "120"))
         self.runs_dir = Path(runs_dir)
 
-    def _script(self, lint: bool) -> str:
+    def _script(self, lint: bool, coverage: bool = False) -> str:
         """Shell run inside the container. `timeout` here is what enforces NFR-4."""
+        # Coverage is opt-in (the run report's evidence pass); without it the
+        # script is byte-for-byte the one every benchmark run used.
+        runner = "python -m coverage run --data-file=/tmp/.coverage -m pytest" if coverage \
+            else "python -m pytest"
         lines = [
             "set -u",
             f"cp -a {CONTAINER_REPO} {CONTAINER_REPO_RW}",
@@ -172,11 +176,14 @@ class SandboxRunner:
             # install would need to fetch its build backend. src-layout and flat
             # layout are both covered by putting each on the path.
             f"export PYTHONPATH={CONTAINER_REPO_RW}/src:{CONTAINER_REPO_RW}",
-            f"timeout -k 5 {self.timeout_s}s python -m pytest"
+            f"timeout -k 5 {self.timeout_s}s {runner}"
             f" --json-report --json-report-file={CONTAINER_OUT}/pytest_raw.json"
             " -p no:cacheprovider -q",
             "pytest_rc=$?",
         ]
+        if coverage:
+            lines.append(f"python -m coverage json --data-file=/tmp/.coverage"
+                         f" -o {CONTAINER_OUT}/coverage.json >/dev/null 2>&1 || true")
         if lint:
             lines.append(
                 f"ruff check --output-format json . > {CONTAINER_OUT}/ruff.json 2>/dev/null || true"
@@ -184,7 +191,8 @@ class SandboxRunner:
         lines.append("exit $pytest_rc")
         return "\n".join(lines)
 
-    def _docker_argv(self, repo: Path, out_dir: Path, run_id: str, lint: bool) -> list[str]:
+    def _docker_argv(self, repo: Path, out_dir: Path, run_id: str, lint: bool,
+                     coverage: bool = False) -> list[str]:
         return [
             self.runtime, "run", "--rm",
             "--name", f"mra-{run_id}",
@@ -193,7 +201,7 @@ class SandboxRunner:
             "-v", f"{repo.resolve()}:{CONTAINER_REPO}:ro",
             "-v", f"{out_dir.resolve()}:{CONTAINER_OUT}:rw",
             self.image,
-            "bash", "-c", self._script(lint),
+            "bash", "-c", self._script(lint, coverage),
         ]
 
     def run(
@@ -204,6 +212,7 @@ class SandboxRunner:
         phase: Phase = "post",
         run_id: str | None = None,
         lint: bool = True,
+        coverage: bool = False,
     ) -> dict[str, Any]:
         """Verify ``repo`` in a container; return a ``mra:test_report`` dict.
 
@@ -216,7 +225,7 @@ class SandboxRunner:
         out_dir = self.runs_dir / run_id
         out_dir.mkdir(parents=True, exist_ok=True)
 
-        argv = self._docker_argv(repo, out_dir, run_id, lint)
+        argv = self._docker_argv(repo, out_dir, run_id, lint, coverage)
         timed_out = False
         try:
             completed = subprocess.run(

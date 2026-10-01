@@ -23,6 +23,8 @@ class Contract(TypedDict, total=False):
     source_api: str
     target_api: str
     guide_excerpt: str
+    #: Ruff rule codes the target API itself triggers; the report exempts them.
+    expected_lint: list[str]
 
 
 class Tokens(TypedDict):

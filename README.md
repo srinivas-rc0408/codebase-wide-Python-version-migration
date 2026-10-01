@@ -93,6 +93,8 @@ mra/
 │   ├── codemods/                 # deterministic libcst transforms (per task)
 │   ├── sandbox/                  # docker run wrappers, git snapshot/rollback
 │   ├── models/                   # role router, providers/, privacy, token accounting (M3)
+│   ├── report/                   # evidence pass, report model, 14-page PDF (ReportLab)
+│   ├── verdict.py                # GREEN / YELLOW / RED
 │   └── metrics/                  # M1 + M2 computation
 ├── corpus/
 │   ├── tierA/                    # controlled repos + ground_truth.json
@@ -126,6 +128,10 @@ docker build -f Dockerfile.sandbox -t mra-sandbox:py312 .
 
 # 4. run a migration on a controlled task (analyse -> codemod -> verify -> score)
 python -m mra.run --task-dir corpus/tierA/task01_datetime
+
+# 5. or: the full agent (LangGraph) plus verdict, PDF report and terminal summary
+mra run --task-dir corpus/tierA/task04_multimodule
+mra report <run_id>               # rebuild a run's report from its artifacts
 ```
 
 Outputs land in `runs/<run_id>/`: the unified `migration.patch`, `trajectory.json`,
@@ -144,6 +150,32 @@ with `TypeError: can't subtract offset-naive and offset-aware datetimes`, and
 the CORRECT loop has to finish the job. Its deterministic tests need no API key
 — `pytest tests/test_recovery.py` runs the whole state machine offline and skips
 only the live-model case.
+
+### Run report and verdict
+
+`mra run` ends every run — including a crashed one — with a verdict, a PDF and a
+terminal summary (exit code 0 GREEN, 1 YELLOW, 2 RED):
+
+- **RED** — the pre-migration suite was not green (or collected no tests), the run
+  crashed or gave up, the final suite has failures/errors/collection errors, a
+  test file was touched, `migration.patch` fails `git apply --check` on a fresh
+  checkout, or the token budget / wall-clock limit was exceeded.
+- **YELLOW** — green, but: old-API sites remain (MAP re-run on the migrated tree,
+  including star imports and bare references it skips by design), precision
+  < 100 against ground truth, a semantic check failed, new ruff findings versus
+  the pre-migration baseline (rules the target API itself triggers are exempted
+  by the contract's `expected_lint` and listed as such), an unparseable file, or
+  an edited file whose changed lines no test executed (coverage.py, in the sandbox).
+- **GREEN** — none of the above.
+
+`runs/<run_id>/<Repo>_MigrationReport_v<version>_<YYYYMMDD-HHMM>.pdf` is at most 14
+pages (summary, repository map + dependency graph, plan, timeline, changes,
+verification, metrics charts, issues with recommended actions, final banner);
+overflow is cut in the order diff excerpts → timeline → file rows, and
+`report.json` beside it holds everything untruncated. The report is a pure
+function of the run directory (`state.db`, `verification.json`, metrics, patch),
+so `mra report <run_id>` reproduces it text-for-text. `NO_COLOR` disables the
+terminal colours.
 
 ### LLM providers and privacy
 

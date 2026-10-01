@@ -200,9 +200,9 @@ def test_recovery_patch_is_the_whole_migration(recovered: dict[str, Any]) -> Non
     patch = recovered["patch"]
     for file in (*FIRST_BATCH, BROKEN_FILE):
         assert f"b/{file}" in patch, f"{file} missing from the patch"
-    # AddImportsVisitor prepends rather than sorts; gold sorts. Cosmetic, and
-    # identical to the P2 output, so it is asserted as-is rather than papered over.
-    assert "+from datetime import timezone, datetime" in patch
+    # The new name lands in its sorted slot, matching gold/ (the old prepended
+    # `timezone, datetime` order was the defect ruff's I001 flagged).
+    assert "+from datetime import datetime, timezone" in patch
 
 
 # -- RETRY CAP: give up at exactly MAX_FIX_ATTEMPTS, no LLM ----------------
