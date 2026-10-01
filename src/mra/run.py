@@ -144,7 +144,7 @@ def migrate_task(
     # Against the pre-migration snapshot, not HEAD: recovery commits its own
     # rounds, so a HEAD-relative diff would report an empty migration.
     patch = diff(work, base_sha)
-    (out_dir / "migration.patch").write_text(patch)
+    (out_dir / "migration.patch").write_text(patch, errors="surrogateescape")
 
     # -- score -------------------------------------------------------------
     # The agent's claim is what it actually rewrote — sites in files it left

@@ -24,7 +24,7 @@ from typing import Any
 import pytest
 
 from mra.cli import main as mra_main
-from mra.models import Endpoint, PrivacyError, Router, load_roles
+from mra.models import Endpoint, PrivacyError, ProviderError, Router, load_roles
 from mra.models.privacy import is_local, redact_secrets
 from mra.models.providers import AnthropicProvider, FakeProvider, OpenAICompatibleProvider
 from mra.models.router import endpoints, load_config
@@ -145,7 +145,7 @@ def test_local_only_blocks_remote_before_any_socket_opens(monkeypatch) -> None:
     monkeypatch.setenv("MRA_PRIVACY", "local-only")
     remote = OpenAICompatibleProvider(name="deepseek", base_url="https://api.deepseek.com")
 
-    with pytest.raises(PrivacyError, match="local-only refused provider 'deepseek'"):
+    with pytest.raises(PrivacyError, match="local-only.*deepseek"):
         _router(remote).complete("classify", "s", "u")
     assert attempts == [], "no connection may be attempted"
     assert remote._client is None, "the SDK client was never even built"
@@ -155,6 +155,15 @@ def test_local_only_still_allows_a_local_server(monkeypatch, llm_server) -> None
     monkeypatch.setenv("MRA_PRIVACY", "local-only")
     local = OpenAICompatibleProvider(name="ollama", base_url=llm_server.base_url)
     assert _router(local).complete("classify", "s", "u") == "pong"
+
+
+def test_local_only_refuses_an_all_remote_role_at_construction(monkeypatch) -> None:
+    """Refuse up front, not at the first call mid-run (found by corpus/edge)."""
+    monkeypatch.setenv("MRA_PRIVACY", "local-only")
+    remote = OpenAICompatibleProvider(name="deepseek", base_url="https://api.deepseek.com")
+    with pytest.raises(PrivacyError, match="role 'edit' has only remote providers"):
+        Router(roles={"edit": [Endpoint(remote, "m")]})
+    assert remote._client is None
 
 
 def test_unknown_privacy_value_is_refused(monkeypatch) -> None:
@@ -187,8 +196,9 @@ def test_fallback_is_not_used_when_the_primary_succeeds() -> None:
 def test_last_error_surfaces_when_every_link_fails() -> None:
     router = _router(FakeProvider("a", error=TimeoutError("a")),
                      FakeProvider("b", error=ConnectionError("b")))
-    with pytest.raises(ConnectionError):
+    with pytest.raises(ProviderError, match="a at None: TimeoutError.*b at None") as caught:
         router.complete("classify", "s", "u")
+    assert isinstance(caught.value.__cause__, ConnectionError), "the last error is chained"
 
 
 def test_local_only_blocks_the_local_to_remote_fallback(monkeypatch) -> None:

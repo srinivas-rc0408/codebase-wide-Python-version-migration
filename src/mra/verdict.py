@@ -19,6 +19,8 @@ from __future__ import annotations
 from collections import Counter
 from typing import Any
 
+from mra.sandbox.runner import needs_network
+
 
 def _reason(level: str, code: str, text: str, evidence: str, action: str) -> dict[str, str]:
     return {"level": level, "code": code, "text": text, "evidence": evidence, "action": action}
@@ -32,16 +34,16 @@ def _listing(items: list[str], limit: int = 5) -> str:
 def new_lint(lint: dict[str, Any]) -> list[dict[str, str]]:
     """Findings after the migration that were not there before, minus declared exemptions.
 
-    Compared as a multiset of (code, file, message): line numbers move under
-    an edit, and a count alone would hide one fixed finding plus one new one.
-    ``lint["exempt"]`` is the contract's ``expected_lint``.
+    Compared as a multiset of (code, file): line numbers move under an edit, and
+    messages quote the edited code (B008 names the call it flags), so neither
+    can be part of the key. ``lint["exempt"]`` is the contract's ``expected_lint``.
     """
     if lint.get("pre") is None or lint.get("post") is None:
         return []
-    before = Counter((f["code"], f["file"], f["message"]) for f in lint["pre"])
+    before = Counter((f["code"], f["file"]) for f in lint["pre"])
     new = []
     for finding in lint["post"]:
-        key = (finding["code"], finding["file"], finding["message"])
+        key = (finding["code"], finding["file"])
         if before[key]:
             before[key] -= 1
         elif finding["code"] not in set(lint.get("exempt") or []):
@@ -58,23 +60,43 @@ def exempted_lint(lint: dict[str, Any]) -> list[dict[str, str]]:
 def _red(a: dict[str, Any]) -> list[dict[str, str]]:
     reasons = []
     pre, post, metrics = a.get("pre_report"), a.get("post_report"), a.get("metrics")
+    refused = a.get("refused")
 
-    if a.get("crash"):
+    crash = (a.get("crash") or "").strip()
+    if crash.startswith("ProviderError"):
+        reasons.append(_reason(
+            "RED", "provider", "An LLM provider this run needed was unreachable.",
+            crash.splitlines()[0],
+            "Run `mra providers check`, fix the endpoint or the role chain in mra.toml, "
+            "or re-run without --llm (the deterministic path needs no provider)."))
+    elif crash:
         reasons.append(_reason("RED", "crashed", "The run crashed before it finished.",
-                               a["crash"].strip().splitlines()[0],
+                               crash.splitlines()[0],
                                "Read the traceback in run_meta.json, fix the cause, re-run."))
-    elif metrics is None:
+    elif metrics is None and not refused:
         reasons.append(_reason("RED", "crashed", "The run left no metrics.json.",
                                "metrics.json missing", "Re-run; inspect the run directory."))
 
     if pre is not None and (pre.get("total", 0) == 0 or pre.get("failed", 0)
                             or pre.get("errors", 0)):
+        evidence = (f"test_report_pre.json: {pre.get('passed', 0)}/{pre.get('total', 0)} "
+                    f"passed, {pre.get('failed', 0)} failed, {pre.get('errors', 0)} errors")
+        if offline := needs_network(pre):
+            evidence += (f"; {_listing(offline, 3)} need(s) the network, which the sandbox "
+                         "does not have (--network none)")
         reasons.append(_reason(
             "RED", "precondition",
-            "The pre-migration suite was not green, so M2 is undefined (NB-10).",
-            f"test_report_pre.json: {pre.get('passed', 0)}/{pre.get('total', 0)} passed, "
-            f"{pre.get('failed', 0)} failed, {pre.get('errors', 0)} errors",
-            "Make the original suite pass (and collect at least one test) before migrating."))
+            "The pre-migration suite was not green, so the agent refused to migrate "
+            "(NB-10: M2 is undefined without a green baseline)."
+            + (" Nothing was edited." if refused else ""),
+            evidence,
+            "Make the original suite pass (and collect at least one test) before migrating; "
+            "tests that need the network must be marked or mocked."))
+    elif refused:
+        reasons.append(_reason(
+            "RED", "refused", "The run was refused before it started; nothing was edited.",
+            refused.splitlines()[0],
+            "Configure a local provider for every role (or unset MRA_PRIVACY), then re-run."))
 
     if metrics is not None and metrics.get("outcome") == "gave_up":
         reasons.append(_reason(
@@ -82,13 +104,15 @@ def _red(a: dict[str, Any]) -> list[dict[str, str]]:
             "metrics.json: outcome=gave_up",
             "Fix the blocked failures by hand; the timeline lists every attempt."))
 
-    if post is None and not a.get("crash"):
+    if post is None and not a.get("crash") and not refused:
         reasons.append(_reason(
             "RED", "suite_red", "There is no final test-suite result to judge the patch by.",
             "test_report.json missing or pre-migration only",
             "Re-run the migration; a run that never tested its result cannot pass."))
     if post is not None and (post.get("failed", 0) or post.get("errors", 0)):
-        ids = [f.get("nodeid", "?") for f in post.get("failures", [])]
+        ids = [f"{f.get('nodeid', '?')} ({f.get('exc_type', '?')}"
+               + (f": {f['message']}" if f.get("nodeid") == "<sandbox>" else "") + ")"
+               for f in post.get("failures", [])]
         reasons.append(_reason(
             "RED", "suite_red",
             "The final suite has failed, errored or uncollectable tests.",
@@ -138,7 +162,10 @@ def _yellow(a: dict[str, Any]) -> list[dict[str, str]]:
             "are skipped by design."))
 
     metrics = a.get("metrics") or {}
-    if a.get("has_ground_truth") and metrics.get("m1_precision", 100.0) < 100.0:
+    # Precision is 0/0 when nothing was edited (an already-migrated repo): undefined,
+    # not "over-edited". Judged only when the agent actually changed something.
+    if (a.get("has_ground_truth") and a.get("edited_files", 1)
+            and metrics.get("m1_precision", 100.0) < 100.0):
         reasons.append(_reason(
             "YELLOW", "precision", "The agent edited sites outside the ground truth.",
             f"M1 precision {metrics['m1_precision']:.1f}%",
@@ -175,7 +202,7 @@ def _yellow(a: dict[str, Any]) -> list[dict[str, str]]:
                 _listing(cold, 3),
                 "Add a test that exercises the change; a green suite that never runs it "
                 "is weak evidence."))
-    elif any(file for file in coverage.get("files", {})) or coverage.get("error"):
+    elif coverage.get("files"):
         reasons.append(_reason(
             "YELLOW", "unexecuted", "Coverage of the edited files could not be measured.",
             coverage.get("error", "coverage.json missing"),

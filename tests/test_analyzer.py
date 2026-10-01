@@ -171,3 +171,62 @@ def test_report_m1_comparison(analyses: dict[str, Any]) -> None:
               f"recall={score['recall']:.1f}%  precision={score['precision']:.1f}%  "
               f"f1={score['f1']:.1f}%")
         assert score["f1"] == 100.0
+
+
+# -- resolution beyond one file's own imports (found by corpus/edge) ----------
+
+
+def _repo(tmp_path: Path, files: dict[str, str | bytes]) -> Path:
+    for rel, content in files.items():
+        path = tmp_path / rel
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_bytes(content if isinstance(content, bytes) else content.encode())
+    return tmp_path
+
+
+def _found(repo: Path, target: Any = TARGET) -> list[tuple[str, int]]:
+    from mra.analysis import find_in_repo
+
+    return sorted((s["file"], s["line"]) for sites in find_in_repo(repo, target).values()
+                  for s in sites)
+
+
+def test_reexport_through_package_init_resolves(tmp_path: Path) -> None:
+    repo = _repo(tmp_path, {
+        "src/pkg/__init__.py": "from datetime import datetime\n",
+        "src/pkg/core.py": "from pkg import datetime\n\nx = datetime.utcnow()\n"})
+    assert _found(repo) == [("src/pkg/core.py", 3)]
+
+
+def test_relative_import_resolves_against_the_files_package(tmp_path: Path) -> None:
+    repo = _repo(tmp_path, {
+        "src/pkg/__init__.py": "",
+        "src/pkg/compat.py": "from datetime import datetime\n",
+        "src/pkg/core.py": "from .compat import datetime\n\nx = datetime.utcnow()\n"})
+    assert _found(repo) == [("src/pkg/core.py", 3)]
+
+
+def test_unparseable_and_latin1_files_do_not_crash_the_scan(tmp_path: Path) -> None:
+    repo = _repo(tmp_path, {
+        "src/pkg/__init__.py": "",
+        "src/pkg/broken.py": "def oops(:\n",
+        "src/pkg/latin.py": "# -*- coding: latin-1 -*-\ngröße = 1\nfrom datetime import "
+                            "datetime\nx = datetime.utcnow()\n".encode("latin-1")})
+    assert _found(repo) == [("src/pkg/latin.py", 4)]
+    assert "src/pkg/broken.py" in build(repo).nodes
+
+
+def test_map_never_puts_a_test_file_on_the_work_list(tmp_path: Path) -> None:
+    repo = _repo(tmp_path, {
+        "src/pkg/__init__.py": "",
+        "src/pkg/core.py": "from datetime import datetime\nx = datetime.utcnow()\n",
+        "tests/test_core.py": "from datetime import datetime\ny = datetime.utcnow()\n"})
+    assert sorted(analyze(repo, TARGET)["call_sites"]) == ["src/pkg/core.py"]
+
+
+def test_utcfromtimestamp_is_part_of_the_family(tmp_path: Path) -> None:
+    from mra.codemods.datetime_utcnow import family
+
+    repo = _repo(tmp_path, {"m.py": "from datetime import datetime\n"
+                                    "a = datetime.utcnow()\nb = datetime.utcfromtimestamp(0)\n"})
+    assert _found(repo, family(TARGET)) == [("m.py", 2), ("m.py", 3)]

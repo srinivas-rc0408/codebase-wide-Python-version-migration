@@ -31,10 +31,19 @@ import libcst as cst
 from git import Git, GitCommandError, Repo
 from libcst.metadata import MetadataWrapper, PositionProvider
 
-from mra.analysis.call_sites import ImportBindings, bindings_of, dotted_path, find_in_source
+from mra.analysis.call_sites import (
+    Exports,
+    ImportBindings,
+    bindings_of,
+    canonical,
+    dotted_path,
+    exports_of,
+    find_in_repo,
+    is_test_path,
+    parse_repo,
+)
 from mra.analysis.dep_graph import python_files
-from mra.codemods.datetime_utcnow import TARGET as UTCNOW
-from mra.nodes.correct_node import is_test_path
+from mra.codemods.datetime_utcnow import TARGETS, family
 from mra.sandbox import SandboxRunner, diff
 
 CONTAINER_PREFIX = "/work/repo_rw/"
@@ -81,9 +90,10 @@ class _Skipped(ImportBindings):
 
     METADATA_DEPENDENCIES = (PositionProvider,)
 
-    def __init__(self, target: str, bindings: dict[str, str]) -> None:
+    def __init__(self, targets: tuple[str, ...], bindings: dict[str, str],
+                 exports: Exports) -> None:
         super().__init__()
-        self.target, self.resolved_bindings = target, bindings
+        self.targets, self.resolved_bindings, self.exports = targets, bindings, exports
         self.called: set[int] = set()
         self.found: list[dict[str, Any]] = []
 
@@ -94,7 +104,7 @@ class _Skipped(ImportBindings):
     def visit_ImportFrom(self, node: cst.ImportFrom) -> None:
         if isinstance(node.names, cst.ImportStar) and node.module is not None:
             module = cst.Module([]).code_for_node(node.module)
-            if self.target.startswith(module + "."):
+            if any(target.startswith(module + ".") for target in self.targets):
                 self._add(node, "star-import", f"from {module} import *")
 
     def visit_Call(self, node: cst.Call) -> None:
@@ -106,34 +116,29 @@ class _Skipped(ImportBindings):
             return
         head, attributes = flattened
         base = self.resolved_bindings.get(head.value)
-        if base and ".".join([base, *attributes]) == self.target:
+        if base and canonical(".".join([base, *attributes]), self.exports) in self.targets:
             self._add(node, "bare-reference", cst.Module([]).code_for_node(node))
 
 
 def residual_scan(repo: Path, target: str) -> dict[str, list[Any]]:
-    """Re-run MAP over the migrated tree, plus what MAP skips by design."""
-    sites: list[dict[str, Any]] = []
+    """Re-run MAP over the whole migrated tree — tests included — plus what it skips."""
+    targets = family(target)
+    parsed, unparseable = parse_repo(repo)
+    exports = exports_of(repo, parsed)
+    sites = [site for found in find_in_repo(repo, targets).values() for site in found]
     skipped: list[dict[str, Any]] = []
-    unparseable: list[str] = []
-    for path in python_files(repo):
-        relative = path.relative_to(repo).as_posix()
-        source = path.read_text(errors="replace")
-        try:
-            module = cst.parse_module(source)
-        except cst.ParserSyntaxError:
-            unparseable.append(relative)
-            continue
-        sites += [site.to_dict() for site in find_in_source(source, target, relative)]
-        visitor = _Skipped(target, bindings_of(module))
+    for path, (module, package) in sorted(parsed.items()):
+        visitor = _Skipped(targets, bindings_of(module, package), exports)
         MetadataWrapper(module).visit(visitor)
-        skipped += [{"file": relative, **found} for found in visitor.found]
+        skipped += [{"file": path.relative_to(repo).as_posix(), **found}
+                    for found in visitor.found]
     return {"sites": sites, "skipped": skipped, "unparseable": unparseable}
 
 
 # -- semantic checks ----------------------------------------------------------
 
 
-class _NowCalls(cst.CSTVisitor):
+class _Calls(cst.CSTVisitor):
     def __init__(self) -> None:
         self.calls: list[cst.Call] = []
 
@@ -141,64 +146,84 @@ class _NowCalls(cst.CSTVisitor):
         self.calls.append(node)
 
 
-def _resolve(node: cst.BaseExpression, bindings: dict[str, str]) -> str | None:
-    flattened = dotted_path(node)
-    if flattened is None:
-        return None
-    head, attributes = flattened
-    base = bindings.get(head.value)
-    return ".".join([base, *attributes]) if base else None
+#: aware constructor -> index of its positional tz argument
+_AWARE = {"datetime.datetime.now": 0, "datetime.datetime.fromtimestamp": 1}
 
 
-def _aware_now(source: str) -> tuple[int, list[str]]:
-    """(naive ``datetime.now()`` count, tz arguments that do not resolve)."""
+def _aware(path: Path, package: str, exports: Exports) -> tuple[int, list[str]]:
+    """(naive now()/fromtimestamp() calls, tz arguments that do not resolve) in one file."""
     try:
-        module = cst.parse_module(source)
+        module = cst.parse_module(path.read_bytes())
     except cst.ParserSyntaxError:
         return 0, ["file does not parse"]
-    bindings = bindings_of(module)
-    visitor = _NowCalls()
+    bindings = bindings_of(module, package)
+    visitor = _Calls()
     module.visit(visitor)
+
+    def resolve(node: cst.BaseExpression) -> str | None:
+        flattened = dotted_path(node)
+        if flattened is None or (base := bindings.get(flattened[0].value)) is None:
+            return None
+        return canonical(".".join([base, *flattened[1]]), exports)
+
     naive, unresolved = 0, []
     for call in visitor.calls:
-        if _resolve(call.func, bindings) != "datetime.datetime.now":
+        position = _AWARE.get(resolve(call.func) or "")
+        if position is None:
             continue
-        tz = next((a.value for a in call.args if a.keyword is None or a.keyword.value == "tz"),
-                  None)
+        positional = [a.value for a in call.args if a.keyword is None]
+        tz = next((a.value for a in call.args if a.keyword and a.keyword.value == "tz"),
+                  positional[position] if len(positional) > position else None)
         if tz is None:
             naive += 1
-        elif isinstance(tz, cst.Attribute | cst.Name) and _resolve(tz, bindings) is None:
+        elif isinstance(tz, cst.Attribute | cst.Name) and resolve(tz) is None:
             unresolved.append(cst.Module([]).code_for_node(tz))
     return naive, unresolved
 
 
+def _packages(repo: Path) -> dict[str, str]:
+    parsed, _ = parse_repo(repo)
+    return {path.relative_to(repo).as_posix(): package for path, (_, package) in parsed.items()}
+
+
 def semantic_checks(base: Path | None, repo: Path, files: list[str],
                     target: str) -> list[dict[str, Any]]:
-    """Per edited file: does the new code still mean what the target API means?
+    """Per edited file: does the new code still mean what it meant, and look as it did?
 
-    Only ``datetime.utcnow`` has checks so far: the migrated call must be
-    timezone-aware (no new naive ``datetime.now()``) and its ``tz`` must
-    resolve through an import (``timezone.utc`` without ``timezone`` imported
-    is a NameError the moment it runs).
+    For the ``utcnow`` family: every migrated call must be timezone-aware (no
+    new naive ``now()`` / ``fromtimestamp()``) and its ``tz`` must resolve
+    through an import (``timezone.utc`` without ``timezone`` imported is a
+    NameError the moment it runs). For every target: the file keeps its line
+    endings — a CRLF file rewritten as LF is a diff on every line.
     """
-    if target != UTCNOW:
-        return []
     checks = []
+    exports = exports_of(repo, parse_repo(repo)[0])
+    packages = _packages(repo)
+    base_exports = exports_of(base, parse_repo(base)[0]) if base is not None else {}
     for file in files:
         after = repo / file
         if not after.is_file():
             continue
-        naive_after, unresolved = _aware_now(after.read_text())
         before = base / file if base is not None else None
-        naive_before = _aware_now(before.read_text())[0] if before and before.is_file() else 0
-        problems = []
-        if naive_after > naive_before:
-            problems.append(f"{naive_after - naive_before} new naive datetime.now()")
-        if unresolved:
-            problems.append("tz not imported: " + ", ".join(sorted(set(unresolved))))
-        checks.append({"check": "migrated datetime.now() is timezone-aware", "file": file,
-                       "passed": not problems,
-                       "detail": "; ".join(problems) or "aware, tz resolves to an import"})
+        if target in TARGETS:
+            naive_after, unresolved = _aware(after, packages.get(file, ""), exports)
+            naive_before = (_aware(before, packages.get(file, ""), base_exports)[0]
+                            if before and before.is_file() else 0)
+            problems = []
+            if naive_after > naive_before:
+                problems.append(f"{naive_after - naive_before} new naive datetime call(s)")
+            if unresolved:
+                problems.append("tz not imported: " + ", ".join(sorted(set(unresolved))))
+            checks.append({"check": "migrated datetime calls are timezone-aware", "file": file,
+                           "passed": not problems,
+                           "detail": "; ".join(problems) or "aware, tz resolves to an import"})
+        if before and before.is_file():
+            crlf_before = before.read_bytes().count(b"\r\n")
+            lone_lf = after.read_bytes().replace(b"\r\n", b"").count(b"\n")
+            kept = not crlf_before or not lone_lf
+            checks.append({"check": "line endings preserved", "file": file, "passed": kept,
+                           "detail": "unchanged" if kept else
+                           f"CRLF file now has {lone_lf} LF-only line(s)"})
     return checks
 
 
@@ -222,7 +247,7 @@ def export_tree(repo: Path, sha: str, dest: Path) -> Path:
 
 
 def apply_check(fresh: Path, patch_path: Path) -> dict[str, Any]:
-    if not patch_path.read_text().strip():
+    if not patch_path.read_bytes().strip():
         return {"ok": True, "detail": "empty patch"}
     try:
         Git(fresh).apply("--check", str(patch_path.resolve()))
@@ -275,11 +300,12 @@ def collect(out_dir: Path, target: str, task_id: str, run_id: str) -> dict[str, 
         # A crashed run never reached the line that writes the patch; the edits
         # it did make are still in git, and the report must show them.
         def salvage() -> bool:
-            patch_path.write_text(diff(repo, sha))
+            patch_path.write_text(diff(repo, sha), errors="surrogateescape")
             return True
 
         _step(evidence, "patch_salvaged", salvage)
-    patch_files = parse_patch(patch_path.read_text()) if patch_path.is_file() else {}
+    patch_files = (parse_patch(patch_path.read_text(errors="surrogateescape"))
+                   if patch_path.is_file() else {})
 
     _step(evidence, "inventory", lambda: [
         {"file": p.relative_to(repo).as_posix(), "loc": len(p.read_text(errors="replace")

@@ -24,19 +24,22 @@ def apply_codemod(
 ) -> list[str]:
     """Run the codemod over every file in ``call_sites``; return the ones that changed.
 
-    Writes in place, so ``repo`` must already be the writable copy — never the
-    corpus source.
+    Only the listed sites are rewritten (the analyzer is the one resolver). The
+    file goes through as bytes, so line endings, indentation and an encoding
+    cookie survive exactly as written. Writes in place, so ``repo`` must
+    already be the writable copy — never the corpus source.
     """
     repo = Path(repo)
     changed: list[str] = []
     for relative in sorted(call_sites):
         path = repo / relative
-        source = path.read_text()
-        command = command_type(CodemodContext(filename=str(path)))
+        source = path.read_bytes()
+        sites = {(site["line"], site["col"]) for site in call_sites[relative]}
+        command = command_type(CodemodContext(filename=str(path)), sites=sites)
         # transform_module (not _impl) also runs the scheduled AddImportsVisitor.
-        migrated = command.transform_module(cst.parse_module(source)).code
+        migrated = command.transform_module(cst.parse_module(source)).bytes
         if migrated != source:
-            path.write_text(migrated)
+            path.write_bytes(migrated)
             changed.append(relative)
     return changed
 

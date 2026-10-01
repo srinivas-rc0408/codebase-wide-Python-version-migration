@@ -12,10 +12,18 @@ scores zero on all but the first. So every call is flattened to a dotted path,
 its head is resolved through the module's own import bindings, and the result
 is compared against one fully-qualified target. All three spellings above
 resolve to ``datetime.datetime.utcnow``.
+
+Two more ways a name reaches a module are resolved too, because real repos use
+them: a relative import (``from .compat import datetime``) is anchored at the
+importing file's package, and a name re-exported by another in-repo module
+(``from pkg import datetime`` where ``pkg/__init__.py`` imported it) is
+followed to what that module bound. Files that do not parse are skipped, not
+fatal; sources are read as bytes so an encoding cookie is honoured.
 """
 
 from __future__ import annotations
 
+from collections.abc import Collection
 from dataclasses import asdict, dataclass
 from pathlib import Path
 from typing import Any
@@ -23,7 +31,10 @@ from typing import Any
 import libcst as cst
 from libcst.metadata import ImportAssignment, MetadataWrapper, PositionProvider, ScopeProvider
 
-from mra.analysis.dep_graph import python_files
+from mra.analysis.dep_graph import module_index, python_files
+
+#: module dotted name -> {name it binds by import -> fully-qualified target}
+Exports = dict[str, dict[str, str]]
 
 
 @dataclass(frozen=True)
@@ -74,9 +85,11 @@ class ImportBindings(cst.CSTVisitor):
     the analyzer never reported.
     """
 
-    def __init__(self) -> None:
+    def __init__(self, package: str = "") -> None:
         #: local name -> fully-qualified thing it is bound to
         self.bindings: dict[str, str] = {}
+        #: this file's package, to anchor relative imports ("" = unknown)
+        self.package = package
 
     def visit_Import(self, node: cst.Import) -> None:
         for alias in node.names:
@@ -98,17 +111,51 @@ class ImportBindings(cst.CSTVisitor):
             # inventing bindings would cost precision.
             return
         module = _module_name(node.module) if node.module is not None else ""
+        if node.relative:
+            if not self.package:
+                return  # cannot anchor `from . import x` without knowing where "." is
+            parts = self.package.split(".")
+            climb = len(node.relative) - 1
+            if climb >= len(parts) + 1:
+                return
+            module = ".".join([*parts[:len(parts) - climb], *([module] if module else [])])
         for alias in node.names:
             name = str(alias.evaluated_name)
             binding = str(alias.evaluated_alias) if alias.asname is not None else name
             self.bindings[binding] = f"{module}.{name}" if module else name
 
 
-def bindings_of(module: cst.Module) -> dict[str, str]:
+def bindings_of(module: cst.Module, package: str = "") -> dict[str, str]:
     """Collect a whole module's import bindings up front."""
-    collector = ImportBindings()
+    collector = ImportBindings(package)
     module.visit(collector)
     return collector.bindings
+
+
+def canonical(dotted: str, exports: Exports | None) -> str:
+    """Follow re-exports: ``pkg.datetime`` -> ``datetime.datetime`` if pkg imported it."""
+    for _ in range(8):  # re-export chains are short; a cycle must not spin
+        parts = dotted.split(".")
+        for i in range(len(parts) - 1, 0, -1):
+            bound = (exports or {}).get(".".join(parts[:i]), {}).get(parts[i])
+            if bound is not None:
+                dotted = ".".join([bound, *parts[i + 1:]])
+                break
+        else:
+            return dotted
+    return dotted
+
+
+def is_test_path(path: str) -> bool:
+    """True for anything that is part of the test oracle (NB-4)."""
+    parts = Path(path).parts
+    name = Path(path).name
+    return (
+        any(part in ("tests", "test") for part in parts)
+        or name.startswith("test_")
+        or name.endswith("_test.py")
+        or name == "conftest.py"
+    )
 
 
 class _CallSiteVisitor(ImportBindings):
@@ -116,9 +163,11 @@ class _CallSiteVisitor(ImportBindings):
 
     METADATA_DEPENDENCIES = (PositionProvider, ScopeProvider)
 
-    def __init__(self, target: str, file: str) -> None:
-        super().__init__()
-        self.target = target
+    def __init__(self, targets: Collection[str], file: str, package: str = "",
+                 exports: Exports | None = None) -> None:
+        super().__init__(package)
+        self.targets = set(targets)
+        self.exports = exports
         self.file = file
         self.sites: list[CallSite] = []
 
@@ -148,8 +197,8 @@ class _CallSiteVisitor(ImportBindings):
         base = self.bindings.get(head.value)
         if base is None or self._shadowed(head):
             return
-        resolved = ".".join([base, *attributes]) if attributes else base
-        if resolved != self.target:
+        resolved = canonical(".".join([base, *attributes]) if attributes else base, self.exports)
+        if resolved not in self.targets:
             return
         position = self.get_metadata(PositionProvider, node).start
         self.sites.append(
@@ -157,27 +206,62 @@ class _CallSiteVisitor(ImportBindings):
         )
 
 
-def find_in_source(source: str, target: str, file: str) -> list[CallSite]:
-    """Locate every call to ``target`` in one module's source text."""
+def _targets(target: str | Collection[str]) -> set[str]:
+    return {target} if isinstance(target, str) else set(target)
+
+
+def find_in_source(source: str | bytes, target: str | Collection[str], file: str,
+                   package: str = "", exports: Exports | None = None) -> list[CallSite]:
+    """Locate every call to ``target`` (one symbol or several) in one module's source."""
     wrapper = MetadataWrapper(cst.parse_module(source))
-    visitor = _CallSiteVisitor(target=target, file=file)
+    visitor = _CallSiteVisitor(_targets(target), file, package, exports)
     wrapper.visit(visitor)
     return visitor.sites
 
 
+def parse_repo(repo: Path | str) -> tuple[dict[Path, tuple[cst.Module, str]], list[str]]:
+    """Every parseable file -> (module, package), plus the repo-relative files that do not parse."""
+    repo = Path(repo)
+    names = {path: name for name, path in module_index(repo).items()}
+    parsed: dict[Path, tuple[cst.Module, str]] = {}
+    unparseable: list[str] = []
+    for path in python_files(repo):
+        own = names.get(path, "")
+        package = own if path.name == "__init__.py" else own.rpartition(".")[0]
+        try:
+            parsed[path] = (cst.parse_module(path.read_bytes()), package)
+        except cst.ParserSyntaxError:
+            unparseable.append(path.relative_to(repo).as_posix())
+    return parsed, unparseable
+
+
+def exports_of(repo: Path | str, parsed: dict[Path, tuple[cst.Module, str]]) -> Exports:
+    """What each in-repo module binds by import — the names it re-exports."""
+    return {name: bindings_of(parsed[path][0], parsed[path][1])
+            for name, path in module_index(repo).items() if path in parsed}
+
+
 def find_in_repo(
-    repo: Path | str, target: str, files: list[Path] | None = None
+    repo: Path | str, target: str | Collection[str], files: list[Path] | None = None
 ) -> dict[str, list[dict[str, Any]]]:
     """Scan a repo for ``target`` and return the ``MigrationState.call_sites`` map.
 
     Shape is ``{repo-relative file: [call_site, ...]}`` (SRS §4.1). Files with
-    no hit are omitted, so ``|A|`` is the sum of the list lengths.
+    no hit are omitted, so ``|A|`` is the sum of the list lengths. A file that
+    does not parse holds no site this scan can see; the run report lists it.
     """
     repo = Path(repo)
+    parsed, _ = parse_repo(repo)
+    exports = exports_of(repo, parsed)
+    targets = _targets(target)
     found: dict[str, list[dict[str, Any]]] = {}
     for path in files if files is not None else python_files(repo):
+        if path not in parsed:
+            continue
+        module, package = parsed[path]
         relative = path.relative_to(repo).as_posix()
-        sites = find_in_source(path.read_text(), target, relative)
-        if sites:
-            found[relative] = [site.to_dict() for site in sites]
+        visitor = _CallSiteVisitor(targets, relative, package, exports)
+        MetadataWrapper(module).visit(visitor)
+        if visitor.sites:
+            found[relative] = [site.to_dict() for site in visitor.sites]
     return found

@@ -197,3 +197,25 @@ def test_unparseable_repo_is_not_reported_as_green(
     assert report["errors"] > 0
     assert report["failures"]
     assert all(f["signature"] for f in report["failures"])
+
+
+@needs_docker
+def test_timeout_after_a_green_run_is_not_read_as_green(
+    runner: SandboxRunner, tmp_path: Path,
+) -> None:
+    """A killed suite writes no report: the previous run's green one must not stand in.
+
+    Found by the edge suite (edit_causes_infinite_loop): pre and post share a
+    run_id directory, so the post-migration hang was reported as 1/1 passed.
+    """
+    sandbox = SandboxRunner(runs_dir=runner.runs_dir, timeout_s=5)
+    green = sandbox.run(TASK01_OLD, task_id="task01_datetime", phase="pre",
+                        run_id="stale-check", lint=False)
+    assert green["failed"] == 0 and green["errors"] == 0
+    slow = tmp_path / "slow"
+    shutil.copytree(TASK01_OLD, slow)
+    (slow / "tests" / "test_core.py").open("a").write(
+        "\n\ndef test_hangs() -> None:\n    import time\n    time.sleep(120)\n")
+    hung = sandbox.run(slow, task_id="task01_datetime", phase="post", run_id="stale-check",
+                       lint=False)
+    assert hung["errors"] == 1 and hung["failures"][0]["exc_type"] == "Timeout"

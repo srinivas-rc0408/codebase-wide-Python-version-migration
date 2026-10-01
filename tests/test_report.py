@@ -141,6 +141,36 @@ def test_yellow_condition(case: str) -> None:
     assert _codes(run) == [code]
 
 
+def test_precision_is_not_judged_when_nothing_was_edited() -> None:
+    """Already migrated: 0/0 is undefined, not over-editing."""
+    run = _with(edited_files=0, metrics={**GREEN_RUN["metrics"], "m1_precision": 0.0})
+    assert verdict(run)["status"] == "GREEN"
+
+
+def test_lint_message_text_is_not_part_of_the_key() -> None:
+    """B008 quotes the call it flags, so migrating the call changes the message."""
+    before = {"code": "B008", "file": "a.py", "message": "call `datetime.utcnow` in default"}
+    after = {**before, "message": "call `datetime.now` in default"}
+    assert new_lint({"pre": [before], "post": [after], "exempt": []}) == []
+
+
+def test_unreachable_provider_and_refusals_have_their_own_reasons() -> None:
+    provider = _with(crash="ProviderError: role 'classify': every provider was unreachable",
+                     metrics=None)
+    assert _codes(provider)[0] == "provider"
+    refused = _with(refused="PrivacyError: MRA_PRIVACY=local-only: role 'edit' ...",
+                    pre_report=None, post_report=None, metrics=None)
+    assert _codes(refused) == ["refused"]
+
+
+def test_precondition_names_the_network_when_that_is_the_cause() -> None:
+    pre = {"total": 2, "passed": 1, "failed": 1, "errors": 0, "failures": [{
+        "nodeid": "tests/test_a.py::test_fetch", "exc_type": "gaierror",
+        "message": "[Errno -3] Temporary failure in name resolution"}]}
+    reason = verdict(_with(pre_report=pre))["reasons"][0]
+    assert reason["code"] == "precondition" and "--network none" in reason["evidence"]
+
+
 def test_precision_is_not_judged_without_ground_truth() -> None:
     run = _with(has_ground_truth=False, metrics={**GREEN_RUN["metrics"], "m1_precision": 50.0})
     assert verdict(run)["status"] == "GREEN"
@@ -194,11 +224,13 @@ def test_semantic_check_catches_unimported_tz_and_new_naive_now(tmp_path: Path) 
     (base / "c.py").write_text("from datetime import datetime\nx = datetime.utcnow()\n")
     (repo / "c.py").write_text("from datetime import datetime, timezone\n"
                                "x = datetime.now(timezone.utc)\n")
-    checks = {c["file"]: c for c in semantic_checks(base, repo, ["a.py", "b.py", "c.py"], TARGET)}
+    checks = {c["file"]: c for c in semantic_checks(base, repo, ["a.py", "b.py", "c.py"], TARGET)
+              if c["check"] != "line endings preserved"}
     assert not checks["a.py"]["passed"] and "tz not imported" in checks["a.py"]["detail"]
     assert not checks["b.py"]["passed"] and "naive" in checks["b.py"]["detail"]
     assert checks["c.py"]["passed"]
-    assert semantic_checks(base, repo, ["a.py"], "os.path.join") == []
+    other = semantic_checks(base, repo, ["a.py"], "os.path.join")
+    assert [c["check"] for c in other] == ["line endings preserved"], "only the generic check"
 
 
 def test_parse_patch_counts_lines_and_new_line_numbers() -> None:
@@ -237,6 +269,55 @@ def test_other_import_lines_are_not_touched() -> None:
     source = "import sys\nfrom datetime import datetime, date\nimport os\nx = datetime.utcnow()\n"
     assert _migrate(source) == ("import sys\nfrom datetime import datetime, date, timezone\n"
                                 "import os\nx = datetime.now(timezone.utc)\n")
+
+
+def test_aliased_import_gets_its_own_timezone_line() -> None:
+    """ruff keeps `as` imports on their own line (I001); appending would break that."""
+    assert _migrate("from datetime import datetime as DT\nx = DT.utcnow()\n") == (
+        "from datetime import datetime as DT\nfrom datetime import timezone\n"
+        "x = DT.now(timezone.utc)\n")
+
+
+def test_utcfromtimestamp_gains_the_timezone_argument() -> None:
+    assert _migrate("from datetime import datetime\nx = datetime.utcfromtimestamp(t)\n") == \
+        "from datetime import datetime, timezone\nx = datetime.fromtimestamp(t, timezone.utc)\n"
+
+
+@pytest.mark.parametrize(("source", "site", "expected_head"), [
+    # datetime arrived through a re-export: a new stdlib line goes above first party,
+    ("from pkg import datetime\n\nx = datetime.utcnow()\n", (3, 4),
+     "from datetime import timezone\n\nfrom pkg import datetime\n"),
+    # ...joins an existing stdlib block without a blank line,
+    ("import os\n\nfrom pkg import datetime\n\nx = datetime.utcnow()\n", (5, 4),
+     "import os\nfrom datetime import timezone\n\nfrom pkg import datetime\n"),
+    # ...and sits above a relative import.
+    ("from .compat import datetime\n\nx = datetime.utcnow()\n", (3, 4),
+     "from datetime import timezone\n\nfrom .compat import datetime\n"),
+])
+def test_new_timezone_import_lands_where_isort_puts_it(source: str, site: tuple[int, int],
+                                                      expected_head: str) -> None:
+    out = ConvertUtcnowCommand(CodemodContext(), sites={site}).transform_module(
+        cst.parse_module(source)).code
+    assert out.startswith(expected_head), out
+
+
+def test_given_sites_only_those_calls_change() -> None:
+    """A shadowed `datetime` the analyzer rejected must not be edited by the codemod."""
+    source = ("from datetime import datetime\n\n\ndef fake():\n    datetime = Clock()\n"
+              "    return datetime.utcnow()\n\n\ndef real():\n    return datetime.utcnow()\n")
+    out = ConvertUtcnowCommand(CodemodContext(), sites={(10, 11)}).transform_module(
+        cst.parse_module(source)).code
+    assert "    return datetime.utcnow()\n\n\ndef real" in out, "shadowed call untouched"
+    assert out.endswith("    return datetime.now(timezone.utc)\n")
+
+
+def test_crlf_survives_a_bytes_round_trip(tmp_path: Path) -> None:
+    from mra.nodes.edit_node import apply_codemod
+
+    (tmp_path / "m.py").write_bytes(b"from datetime import datetime\r\nx = datetime.utcnow()\r\n")
+    apply_codemod(tmp_path, {"m.py": [{"line": 2, "col": 4}]})
+    assert (tmp_path / "m.py").read_bytes() == \
+        b"from datetime import datetime, timezone\r\nx = datetime.now(timezone.utc)\r\n"
 
 
 def test_module_import_still_adds_no_import() -> None:

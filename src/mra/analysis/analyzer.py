@@ -7,6 +7,7 @@ by construction: no edits, no ordering, no LLM.
 
 from __future__ import annotations
 
+from collections.abc import Collection
 from pathlib import Path
 from typing import Any
 
@@ -14,7 +15,7 @@ from mra.analysis import call_sites as call_sites_module
 from mra.analysis import dep_graph as dep_graph_module
 
 
-def analyze(repo: Path | str, target: str) -> dict[str, Any]:
+def analyze(repo: Path | str, target: str | Collection[str]) -> dict[str, Any]:
     """Scan ``repo`` for ``target`` and map its imports.
 
     Args:
@@ -26,7 +27,10 @@ def analyze(repo: Path | str, target: str) -> dict[str, Any]:
         — the MAP node's partial state update.
     """
     repo = Path(repo)
-    files = dep_graph_module.python_files(repo)
+    # The work list never includes the test oracle (NB-4): a deprecated call in a
+    # test is the tests' business, and the run report lists it as a residual.
+    files = [path for path in dep_graph_module.python_files(repo)
+             if not call_sites_module.is_test_path(path.relative_to(repo).as_posix())]
     return {
         "call_sites": call_sites_module.find_in_repo(repo, target, files=files),
         "dep_graph": dep_graph_module.to_state_adjacency(dep_graph_module.build(repo)),

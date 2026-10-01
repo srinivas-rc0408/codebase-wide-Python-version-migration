@@ -69,6 +69,10 @@ PRICES_USD_PER_MTOK: dict[str, tuple[float, float]] = {
 }
 
 
+class ProviderError(RuntimeError):
+    """Every provider in a role's chain failed; names each one and why."""
+
+
 @dataclass
 class Endpoint:
     """One link of a role's chain: a provider, the model to ask it for, its policy."""
@@ -163,6 +167,16 @@ class Router:
             else float(os.getenv("MRA_LLM_TEMPERATURE", "0.1"))
         )
         self.privacy = privacy_mode()
+        if self.privacy == "local-only":
+            # A role whose whole chain is remote can never be served; say so now,
+            # before any provider is touched, not at the first call mid-run.
+            for role, chain in self.roles.items():
+                if chain and not any(endpoint.local for endpoint in chain):
+                    names = ", ".join(f"{e.provider.name} ({host_of(e.provider.base_url)})"
+                                      for e in chain)
+                    raise PrivacyError(f"MRA_PRIVACY=local-only: role {role!r} has only "
+                                       f"remote providers ({names}); refusing before any "
+                                       "network I/O")
         #: One record per served call: role, provider, model, tokens, latency, redactions.
         self.calls: list[dict[str, Any]] = []
         #: Remote host -> {"calls", "bytes_sent"}: what left the machine this run.
@@ -180,6 +194,7 @@ class Router:
             raise RuntimeError(f"no provider configured for role {task!r}; see mra.toml")
         error: Exception | None = None
         failed: str | None = None
+        failures: list[str] = []
         for endpoint in chain:
             # Checked per link, before the provider is touched: a remote fallback
             # behind a failed local primary is refused exactly like a remote primary.
@@ -192,8 +207,10 @@ class Router:
                                   fallback_from=failed)
             except Exception as exc:  # error or timeout: try the next link
                 error, failed = exc, endpoint.provider.name
-        assert error is not None
-        raise error
+                failures.append(f"{failed} at {host_of(endpoint.provider.base_url)}: "
+                                f"{type(exc).__name__}: {exc}")
+        raise ProviderError(f"role {task!r}: every provider was unreachable or failed — "
+                            + "; ".join(failures)) from error
 
     def _check_privacy(self, endpoint: Endpoint) -> None:
         if self.privacy == "local-only" and not endpoint.local:

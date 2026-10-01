@@ -10,9 +10,11 @@ from __future__ import annotations
 import json
 import os
 import re
+import shutil
 import time
 import traceback
 import uuid
+from collections.abc import Callable
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
@@ -51,19 +53,36 @@ def build_report(out_dir: Path | str) -> tuple[Path, dict[str, Any]]:
 
 def run_with_report(task_dir: Path | str, *, run_id: str | None = None,
                     runs_dir: Path | str = "runs", router: Any = None,
+                    setup: Callable[[str], dict[str, Any]] | None = None,
                     **run_kwargs: Any) -> dict[str, Any]:
-    """Run the migration, then always gather evidence and write the report."""
-    from mra.graph import run_migration
+    """Run the migration, then always gather evidence and write the report.
+
+    ``setup(run_id)`` returns extra ``run_migration`` kwargs (router, corrector,
+    state). It runs inside the reported region, so a provider set-up that
+    refuses — e.g. local-only privacy with only remote providers — still ends
+    in a RED report rather than a bare traceback.
+    """
+    from mra.graph import PreconditionError, run_migration
+    from mra.models import PrivacyError
 
     task_dir = Path(task_dir)
     run_id = run_id or uuid.uuid4().hex[:12]
     out_dir = Path(runs_dir) / run_id
     truth_path = task_dir / "ground_truth.json"
     truth = json.loads(truth_path.read_text()) if truth_path.is_file() else {}
+    # A run directory belongs to one run: leftovers of an earlier run with the same
+    # id (its metrics, its patch) must never be judged as this run's.
+    shutil.rmtree(out_dir, ignore_errors=True)
     started, clock = datetime.now(UTC), time.perf_counter()
-    crash = crash_summary = None
+    crash = crash_summary = refused = None
     try:
+        if setup is not None:
+            run_kwargs.update(setup(run_id))
+            router = run_kwargs.pop("router", router)
         run_migration(task_dir, run_id=run_id, runs_dir=runs_dir, router=router, **run_kwargs)
+    except (PreconditionError, PrivacyError) as exc:
+        # A refusal is the agent working as designed, not a crash: nothing was edited.
+        refused = f"{type(exc).__name__}: {exc}"
     except Exception as exc:
         crash, crash_summary = traceback.format_exc(), f"{type(exc).__name__}: {exc}"
     finally:
@@ -79,6 +98,7 @@ def run_with_report(task_dir: Path | str, *, run_id: str | None = None,
             "run_timeout_s": int(os.getenv("MRA_RUN_TIMEOUT_SEC", "1800")),
             "crash": crash,
             "crash_summary": crash_summary,
+            "refused": refused,
             "llm": {
                 "calls": getattr(router, "calls", []),
                 "egress": getattr(router, "egress", {}),

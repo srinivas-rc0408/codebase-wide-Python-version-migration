@@ -109,7 +109,12 @@ def build(repo: Path | str) -> nx.DiGraph:
         # An __init__.py *is* its package; any other module sits one level below.
         package = own if path.name == "__init__.py" else own.rpartition(".")[0]
         collector = _ImportCollector(package=package)
-        cst.parse_module(path.read_text()).visit(collector)
+        try:
+            # Bytes, so an encoding cookie is honoured; an unparseable file has
+            # no imports this graph can see (the run report lists it).
+            cst.parse_module(path.read_bytes()).visit(collector)
+        except cst.ParserSyntaxError:
+            continue
         for dotted in collector.imported:
             target = index.get(dotted)
             if target is not None and target != path:

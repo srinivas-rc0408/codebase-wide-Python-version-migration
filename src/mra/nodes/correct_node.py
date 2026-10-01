@@ -25,6 +25,7 @@ import libcst as cst
 
 from mra.analysis import call_sites as call_sites_module
 from mra.analysis import dep_graph as dep_graph_module
+from mra.analysis.call_sites import is_test_path
 from mra.memory import edit_context
 from mra.models import Router
 
@@ -64,18 +65,6 @@ PATCH_SYSTEM = (
     "- Reply with the complete corrected file inside one ```python fence, and "
     "no prose before or after it."
 )
-
-
-def is_test_path(path: str) -> bool:
-    """True for anything that is part of the test oracle (NB-4)."""
-    parts = Path(path).parts
-    name = Path(path).name
-    return (
-        any(part in ("tests", "test") for part in parts)
-        or name.startswith("test_")
-        or name.endswith("_test.py")
-        or name == "conftest.py"
-    )
 
 
 # -- (a) classify ----------------------------------------------------------
@@ -138,7 +127,9 @@ def locate(
     is not a half-migration and this node cannot fix it.
     """
     repo = Path(repo)
-    remaining = call_sites_module.find_in_repo(repo, target)
+    from mra.codemods.datetime_utcnow import family
+
+    remaining = call_sites_module.find_in_repo(repo, family(target))
     candidates = {path: sites for path, sites in remaining.items() if not is_test_path(path)}
     if not candidates:
         return None

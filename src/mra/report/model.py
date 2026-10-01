@@ -57,7 +57,8 @@ def load_run(out_dir: Path | str) -> dict[str, Any]:
     candidates = [_json(out_dir / "test_report.json"), state.get("last_test_report")]
     post = next((r for r in candidates if r and r.get("phase") != "pre"), None)
     patch_path = out_dir / "migration.patch"
-    patch = patch_path.read_text() if patch_path.is_file() else ""
+    # A latin-1 source makes a non-UTF-8 patch; undecodable bytes become U+FFFD here.
+    patch = patch_path.read_text(errors="replace") if patch_path.is_file() else ""
     evidence = _json(out_dir / "verification.json") or {}
     return {
         "meta": meta,
@@ -67,6 +68,8 @@ def load_run(out_dir: Path | str) -> dict[str, Any]:
         "evidence": evidence,
         # -- the verdict's inputs --
         "crash": meta.get("crash_summary") or meta.get("crash"),
+        "refused": meta.get("refused"),
+        "edited_files": sum(1 for f in parse_patch(patch) if not is_test_path(f)),
         "pre_report": _json(out_dir / "test_report_pre.json"),
         "post_report": post,
         "metrics": _json(out_dir / "metrics.json"),

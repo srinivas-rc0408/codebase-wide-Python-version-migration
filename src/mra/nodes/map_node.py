@@ -5,13 +5,14 @@ from __future__ import annotations
 from typing import Any
 
 from mra.analysis import analyze, flat_sites
+from mra.codemods.datetime_utcnow import family
 
 
 def make_map_node(target: str):
     """Bind the target symbol and return the node LangGraph calls."""
 
     def map_node(state: dict[str, Any]) -> dict[str, Any]:
-        analysis = analyze(state["repo_path"], target)
+        analysis = analyze(state["repo_path"], family(target))
         sites = flat_sites(analysis["call_sites"])
         return {
             "call_sites": analysis["call_sites"],

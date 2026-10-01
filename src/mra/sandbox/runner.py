@@ -58,6 +58,19 @@ def normalize_message(message: str) -> str:
     return _WHITESPACE.sub(" ", text).strip()
 
 
+#: How a test that needs the network fails under ``--network none`` (NB-5).
+NETWORK_ERROR = re.compile(
+    r"name resolution|getaddrinfo|Name or service not known|Network is unreachable|"
+    r"nodename nor servname|gaierror|ConnectionRefused|Errno -3|Errno 101", re.I)
+
+
+def needs_network(report: dict[str, Any]) -> list[str]:
+    """Failing tests whose error is the sandbox's missing network, not the code."""
+    return [f["nodeid"] for f in report.get("failures", [])
+            if NETWORK_ERROR.search(f"{f.get('exc_type', '')} {f.get('message', '')} "
+                                    f"{f.get('trace', '')}")]
+
+
 def failure_signature(nodeid: str, exc_type: str, message: str) -> str:
     """Stable id for a recurring failure: hash of (nodeid, exc_type, normalized message).
 
@@ -225,6 +238,11 @@ class SandboxRunner:
         out_dir = self.runs_dir / run_id
         out_dir.mkdir(parents=True, exist_ok=True)
 
+        # Every run of one run_id shares this directory. A suite killed by the
+        # timeout writes no report, so a leftover from the previous run (say,
+        # the green pre-migration suite) would be read as this run's result.
+        for stale in ("pytest_raw.json", "ruff.json", "coverage.json"):
+            (out_dir / stale).unlink(missing_ok=True)
         argv = self._docker_argv(repo, out_dir, run_id, lint, coverage)
         timed_out = False
         try:

@@ -60,6 +60,27 @@ DEFAULT_RECURSION_LIMIT = 200
 KEY_FIELDS = ("file", "line", "col", "symbol")
 
 
+class PreconditionError(RuntimeError):
+    """NB-10: the pre-migration suite is not green (or collects nothing); refuse to edit."""
+
+
+def precondition_problem(pre: dict[str, Any]) -> str | None:
+    """Why ``pre`` is not a usable baseline, or None when it is."""
+    from mra.sandbox.runner import needs_network
+
+    if pre.get("total", 0) == 0:
+        return "the pre-migration suite collected no tests"
+    if is_green(pre):
+        return None
+    failing = [f.get("nodeid", "?") for f in pre.get("failures", [])]
+    problem = (f"the pre-migration suite is not green: {pre.get('failed', 0)} failed, "
+               f"{pre.get('errors', 0)} errors ({', '.join(failing[:3])})")
+    if offline := needs_network(pre):
+        problem += (f"; {', '.join(offline[:3])} need(s) the network, which the sandbox "
+                    "does not have (--network none)")
+    return problem
+
+
 def _cap() -> int:
     return int(os.environ.get("MRA_MAX_FIX_ATTEMPTS", str(DEFAULT_MAX_FIX_ATTEMPTS)))
 
@@ -245,12 +266,20 @@ def run_migration(
     pre = runner.run(work, task_id=task_id, phase="pre", run_id=run_id, lint=False)
     (out_dir / "test_report_pre.json").write_text(json.dumps(pre, indent=2) + "\n")
     state["last_test_report"] = pre
+    if problem := precondition_problem(pre):
+        # NB-10: without a green baseline M2 is undefined and a red suite after
+        # the edit proves nothing, so nothing is edited at all.
+        raise PreconditionError(problem)
 
     base_sha = snapshot(work, "pre-migration snapshot")
 
     graph = build_graph(runner=runner, corrector=corrector, task_id=task_id,
                         target=target, run_id=run_id, router=router, planner=planner)
     config = {"configurable": {"thread_id": run_id}, "recursion_limit": recursion_limit}
+    # Re-running a run_id starts a fresh audit log; appending to the old one
+    # would interleave two runs' steps in one trajectory.
+    for leftover in ("state.db", "state.db-wal", "state.db-shm"):
+        (out_dir / leftover).unlink(missing_ok=True)
     with SqliteSaver.from_conn_string(str(out_dir / "state.db")) as saver:
         app = graph.compile(checkpointer=saver)
         final = app.invoke(state, config)
@@ -263,7 +292,8 @@ def run_migration(
     # Against the pre-migration snapshot: EDIT and CORRECT both commit, so a
     # HEAD-relative diff would report an empty migration.
     patch = diff(work, base_sha)
-    (out_dir / "migration.patch").write_text(patch)
+    # Non-UTF-8 sources come back from git surrogate-escaped; write the original bytes.
+    (out_dir / "migration.patch").write_text(patch, errors="surrogateescape")
 
     edited = {_key(site) for sites in final.get("call_sites", {}).values()
               for site in sites if site["file"] in set(changed)}
