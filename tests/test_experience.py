@@ -178,3 +178,14 @@ def test_rows_table_has_no_path_column(db: Path) -> None:
     ExperienceStore(db).record("behaviour", MESSAGE, CONTRACT, DIFF)
     columns = [c[1] for c in sqlite3.connect(db).execute("PRAGMA table_info(fixes)")]
     assert not any("path" in c or "file" in c or "repo" in c for c in columns)
+
+
+@needs_docker
+def test_forced_off_in_the_edge_runner(db: Path, tmp_path: Path,
+                                       monkeypatch: pytest.MonkeyPatch) -> None:
+    from mra.benchmark.edge import run_case
+
+    monkeypatch.setenv("MRA_EXPERIENCE", "on")
+    row = run_case(REPO_ROOT / "corpus" / "edge" / "cross_file_recovery", tmp_path)
+    assert row["pass"], row["problems"]  # the case needs a CORRECT to reach GREEN ...
+    assert not db.exists()               # ... and still nothing was learnt.
