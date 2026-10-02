@@ -18,6 +18,13 @@ recover   = ["deepseek-pro"]     # corrective patches in the CORRECT loop (stron
 summarize = ["deepseek-flash"]   # rolling progress note (cheap tier)
 classify  = ["deepseek-flash"]   # failure classification (cheap tier)
 
+# ---- Experience store (opt-in) -------------------------------------------
+# Off unless enabled. A local SQLite file of past fixes, used as CORRECT hints.
+# See CONFIGURATION.md §5. `mra memory purge` deletes it.
+# [experience]
+# enabled = true
+# path = "~/.mra/experience.db"
+
 # ---- Providers ----------------------------------------------------------
 # provider = "openai-compatible" | "anthropic"
 # Optional per entry: timeout_s (default 120), redact_secrets (default: true

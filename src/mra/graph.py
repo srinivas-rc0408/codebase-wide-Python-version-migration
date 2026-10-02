@@ -234,12 +234,16 @@ def run_migration(
     state: MigrationState | None = None,
     recursion_limit: int = DEFAULT_RECURSION_LIMIT,
     planner: Any = plan_node,
+    experience: Any = None,
 ) -> dict[str, Any]:
     """Migrate a Tier-A task by driving the graph, and score the result.
 
     The pre-migration suite runs here rather than as a graph node: NB-10 makes
     a green baseline a *precondition* for the run, not a step of it, and M2 is
     undefined without it. Everything after that is the state machine.
+
+    ``experience`` is the opt-in store (:mod:`mra.memory.experience`). None —
+    the default, and what every benchmark path passes — means nothing is learnt.
     """
     task_dir = Path(task_dir)
     task_id = task_dir.name
@@ -288,6 +292,7 @@ def run_migration(
     post = final["last_test_report"]
     outcome = outcome_of(final)
     changed = changed_files(trajectory)
+    learned = 0 if experience is None else experience.learn(work, trajectory, state["contract"])
 
     # Against the pre-migration snapshot: EDIT and CORRECT both commit, so a
     # HEAD-relative diff would report an empty migration.
@@ -323,4 +328,5 @@ def run_migration(
         "state": final, "trajectory": trajectory, "batches": final.get("edit_batches") or [],
         "changed_files": changed, "pre_report": pre, "test_report": post,
         "patch": patch, "metrics": metrics, "checkpoint_db": out_dir / "state.db",
+        "experience_learned": learned,
     }

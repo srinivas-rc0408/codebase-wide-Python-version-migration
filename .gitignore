@@ -15,6 +15,11 @@ runs/benchmark/*
 !runs/benchmark/results.md
 !runs/benchmark/failure-analysis.md
 !runs/benchmark/RESULTS_SUMMARY.md
+# Ablation E (experience store), kept apart from the paper-cited 165-run matrix.
+!runs/benchmark/ablation-e/
+runs/benchmark/ablation-e/*
+!runs/benchmark/ablation-e/results.json
+!runs/benchmark/ablation-e/results.md
 *.patch
 state.db
 *.sqlite

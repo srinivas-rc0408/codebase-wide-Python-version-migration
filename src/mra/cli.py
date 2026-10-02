@@ -2,6 +2,8 @@
 
 * ``mra run --task-dir DIR`` — migrate, verify, and write the run report.
 * ``mra report RUN_ID`` — rebuild a run's report from its artifacts.
+* ``mra memory stats|export|purge`` — inspect or wipe the opt-in experience
+  store (``[experience]`` in mra.toml; off by default).
 * ``mra providers check`` — ping every configured provider. Unreachable is a
   warning, not a failure: the deterministic path never needs a provider.
 
@@ -51,10 +53,12 @@ def providers_check(path: str | None) -> int:
 
 def run(task_dir: str, run_id: str | None, runs_dir: str, llm: bool) -> int:
     from mra.benchmark.runner import codemod_corrector
+    from mra.memory.experience import from_config
     from mra.report import run_with_report, terminal_summary
 
     run_id = run_id or uuid.uuid4().hex[:12]
-    router, corrector, run_kwargs = None, codemod_corrector, {}
+    experience = from_config(forbidden=(Path(task_dir),))
+    router, corrector, run_kwargs = None, codemod_corrector, {"experience": experience}
     if llm:
         from mra.models import Router
         from mra.nodes.correct_node import LLMCorrector
@@ -68,8 +72,8 @@ def run(task_dir: str, run_id: str | None, runs_dir: str, llm: bool) -> int:
         if not router.available:
             print("--llm: no usable provider in mra.toml; see `mra providers check`")
             return 2
-        corrector = LLMCorrector(router, TARGET, contract)
-        run_kwargs = {"state": state}
+        corrector = LLMCorrector(router, TARGET, contract, experience)
+        run_kwargs["state"] = state
     result = run_with_report(task_dir, run_id=run_id, runs_dir=runs_dir, router=router,
                              corrector=corrector, **run_kwargs)
     print(terminal_summary(result["model"], result["pdf"]))
@@ -86,6 +90,19 @@ def report(run_id: str, runs_dir: str) -> int:
     pdf, model = build_report(out_dir)
     print(terminal_summary(model, pdf))
     return EXIT[model["verdict"]["status"]]
+
+
+def memory(action: str) -> int:
+    from mra.memory.experience import ExperienceStore, configured_path, export_json
+
+    store = ExperienceStore(configured_path())
+    if action == "purge":
+        print(f"purged {store.purge()} fix(es) from {store.path}")
+    elif action == "export":
+        print(export_json(store))
+    else:
+        print(json.dumps(store.stats(), indent=2))
+    return 0
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -105,7 +122,11 @@ def main(argv: list[str] | None = None) -> int:
     actions = providers.add_subparsers(dest="action", required=True)
     check = actions.add_parser("check", help="ping each configured provider")
     check.add_argument("--config", help="path to mra.toml (default: $MRA_CONFIG or ./mra.toml)")
+    memory_cmd = commands.add_parser("memory", help="the opt-in local experience store")
+    memory_cmd.add_argument("action", choices=("stats", "export", "purge"))
     args = parser.parse_args(argv)
+    if args.command == "memory":
+        return memory(args.action)
     if args.command == "run":
         return run(args.task_dir, args.run_id, args.runs_dir, args.llm)
     if args.command == "report":

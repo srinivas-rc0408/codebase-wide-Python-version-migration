@@ -100,6 +100,8 @@ These tune the agent and mirror the non-functional constraints in `docs/03_SRS.m
 | `MRA_SANDBOX_IMAGE` | Docker image tag for the sandbox | `mra-sandbox:py312` |
 | `MRA_CONTAINER_RUNTIME` | `docker` or `podman` | `docker` |
 | `NO_COLOR` | Any non-empty value turns off the coloured verdict banner in `mra run` / `mra report` | unset |
+| `MRA_EXPERIENCE` | `on` / `off` for the experience store (§5); `off` beats `mra.toml` | unset (= off) |
+| `MRA_EXPERIENCE_DB` | Experience store file | `~/.mra/experience.db` |
 
 `MRA_EDIT_MODEL`, `MRA_UTILITY_MODEL` and `DEEPSEEK_BASE_URL` were removed in
 0.2.0; set `model` / `base_url` in `mra.toml` instead.
@@ -123,6 +125,17 @@ The router enforces these before any byte reaches a provider (`src/mra/models/pr
   sending. The count is logged per call as `redactions`.
 - **Data-egress log** — `Router.egress` records, per remote host, the number of
   calls and bytes sent this run. Local hosts are not counted.
+- **Experience store (opt-in, off by default)** — `[experience] enabled = true`
+  (optional `path = "..."`) in `mra.toml`, or `MRA_EXPERIENCE=on`, makes `mra run`
+  keep a local SQLite file of past fixes (`src/mra/memory/experience.py`). After
+  a CORRECT whose re-test is green it stores the failure class, the normalised
+  message, the contract and the changed lines of the fix — never a file path,
+  and secret-redacted. On a new failure the closest past fixes go into the
+  CORRECT prompt as hints (capped at 1200 chars). The file is refused if it would
+  sit inside the agent's repo or the repo being migrated, and nothing in it is
+  ever sent anywhere except as those hints, to the provider your `recover` role
+  already uses. The benchmark never reads or writes it. `mra memory stats`,
+  `mra memory export` (JSON), `mra memory purge` (deletes it, no prompt).
 
 ## 6. Security rules
 

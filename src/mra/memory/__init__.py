@@ -124,12 +124,14 @@ def edit_context(
     contract: dict[str, Any],
     klass: str,
     summary: str = "",
+    hints: list[str] | None = None,
 ) -> str:
     """The complete payload for one corrective-edit call (NFR-12).
 
     Everything except ``located["source"]`` is bounded by a constant, so the
     payload tracks the size of the file being fixed and not the size of the
-    repo it lives in.
+    repo it lives in. ``hints`` (opt-in experience store) are already capped
+    at ``HINT_BUDGET_CHARS`` by the store.
     """
     sites = [(site["line"], site["symbol"]) for site in located["sites"][:MAX_NEIGHBOURS]]
     return "\n".join([
@@ -141,6 +143,8 @@ def edit_context(
         "# progress so far",
         f"# {summary[:SUMMARY_MAX_CHARS]}" if summary else "# (first correction of this run)",
         "",
+        *(["# past fixes for similar failures (hints; apply only if they fit)",
+           *hints, ""] if hints else []),
         "# trace",
         str(failure.get("trace", ""))[:TRACE_MAX_CHARS],
         "",

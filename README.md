@@ -123,6 +123,7 @@ cp .env.example .env
 $EDITOR .env                      # add the key(s) your providers name, e.g. DEEPSEEK_API_KEY
 cp mra.example.toml mra.toml      # pick providers/models per role (or a local Ollama)
 mra providers check               # reachable / WARN per provider; never fatal
+mra memory stats|export|purge     # opt-in experience store (off by default)
 
 # 3. build the sandbox image
 docker build -f Dockerfile.sandbox -t mra-sandbox:py312 .

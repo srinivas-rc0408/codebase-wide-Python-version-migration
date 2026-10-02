@@ -8,6 +8,7 @@ The agent itself is unchanged here — this module only *drives* it. A
 ``order``     dependency-ordered batches or a deliberately worse order (B)
 ``model``     which model writes the corrective edit (C, needs a key)
 ``batch_size`` files per EDIT before the suite runs again (D)
+``memory``    experience store off, or pre-warmed on a training split (E)
 ============  ===========================================================
 
 Two knobs are set through the environment rather than an argument, because
@@ -30,7 +31,9 @@ import argparse
 import contextlib
 import json
 import os
+import shutil
 import statistics
+import tempfile
 import time
 import uuid
 from collections.abc import Iterator, Sequence
@@ -39,10 +42,13 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
+import libcst as cst
+
 from mra.analysis import dep_graph as dep_graph_module
 from mra.codemods.datetime_utcnow import TARGET
-from mra.graph import run_migration
-from mra.nodes.correct_node import classify_offline, locate
+from mra.graph import PreconditionError, run_migration
+from mra.memory.experience import ExperienceStore, format_hint
+from mra.nodes.correct_node import apply_source, classify_offline, locate
 from mra.nodes.edit_node import apply_codemod
 from mra.nodes.plan_node import DEFAULT_EDIT_BATCH_SIZE, plan_batches, plan_node
 
@@ -53,6 +59,9 @@ TASKS = ("task01_datetime", "task02_datetime_aliased",
 DEFAULT_REPEATS = 3
 DEFAULT_CORPUS = Path("corpus/tierA")
 DEFAULT_OUT = Path("runs/benchmark")
+#: Ablation E's training split. Never Tier A: warming memory on the tasks being
+#: evaluated is leakage, so :func:`warm_store` refuses any task named in TASKS.
+TRAIN_CORPUS = Path("corpus/edge")
 
 
 # -- configuration ---------------------------------------------------------
@@ -67,6 +76,7 @@ class Config:
     order: str = "dependency"          # dependency | alphabetical | fr3_violating
     batch_size: int = DEFAULT_EDIT_BATCH_SIZE
     model: str = "deterministic"       # deterministic | v4-pro | v4-flash
+    memory: str = ""                   # "" (not ablation E) | off | warm
     ablation: str = ""
     note: str = ""
 
@@ -115,6 +125,18 @@ CONFIGS: tuple[Config, ...] = (
            note="live corrective edits from the strong model"),
     Config("edit-v4-flash", model="v4-flash", ablation="C",
            note="live corrective edits from the cheap model"),
+    # Ablation E. The deterministic pair swaps the codemod for ReplayCorrector,
+    # which knows nothing but what memory hands it: a mechanics check that the
+    # store learns, retrieves and transfers across tasks. The live pair is the
+    # effect size (corrections and tokens with vs without hints).
+    Config("memory-off", memory="off", ablation="E",
+           note="replay corrector, no experience store (control)"),
+    Config("memory-warm", memory="warm", ablation="E",
+           note="replay corrector, store pre-warmed on the edge-corpus training split"),
+    Config("memory-off-llm", model="v4-pro", memory="off", ablation="E",
+           note="live corrective edits, no experience hints"),
+    Config("memory-warm-llm", model="v4-pro", memory="warm", ablation="E",
+           note="live corrective edits with hints from the pre-warmed store"),
 )
 
 
@@ -150,6 +172,98 @@ def codemod_corrector(repo: Path, failure: dict[str, Any], context: dict[str, An
     if located is None:
         return []
     return apply_codemod(repo, {located["file"]: located["sites"]})
+
+
+def replay(pattern: str, source: str) -> str:
+    """Re-apply a stored diff pattern's ``-``/``+`` line pairs to ``source``.
+
+    Each pair is applied as a whole-line rewrite where the old line occurs
+    verbatim, then as a substitution of just the part that changed (e.g.
+    ``utcnow(`` -> ``now(timezone.utc``) everywhere else.
+    """
+    # ponytail: pairs -/+ lines by position and edits text, not the CST; a
+    # pattern that adds or drops lines replays wrongly and the suite says so.
+    lines = pattern.splitlines()
+    pairs = zip([line[1:] for line in lines if line.startswith("-")],
+                [line[1:] for line in lines if line.startswith("+")], strict=False)
+    for old, new in pairs:
+        old, new = old.strip(), new.strip()
+        if not old or old == new:
+            continue
+        source = "".join(
+            line[:len(line) - len(line.lstrip())] + new + "\n"
+            if line.strip() == old else line
+            for line in source.splitlines(keepends=True))
+        head = len(os.path.commonprefix([old, new]))
+        tail = len(os.path.commonprefix([old[head:][::-1], new[head:][::-1]]))
+        old_mid, new_mid = old[head:len(old) - tail], new[head:len(new) - tail]
+        if len(old_mid) >= 3 and old_mid not in new_mid:
+            source = source.replace(old_mid, new_mid)
+    return source
+
+
+class ReplayCorrector:
+    """Ablation E's deterministic corrector: it can only replay what memory recalls.
+
+    Localizes exactly like the codemod and LLM correctors, then asks the store
+    for the top-k fixes (same failure class and contract, nearest message) and
+    replays their patterns on the located file. With no store it changes
+    nothing, so the OFF arm is "a corrector with no prior knowledge" and the
+    gap is whether fixes learnt on the training split transfer to unseen tasks.
+    """
+
+    def __init__(self, contract: dict[str, Any], experience: ExperienceStore | None) -> None:
+        self.contract = contract
+        self.experience = experience
+        self.hints_served = 0
+        self.hint_chars = 0
+
+    def __call__(self, repo: Path, failure: dict[str, Any], context: dict[str, Any]) -> list[str]:
+        located = locate(repo, failure, TARGET, dep_graph=context.get("graph"))
+        if located is None or self.experience is None:
+            return []
+        fixes = self.experience.hints(classify_offline(failure), failure.get("message", ""),
+                                      self.contract)
+        self.hints_served += len(fixes)
+        self.hint_chars += sum(len(format_hint(fix)) for fix in fixes)
+        source = located["source"]
+        for fix in fixes:
+            source = replay(fix["pattern"], source)
+        try:
+            cst.parse_module(source)
+        except cst.ParserSyntaxError:
+            return []
+        return apply_source(repo, located["file"], source)
+
+
+def train_tasks(edge: Path | str = TRAIN_CORPUS) -> list[Path]:
+    """The training split: edge cases that are plain deterministic GREEN migrations."""
+    chosen = []
+    for case in sorted(Path(edge).iterdir()):
+        spec_file = case / "case.json"
+        if not spec_file.is_file():
+            continue
+        spec = json.loads(spec_file.read_text())
+        if spec["mode"] == "deterministic" and spec["expect"] == "GREEN" and not spec["env"]:
+            chosen.append(case)
+    return chosen
+
+
+def warm_store(store: ExperienceStore, tasks: Sequence[Path | str],
+               runs_dir: Path | str) -> dict[str, Any]:
+    """Run the baseline agent over the training split with learning on."""
+    leaked = sorted({Path(t).name for t in tasks} & set(TASKS))
+    if leaked:
+        raise ValueError(f"leakage: evaluation task(s) {leaked} in the training split")
+    used = []
+    for task in tasks:
+        try:
+            result = run_migration(task, run_id=f"warm-{Path(task).name}", runs_dir=runs_dir,
+                                   corrector=codemod_corrector, experience=store)
+        except PreconditionError:
+            continue
+        used.append({"task": Path(task).name, "learned": result["experience_learned"]})
+    return {"train_tasks": used, **{k: v for k, v in store.stats().items() if k != "path"}}
 
 
 # -- the planners the ordering ablation compares ---------------------------
@@ -227,12 +341,27 @@ def run_one(
     repeat: int = 0,
     runs_dir: Path | str = DEFAULT_OUT / "runs",
     target: str = TARGET,
+    experience: ExperienceStore | None = None,
 ) -> dict[str, Any]:
-    """Run one configuration on one task and return the benchmark row."""
+    """Run one configuration on one task and return the benchmark row.
+
+    ``experience`` is used only by ablation E's ``warm`` arms, and must be
+    read-only so evaluation runs never teach each other. No other arm ever
+    sees a store: the user's configured one is never consulted here.
+    """
     task_dir = Path(task_dir)
     run_id = f"{config.name}-{task_dir.name}-r{repeat}-{uuid.uuid4().hex[:6]}"
+    memory = None
+    if config.memory == "warm":
+        if experience is None or not experience.readonly:
+            raise ValueError("a warm arm needs a read-only, pre-warmed experience store")
+        memory = experience
 
     corrector: Any = codemod_corrector if config.recovery else None
+    if config.memory and not config.requires_key:
+        truth = json.loads((task_dir / "ground_truth.json").read_text())
+        corrector = ReplayCorrector({"source_api": truth["source_api"],
+                                     "target_api": truth["target_api"]}, memory)
     router = None
     state = None
     if config.recovery and config.requires_key:
@@ -249,7 +378,7 @@ def run_one(
             # Ablation C: corrective edits served by the cheap role's chain.
             roles["recover"] = roles.get("classify", [])
         router = Router(state["tokens"], roles=roles)
-        corrector = LLMCorrector(router, target, state["contract"])
+        corrector = LLMCorrector(router, target, state["contract"], memory)
 
     # A cap of zero is how recovery is switched off; see the module docstring.
     environment = {"MRA_EDIT_BATCH_SIZE": str(config.batch_size)}
@@ -296,7 +425,17 @@ def run_one(
         "fix_attempts": dict(result["state"].get("fix_attempts") or {}),
         "failures": _failures(result["test_report"]),
         "stopped_at_batch": (finish or {}).get("action", ""),
+        **_memory_use(corrector),
     }
+
+
+def _memory_use(corrector: Any) -> dict[str, int]:
+    """Hints served to the corrector, and their size: the token price of memory."""
+    if isinstance(corrector, ReplayCorrector):
+        return {"memory_hints": corrector.hints_served, "hint_chars": corrector.hint_chars}
+    if getattr(corrector, "experience", None) is not None:  # live arm: tokens are measured
+        return {"memory_hints": sum(e.get("memory_hints", 0) for e in corrector.log)}
+    return {}
 
 
 # -- the matrix ------------------------------------------------------------
@@ -336,6 +475,7 @@ def run_matrix(
     corpus: Path | str = DEFAULT_CORPUS,
     out_dir: Path | str = DEFAULT_OUT,
     baselines: bool = True,
+    train_corpus: Path | str = TRAIN_CORPUS,
 ) -> dict[str, Any]:
     """Run every (task, config, repeat) and write results.json / .md / failure-analysis.md."""
     from mra.benchmark.baselines import baseline_table
@@ -343,18 +483,34 @@ def run_matrix(
     corpus, out_dir = Path(corpus), Path(out_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
     have_key = bool(os.getenv("DEEPSEEK_API_KEY"))
+    runnable = [c for c in configs if have_key or not c.requires_key]
+
+    # Ablation E: one throwaway store outside every repo, warmed once on the
+    # training split, then frozen read-only for every evaluation run.
+    warmup: dict[str, Any] = {}
+    scratch = None
+    frozen = None
+    if any(c.memory == "warm" for c in runnable):
+        scratch = Path(tempfile.mkdtemp(prefix="mra-ablation-e-"))
+        store = ExperienceStore(scratch / "experience.db")
+        warmup = warm_store(store, train_tasks(train_corpus), out_dir / "runs")
+        frozen = ExperienceStore(store.path, readonly=True)
 
     rows: list[dict[str, Any]] = []
     skipped: list[dict[str, str]] = []
-    for config in configs:
-        if config.requires_key and not have_key:
-            skipped.extend({"config": config.name, "task_id": task,
-                            "reason": "requires DEEPSEEK_API_KEY"} for task in tasks)
-            continue
-        for task in tasks:
-            for repeat in range(repeats):
-                rows.append(run_one(corpus / task, config, repeat=repeat,
-                                    runs_dir=out_dir / "runs"))
+    try:
+        for config in configs:
+            if config not in runnable:
+                skipped.extend({"config": config.name, "task_id": task,
+                                "reason": "requires DEEPSEEK_API_KEY"} for task in tasks)
+                continue
+            for task in tasks:
+                for repeat in range(repeats):
+                    rows.append(run_one(corpus / task, config, repeat=repeat,
+                                        runs_dir=out_dir / "runs", experience=frozen))
+    finally:
+        if scratch is not None:
+            shutil.rmtree(scratch, ignore_errors=True)
 
     results = {
         "schema": "mra:benchmark_results/1",
@@ -367,6 +523,7 @@ def run_matrix(
         "rows": rows,
         "skipped": skipped,
         "aggregates": _aggregate(rows),
+        "experience_warmup": warmup,
         "baselines": baseline_table(tasks, corpus=corpus) if baselines else [],
     }
     (out_dir / "results.json").write_text(json.dumps(results, indent=2) + "\n")
@@ -449,7 +606,7 @@ def render_markdown(results: dict[str, Any]) -> str:
 
     lines += ["## 2. Ablations", ""]
     lines += _ablation_a(results) + _ablation_b(results)
-    lines += _ablation_d(results) + _ablation_c(results)
+    lines += _ablation_d(results) + _ablation_c(results) + _ablation_e(results)
     lines += _baseline_section(results)
 
     lines += ["## 4. Configuration key", "", "| config | what it changes |", "|---|---|"]
@@ -610,6 +767,43 @@ def _ablation_c(results: dict[str, Any]) -> list[str]:
     return lines
 
 
+def _ablation_e(results: dict[str, Any]) -> list[str]:
+    arms = ("memory-off", "memory-warm", "memory-off-llm", "memory-warm-llm")
+    if not any(r["config"] in arms for r in results["rows"]):
+        return []
+    warm = results.get("experience_warmup") or {}
+    trained = warm.get("train_tasks", [])
+    lines = [
+        "### E. Experience store OFF vs pre-warmed", "",
+        f"Warm-up: the baseline agent, learning on, over {len(trained)} edge-corpus "
+        f"task(s) (the training split; no Tier-A task) stored {warm.get('fixes', 0)} "
+        f"fix(es) {warm.get('by_class', {})}. The store is then frozen read-only, so no "
+        "evaluation run learns from another.", "",
+        "The deterministic pair uses a corrector that can only replay recalled fixes: it "
+        "shows the store learns, retrieves and transfers, not how much an LLM gains. That "
+        "is the live pair, which needs a key. `hint chars` is what the hints would add to "
+        "a CORRECT prompt (≈ chars/4 tokens); the deterministic arms make no LLM call.", "",
+        "| task | config | outcome | corrections | tokens | hints served | hint chars |",
+        "|" + "---|" * 7,
+    ]
+    for task in results["tasks"]:
+        for arm in arms:
+            group = [r for r in results["rows"] if r["config"] == arm and r["task_id"] == task]
+            if not group:
+                continue
+            outcomes = {o: sum(1 for r in group if r["outcome"] == o)
+                        for o in sorted({r["outcome"] for r in group})}
+            mean = {f: statistics.fmean(r.get(f, 0) for r in group)
+                    for f in ("corrections", "m3_tokens", "memory_hints", "hint_chars")}
+            lines.append(
+                f"| {task} | `{arm}` | {', '.join(f'{n}× {o}' for o, n in outcomes.items())} "
+                f"| {mean['corrections']:.1f} | {mean['m3_tokens']:.0f} "
+                f"| {mean['memory_hints']:.1f} | {mean['hint_chars']:.0f} |")
+    if not any(r["config"].endswith("-llm") for r in results["rows"]):
+        lines += ["", "**Live pair requires a key — not run.**"]
+    return lines + [""]
+
+
 def _ablation_d(results: dict[str, Any]) -> list[str]:
     arms = ("batch-1", "baseline", "batch-5")
     lines = ["### D. Batch size 1 vs 3 vs 5", "",
@@ -651,6 +845,9 @@ def _baseline_section(results: dict[str, Any]) -> list[str]:
 
 def _why(row: dict[str, Any], configs: dict[str, dict[str, Any]]) -> str:
     config = configs.get(row["config"], {})
+    if config.get("memory") == "off" and config.get("model") == "deterministic":
+        return ("ablation E control: the replay corrector has no experience store, so it "
+                "has nothing to apply and every attempt changes nothing")
     if not config.get("recovery", True):
         return (f"recovery disabled (ablation {config.get('ablation') or 'A'}): the run "
                 "gives up on the first red suite, so the remaining batches are never edited")

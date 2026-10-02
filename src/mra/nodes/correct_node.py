@@ -27,6 +27,7 @@ from mra.analysis import call_sites as call_sites_module
 from mra.analysis import dep_graph as dep_graph_module
 from mra.analysis.call_sites import is_test_path
 from mra.memory import edit_context
+from mra.memory.experience import format_hint
 from mra.models import Router
 
 #: docs/04 §2.5 taxonomy. "non_fixable" is the class that ends the loop.
@@ -159,6 +160,7 @@ def patch_prompt(
     contract: dict[str, Any],
     klass: str,
     summary: str = "",
+    hints: list[str] | None = None,
 ) -> str:
     """The whole context a corrective edit gets. Nothing else is sent (NFR-12).
 
@@ -167,7 +169,7 @@ def patch_prompt(
     rolling summary — so the payload tracks the file being fixed, not the
     number of files around it.
     """
-    return edit_context(failure, located, contract, klass, summary)
+    return edit_context(failure, located, contract, klass, summary, hints)
 
 
 def extract_source(reply: str) -> str:
@@ -189,10 +191,11 @@ def corrective_patch(
     contract: dict[str, Any],
     klass: str,
     summary: str = "",
+    hints: list[str] | None = None,
 ) -> str:
     """Ask V4-Pro for the corrected file (whole-file, libcst-validated)."""
     reply = router.complete(
-        "recover", PATCH_SYSTEM, patch_prompt(failure, located, contract, klass, summary)
+        "recover", PATCH_SYSTEM, patch_prompt(failure, located, contract, klass, summary, hints)
     )
     return extract_source(reply)
 
@@ -219,10 +222,13 @@ class LLMCorrector:
     instead of being guessed at in one shot.
     """
 
-    def __init__(self, router: Router, target: str, contract: dict[str, Any]) -> None:
+    def __init__(self, router: Router, target: str, contract: dict[str, Any],
+                 experience: Any = None) -> None:
         self.router = router
         self.target = target
         self.contract = contract
+        #: Opt-in :class:`mra.memory.experience.ExperienceStore`; None = no hints.
+        self.experience = experience
         #: What each round decided, for the trajectory.
         self.log: list[dict[str, Any]] = []
         #: Size of every prompt sent, so the context budget is measurable
@@ -238,17 +244,21 @@ class LLMCorrector:
             self.log.append({"class": klass, "file": None, "reason": "nothing left to migrate"})
             return []
         summary = context.get("summary", "")
+        hints = [] if self.experience is None else [
+            format_hint(fix) for fix in self.experience.hints(
+                classify_offline(failure), failure.get("message", ""), self.contract)]
         self.payload_chars.append(
-            len(patch_prompt(failure, located, self.contract, klass, summary))
+            len(patch_prompt(failure, located, self.contract, klass, summary, hints))
         )
         source = corrective_patch(
-            self.router, failure, located, self.contract, klass, summary
+            self.router, failure, located, self.contract, klass, summary, hints
         )
         changed = apply_source(repo, located["file"], source)
         self.log.append({
             "class": klass,
             "file": located["file"],
             "hinted_by_trace": located["hinted_by_trace"],
+            "memory_hints": len(hints),
             "changed": changed,
         })
         return changed
@@ -312,7 +322,10 @@ def make_correct_node(corrector: Any, router: Router | None = None):
             "note": {
                 "action": f"attempt {attempts[signature]}/{cap} on {failure['nodeid']}",
                 "detail": {"signature": signature, "attempt": attempts[signature],
-                           "exc_type": failure.get("exc_type"), "changed": changed, "sha": sha},
+                           "exc_type": failure.get("exc_type"), "changed": changed, "sha": sha,
+                           # Store and lookup key on the offline class: stable across runs.
+                           "failure_class": classify_offline(failure),
+                           "message": failure.get("message", "")},
             },
         }
 
