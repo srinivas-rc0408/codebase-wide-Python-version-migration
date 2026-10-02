@@ -43,7 +43,8 @@ def build_report(out_dir: Path | str) -> tuple[Path, dict[str, Any]]:
     out_dir = Path(out_dir).resolve()
     model = build_model(load_run(out_dir))
     now = datetime.now().astimezone()
-    data, pages, cuts = render(model, generated=now.strftime("%Y-%m-%d %H:%M %Z"))
+    data, pages, cuts = render(model, generated=f"{now:%Y-%m-%d %H:%M:%S} {now.tzname()} "
+                                                f"({now.isoformat(timespec='seconds')[19:]})")
     model["pdf"] = {"pages": pages, "truncation": cuts}
     (out_dir / "report.json").write_text(json.dumps(model, indent=2, default=str) + "\n")
     path = out_dir / report_filename(model["meta"].get("repo_name") or out_dir.name, now)
@@ -94,6 +95,10 @@ def run_with_report(task_dir: Path | str, *, run_id: str | None = None,
             "has_ground_truth": bool(truth.get("call_sites") is not None),
             "started_at": started.isoformat(timespec="seconds"),
             "wall_clock_s": round(time.perf_counter() - clock, 3),
+            # Local time with its offset and zone name: the report footer prints
+            # this, never the clock at render, so a rebuilt PDF is text-identical.
+            "completed_at": (done := datetime.now().astimezone()).isoformat(timespec="seconds"),
+            "completed_tz": done.tzname(),
             "token_budget": int(os.getenv("MRA_TOKEN_BUDGET", "2000000")),
             "run_timeout_s": int(os.getenv("MRA_RUN_TIMEOUT_SEC", "1800")),
             "crash": crash,

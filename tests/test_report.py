@@ -490,12 +490,81 @@ def test_crashed_run_still_writes_a_red_report(tmp_path: Path) -> None:
 
 @needs_docker
 def test_report_rebuilt_from_state_db_is_text_identical(green_run: dict[str, Any]) -> None:
-    def text(pdf: Path) -> str:
-        joined = "\n".join(p.extract_text() for p in PdfReader(pdf).pages)
-        return re.sub(r"Generated \d{4}-\d{2}-\d{2} \d{2}:\d{2} \S+", "Generated <ts>", joined)
+    """Only the one "Report generated" line may differ; the footer timestamp may not."""
+    import time
+
+    from mra.report.pdf import completed_at
+
+    generated = re.compile(r"Report generated \d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2} \S+ "
+                           r"\([+-]\d{2}:\d{2}\)")
+
+    def text(pdf: Path) -> tuple[list[str], str]:
+        pages = [p.extract_text() for p in PdfReader(pdf).pages]
+        assert len(generated.findall("\n".join(pages))) == 1 and generated.search(pages[0])
+        return pages, generated.sub("Report generated <ts>", "\n".join(pages))
 
     out_dir = green_run["out_dir"]
-    original = text(green_run["pdf"])  # read first: a rebuild in the same minute reuses the name
+    pages, original = text(green_run["pdf"])  # read first: a same-minute rebuild reuses the name
+    stamp = completed_at(json.loads((out_dir / "run_meta.json").read_text()))
+    assert re.fullmatch(r"\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2} \S+ \([+-]\d{2}:\d{2}\)", stamp)
+    footer = f"Run {green_run['run_id'][:8]} · completed {stamp}"
+    assert all(footer in page and f"of {len(pages)}" in page for page in pages)
     (out_dir / "trajectory.json").unlink()  # the timeline must come from state.db
+    time.sleep(1.1)  # a footer that read the clock at render would now differ
     rebuilt, _ = build_report(out_dir)
-    assert text(rebuilt) == original
+    assert text(rebuilt)[1] == original
+
+
+# -- layout: header, footer, metadata, outline --------------------------------
+
+
+def test_header_footer_metadata_and_outline() -> None:
+    import io
+
+    model = build_model(_synthetic_run(60))
+    data, pages, _ = render(model, generated="2026-10-01 00:00:00 UTC (+00:00)")
+    reader = PdfReader(io.BytesIO(data))
+    # Each drawString is its own text run; extraction joins them with newlines.
+    text = [" ".join(page.extract_text().split()) for page in reader.pages]
+    header = "big repo · datetime.utcnow → datetime.now(timezone.utc)"
+    assert header not in text[0], "page 1 is the summary page: no header"
+    for number, page in enumerate(text, start=1):
+        assert f"Page {number} of {pages}" in page
+        assert "Run syntheti · completed 2026-10-01 00:00:00 UTC (+00:00)" in page
+        if number > 1:
+            assert header in page and "✓ GREEN" in page and "v0.2.0" in page
+    info = reader.metadata
+    assert info.title and info.author and "GREEN" in info.subject
+    assert "big repo" in info["/Keywords"]
+    outline = [item.title for item in reader.outline if not isinstance(item, list)]
+    for section in ("Migration report", "Repository map", "Plan", "Execution timeline",
+                    "Changes", "Verification", "Metrics", "Issues & residuals", "Final status"):
+        assert section in outline
+
+
+def test_status_is_word_and_symbol_never_colour_alone() -> None:
+    from mra.report.pdf import status_label
+
+    for status, glyph in (("GREEN", "✓"), ("YELLOW", "!"), ("RED", "✕")):
+        assert glyph in status_label(status) and status in status_label(status)
+
+
+def test_long_paths_are_middle_ellipsized_to_fit() -> None:
+    from reportlab.pdfbase.pdfmetrics import stringWidth
+
+    from mra.report.pdf import ellipsize
+
+    path = "src/" + "very_long_package_name/" * 8 + "module.py"
+    short = ellipsize(path, 120)
+    assert "…" in short and short.startswith("src/") and short.endswith(".py")
+    assert stringWidth(short, "Helvetica", 8.5) <= 120
+    assert ellipsize("a.py", 120) == "a.py"
+
+
+def test_completion_time_falls_back_to_start_plus_wall_clock() -> None:
+    from mra.report.pdf import completed_at
+
+    assert completed_at({"started_at": "2026-10-01T00:00:00+00:00", "wall_clock_s": 61.4}) \
+        == "2026-10-01 00:01:01 UTC (+00:00)"
+    assert completed_at({"completed_at": "2026-10-02T19:42:07+05:30", "completed_tz": "IST"}) \
+        == "2026-10-02 19:42:07 IST (+05:30)"

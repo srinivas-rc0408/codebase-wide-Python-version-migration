@@ -176,7 +176,13 @@ verification, metrics charts, issues with recommended actions, final banner);
 overflow is cut in the order diff excerpts → timeline → file rows, and
 `report.json` beside it holds everything untruncated. The report is a pure
 function of the run directory (`state.db`, `verification.json`, metrics, patch),
-so `mra report <run_id>` reproduces it text-for-text. `NO_COLOR` disables the
+so `mra report <run_id>` reproduces it text-for-text: the footer prints the run's
+*recorded* completion time from `run_meta.json`, and only the one "Report
+generated" line on page 1 carries the render time. Every page has a footer (run
+id, completion time, "Page X of Y"); every page after the summary a header (repo,
+contract, status pill, version). Status is always word + symbol (✓ GREEN /
+! YELLOW / ✕ RED), so it survives black-and-white printing; the PDF has title,
+author, subject, keywords and a bookmark per section. `NO_COLOR` disables the
 terminal colours.
 
 ### Edge-case accuracy suite

@@ -33,6 +33,10 @@ mra = "mra.cli:main"
 [tool.setuptools.packages.find]
 where = ["src"]
 
+[tool.setuptools.package-data]
+# The report embeds this glyph subset; a wheel without it cannot render a PDF.
+mra = ["report/fonts/*"]
+
 [tool.ruff]
 line-length = 100
 target-version = "py312"

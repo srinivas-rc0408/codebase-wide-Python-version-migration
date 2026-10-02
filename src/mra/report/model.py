@@ -288,7 +288,8 @@ def build_model(a: dict[str, Any]) -> dict[str, Any]:
     return {
         "meta": {key: meta.get(key) for key in (
             "repo_name", "task_id", "run_id", "agent_version", "source_api", "target_api",
-            "started_at", "wall_clock_s", "has_ground_truth")},
+            "started_at", "wall_clock_s", "completed_at", "completed_tz",
+            "has_ground_truth")},
         "verdict": result,
         "headline": headline(result),
         "metrics": a["metrics"] or {},

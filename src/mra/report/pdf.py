@@ -1,8 +1,18 @@
 """Report model -> PDF, inside a hard 14-page budget.
 
 White page, black text, one grey for rules. Colour appears only where it
-means something: the status (green / amber / red) and diff +/- markers.
-One sans family (Helvetica, built into every PDF reader), one type scale.
+means something: the status (green / amber / red) and diff +/- markers, and
+status always carries its word and symbol too, so it survives a black-and-white
+printer. Amber is only ever a light fill behind dark text. Helvetica for text,
+Courier for diffs (all three built into every PDF reader), and the three glyphs
+Helvetica lacks (check, cross, arrow) from a 2 KB DejaVu Sans subset that is
+embedded, so they print on any reader. One type scale; spacing on a 4 pt grid.
+
+Every page but the first carries a header (repo, contract, status pill,
+version); every page a footer (run id, the run's *recorded* completion time,
+"Page X of Y" from a two-pass canvas). Nothing in either depends on when the
+PDF is rendered, so ``mra report <run_id>`` reproduces it text-for-text; the
+render time appears once, on page 1.
 
 The budget is enforced by building, counting pages, and rebuilding with the
 next truncation level until the document fits: diff excerpts go first, then
@@ -13,6 +23,8 @@ Every cut says "+N more — see report.json"; report.json is never cut.
 from __future__ import annotations
 
 import io
+from datetime import datetime, timedelta
+from pathlib import Path
 from typing import Any
 from xml.sax.saxutils import escape
 
@@ -22,9 +34,13 @@ from reportlab.graphics.charts.lineplots import LinePlot
 from reportlab.graphics.shapes import Circle, Drawing, Line, String
 from reportlab.graphics.widgets.markers import makeMarker
 from reportlab.lib import colors
+from reportlab.lib.enums import TA_RIGHT
 from reportlab.lib.pagesizes import A4
 from reportlab.lib.styles import ParagraphStyle
 from reportlab.lib.units import mm
+from reportlab.pdfbase.pdfmetrics import registerFont, stringWidth
+from reportlab.pdfbase.ttfonts import TTFont
+from reportlab.pdfgen.canvas import Canvas
 from reportlab.platypus import (
     KeepTogether,
     PageBreak,
@@ -38,14 +54,26 @@ from reportlab.platypus import (
 MAX_PAGES = 14
 GRAPH_NODE_CAP = 30
 
-FONT, BOLD = "Helvetica", "Helvetica-Bold"
+FONT, BOLD, MONO, GLYPHS = "Helvetica", "Helvetica-Bold", "Courier", "MRAGlyphs"
+#: U+2713, U+2715, U+2192 only (fonts/DejaVu-LICENSE.txt). Embedded, never referenced.
+registerFont(TTFont(GLYPHS, Path(__file__).with_name("fonts") / "DejaVuSans-symbols.ttf"))
 INK = colors.black
+#: Strong colour (rules, banner edge, diff +/-), dark text, and light fill per status.
 STATUS_HEX = {"GREEN": "#1E7B34", "YELLOW": "#B7791F", "RED": "#B42318"}
+STATUS_INK = {"GREEN": "#14532D", "YELLOW": "#5C3D00", "RED": "#7F1D1D"}
+STATUS_FILL = {"GREEN": "#E3F2E6", "YELLOW": "#FDF0CC", "RED": "#FBE3E1"}
+#: (font, glyph) — Helvetica has no check or cross, so they come from GLYPHS.
+SYMBOL = {"GREEN": (GLYPHS, "\u2713"), "YELLOW": (BOLD, "!"), "RED": (GLYPHS, "\u2715")}
 STATUS = {name: colors.HexColor(value) for name, value in STATUS_HEX.items()}
 ADD_HEX, DEL_HEX, GREY_HEX = STATUS_HEX["GREEN"], STATUS_HEX["RED"], "#9A9A9A"
 GREY = colors.HexColor(GREY_HEX)
+ARROW = f'<font name="{GLYPHS}">\u2192</font>'
 
-MARGIN = 20 * mm
+#: 4 pt grid. The header and footer bands sit inside the top/bottom margins.
+MARGIN = 56
+TOP, BOTTOM = 72, 64
+HEADER_Y, HEADER_RULE_Y = A4[1] - 40, A4[1] - 48
+FOOTER_RULE_Y, FOOTER_Y = 44, 32
 WIDTH = A4[0] - 2 * MARGIN
 
 #: Truncation levels, tried in order until the document fits.
@@ -62,20 +90,46 @@ LADDER: list[dict[str, int]] = [
 ]
 
 
-def _style(name: str, size: float, font: str = FONT, color: Any = INK,
+def _style(name: str, size: float, leading: float, font: str = FONT, color: Any = INK,
            space_after: float = 0, **extra: Any) -> ParagraphStyle:
-    extra.setdefault("leading", size * 1.3)
-    return ParagraphStyle(name, fontName=font, fontSize=size, textColor=color,
-                          spaceAfter=space_after, **extra)
+    return ParagraphStyle(name, fontName=font, fontSize=size, leading=leading,
+                          textColor=color, spaceAfter=space_after,
+                          allowWidows=0, allowOrphans=0, **extra)
 
 
-TITLE = _style("title", 18, BOLD, space_after=4)
-H1 = _style("h1", 13, BOLD, space_after=6, spaceBefore=10)
-BODY = _style("body", 9, space_after=4)
-CELL = _style("cell", 8)
-CELL_B = _style("cellb", 8, BOLD)
-SMALL = _style("small", 7.5, color=GREY)
-CODE = _style("code", 7.5, leading=9.5)
+# The type scale: title, H1, H2, body, small, mono. Leadings and gaps are x4.
+TITLE = _style("title", 20, 24, BOLD, space_after=4)
+H1 = _style("h1", 13, 16, BOLD, space_after=8, spaceBefore=12, keepWithNext=1)
+H2 = _style("h2", 10, 12, BOLD, space_after=4, spaceBefore=8, keepWithNext=1)
+BODY = _style("body", 8.5, 12, space_after=4)
+SMALL = _style("small", 7, 8, space_after=4)
+CODE = _style("code", 7, 8, MONO)
+CELL = _style("cell", 8.5, 12)
+CELL_R = _style("cellr", 8.5, 12, alignment=TA_RIGHT)
+CELL_B = _style("cellb", 8.5, 12, BOLD)
+CELL_BR = _style("cellbr", 8.5, 12, BOLD, alignment=TA_RIGHT)
+PAD = 4  # cell padding, left/right; 2 top + 2 bottom keeps a row on the grid
+
+
+def ellipsize(text: str, width: float, font: str = FONT, size: float = 8.5) -> str:
+    """Middle-ellipsize ``text`` to fit ``width`` points: ``src/pk…/deep/mod.py``."""
+    if stringWidth(text, font, size) <= width:
+        return text
+    keep = len(text)
+    while keep > 1:
+        keep -= 1
+        head = text[:keep // 2]
+        short = f"{head}…{text[len(text) - (keep - len(head)):]}"
+        if stringWidth(short, font, size) <= width:
+            return short
+    return "…"
+
+
+def status_label(status: str, size: float | None = None) -> str:
+    """``✓ GREEN`` / ``! YELLOW`` / ``✕ RED`` as Paragraph markup: never colour alone."""
+    font, glyph = SYMBOL[status]
+    sized = f' size="{size}"' if size else ""
+    return f'<font name="{font}"{sized}>{glyph}</font> {status}'
 
 
 def _p(text: Any, style: ParagraphStyle = BODY) -> Paragraph:
@@ -86,18 +140,30 @@ def _more(hidden: int) -> list[Any]:
     return [_p(f"+{hidden} more — see report.json", SMALL)] if hidden > 0 else []
 
 
-def _table(header: list[str], rows: list[list[Any]], widths: list[float]) -> Table:
-    data = [[_p(h, CELL_B) for h in header]] + [
-        [cell if isinstance(cell, Paragraph) else _p(cell, CELL) for cell in row]
-        for row in rows]
+def _table(header: list[str], rows: list[list[Any]], widths: list[float],
+           numeric: tuple[int, ...] = (), paths: tuple[int, ...] = (),
+           style: list[tuple[Any, ...]] = ()) -> Table:
+    """A ruled table: header repeats across pages, ``numeric`` columns align right,
+    ``paths`` columns are middle-ellipsized to their cell instead of overflowing."""
+    def cell(value: Any, col: int) -> Any:
+        if isinstance(value, Paragraph):
+            return value
+        if col in paths:
+            value = ellipsize(str(value), widths[col] - 2 * PAD)
+        return _p(value, CELL_R if col in numeric else CELL)
+
+    data = [[_p(h, CELL_BR if i in numeric else CELL_B) for i, h in enumerate(header)]] + [
+        [cell(value, i) for i, value in enumerate(row)] for row in rows]
     table = Table(data, colWidths=widths, repeatRows=1)
     table.setStyle(TableStyle([
         ("LINEBELOW", (0, 0), (-1, 0), 0.8, GREY),
         ("LINEBELOW", (0, 1), (-1, -1), 0.3, GREY),
         ("VALIGN", (0, 0), (-1, -1), "TOP"),
-        ("TOPPADDING", (0, 0), (-1, -1), 2.5),
-        ("BOTTOMPADDING", (0, 0), (-1, -1), 2.5),
-        ("LEFTPADDING", (0, 0), (-1, -1), 3),
+        ("TOPPADDING", (0, 0), (-1, -1), 2),
+        ("BOTTOMPADDING", (0, 0), (-1, -1), 2),
+        ("LEFTPADDING", (0, 0), (-1, -1), PAD),
+        ("RIGHTPADDING", (0, 0), (-1, -1), PAD),
+        *style,
     ]))
     return table
 
@@ -105,23 +171,51 @@ def _table(header: list[str], rows: list[list[Any]], widths: list[float]) -> Tab
 def _mark(passed: bool | None) -> Paragraph:
     if passed is None:
         return _p("n/a", CELL)
-    color = ADD_HEX if passed else DEL_HEX
-    return Paragraph(f'<font color="{color}"><b>{"PASS" if passed else "FAIL"}</b></font>',
-                     CELL)
+    status = "GREEN" if passed else "RED"
+    font, glyph = SYMBOL[status]
+    return Paragraph(f'<font color="{STATUS_INK[status]}"><font name="{font}" size="7">'
+                     f'{glyph}</font> <b>{"PASS" if passed else "FAIL"}</b></font>', CELL)
 
 
 def banner(model: dict[str, Any]) -> Table:
+    """Light status fill, dark text, a strong status edge — and the word + symbol."""
     status = model["verdict"]["status"]
-    table = Table([[Paragraph(status, _style("status", 26, BOLD, colors.white))],
-                   [_p(model["headline"], _style("why", 10.5, color=colors.white))]],
+    ink = colors.HexColor(STATUS_INK[status])
+    table = Table([[Paragraph(status_label(status), _style("status", 20, 24, BOLD, ink))],
+                   [_p(model["headline"], _style("why", 10, 12, color=INK))]],
                   colWidths=[WIDTH])
     table.setStyle(TableStyle([
-        ("BACKGROUND", (0, 0), (-1, -1), STATUS[status]),
+        ("BACKGROUND", (0, 0), (-1, -1), colors.HexColor(STATUS_FILL[status])),
+        ("LINEBEFORE", (0, 0), (0, -1), 4, STATUS[status]),
         ("LEFTPADDING", (0, 0), (-1, -1), 12),
-        ("TOPPADDING", (0, 0), (-1, 0), 14),
+        ("TOPPADDING", (0, 0), (-1, 0), 12),
         ("BOTTOMPADDING", (0, -1), (-1, -1), 12),
     ]))
     return table
+
+
+def completed_at(meta: dict[str, Any]) -> str:
+    """The run's recorded completion time: ``2026-10-02 19:42:07 IST (+05:30)``.
+
+    Read from run_meta.json, never from the clock at render. A run recorded
+    before ``completed_at`` existed falls back to ``started_at + wall_clock_s``.
+    """
+    if meta.get("completed_at"):
+        when, zone = datetime.fromisoformat(meta["completed_at"]), meta.get("completed_tz")
+    elif meta.get("started_at"):
+        when = datetime.fromisoformat(meta["started_at"]) + timedelta(
+            seconds=float(meta.get("wall_clock_s") or 0))
+        zone = None
+    else:
+        return "time not recorded"
+    return stamp(when, zone)
+
+
+def stamp(when: datetime, zone: str | None = None) -> str:
+    """``2026-10-02 19:42:07 IST (+05:30)`` — the one timestamp format in the report."""
+    when = when.replace(microsecond=0)
+    offset = when.isoformat()[19:] or "+00:00"
+    return f"{when:%Y-%m-%d %H:%M:%S} {zone or when.tzname() or 'UTC'} ({offset})"
 
 
 # -- sections ---------------------------------------------------------------
@@ -133,10 +227,13 @@ def _summary(model: dict[str, Any], generated: str) -> list[Any]:
                           for p in llm["providers"]) or "none — deterministic path, no LLM calls"
     facts = [
         ("Project", meta.get("repo_name")),
-        ("Migration", f"{meta.get('source_api')} -> {meta.get('target_api')}"),
+        ("Migration", Paragraph(f"{escape(str(meta.get('source_api')))} {ARROW} "
+                                f"{escape(str(meta.get('target_api')))}", CELL)),
         ("Agent version", meta.get("agent_version")),
         ("Run id", meta.get("run_id")),
-        ("Run date", meta.get("started_at")),
+        ("Run started", stamp(datetime.fromisoformat(meta["started_at"]), meta.get("completed_tz"))
+         if meta.get("started_at") else "not recorded"),
+        ("Run completed", completed_at(meta)),
         ("Outcome", m.get("outcome", "no metrics (run did not finish)")),
         ("Providers used", providers),
         ("Data egress", llm["egress_line"]),
@@ -150,11 +247,13 @@ def _summary(model: dict[str, Any], generated: str) -> list[Any]:
                                      f"${m['m3_cost_usd']:.4f}" if m else "—"],
     ]
     return [
-        _p("Migration report", TITLE), Spacer(1, 4), banner(model), Spacer(1, 14),
-        _table(["", ""], [[_p(k, CELL_B), v] for k, v in facts], [40 * mm, WIDTH - 40 * mm]),
-        Spacer(1, 12), _p("Metrics", H1),
-        _table(["Metric", "Value"], metric_rows, [60 * mm, WIDTH - 60 * mm]),
-        Spacer(1, 10), _p(f"Generated {generated}", SMALL),
+        _p("Migration report", TITLE), Spacer(1, 4), banner(model), Spacer(1, 16),
+        _p("Summary", H2),
+        _table(["Field", "Value"], [[_p(k, CELL_B), v] for k, v in facts],
+               [112, WIDTH - 112]),
+        Spacer(1, 12), _p("Headline metrics", H2),
+        _table(["Metric", "Value"], metric_rows, [168, WIDTH - 168], numeric=(1,)),
+        Spacer(1, 8), _p(f"Report generated {generated}", SMALL),
     ]
 
 
@@ -204,9 +303,10 @@ def _repo_map(model: dict[str, Any], limits: dict[str, int]) -> list[Any]:
         _p("Repository map", H1),
         _table(["File", "LOC", "Call sites", "Final status"],
                [[f["file"], f["loc"], f["sites"], f["status"]] for f in shown],
-               [WIDTH - 75 * mm, 18 * mm, 22 * mm, 35 * mm]),
+               [WIDTH - 212, 48, 64, 100], numeric=(1, 2), paths=(0,)),
         *_more(len(files) - len(shown)), Spacer(1, 8),
-        _p("Dependency graph (importer -> imported)", CELL_B), *_graph_figure(model["graph"]),
+        Paragraph(f"Dependency graph (importer {ARROW} imported)", H2),
+        *_graph_figure(model["graph"]),
     ]
 
 
@@ -215,11 +315,11 @@ def _plan(model: dict[str, Any], limits: dict[str, int]) -> list[Any]:
     batches = plan["batches"]
     shown = batches[:limits.get("plan_rows", len(batches))]
     cycles = {frozenset(c) for c in plan["cycles"]}
-    rows = [[str(i), ", ".join(b), "cycle (atomic)" if frozenset(b) in cycles else ""]
+    rows = [[i, ", ".join(b), "cycle (atomic)" if frozenset(b) in cycles else ""]
             for i, b in enumerate(shown)]
     return [
         _p("Plan", H1), _p(plan["rationale"]),
-        _table(["Batch", "Files", "Note"], rows, [14 * mm, WIDTH - 44 * mm, 30 * mm]),
+        _table(["Batch", "Files", "Note"], rows, [40, WIDTH - 124, 84], numeric=(0,)),
         *_more(len(batches) - len(shown)),
         _p("Collapsed cycles: " + ("; ".join(" <-> ".join(c) for c in plan["cycles"]) or
                                     "none") + f". FR-3 violations: {plan['fr3_violations']}.",
@@ -234,7 +334,7 @@ def _timeline(model: dict[str, Any], limits: dict[str, int]) -> list[Any]:
         _p("Execution timeline", H1),
         _table(["Step", "Node", "What happened"],
                [[r["step"], r["node"], r["text"]] for r in shown],
-               [14 * mm, 20 * mm, WIDTH - 34 * mm]),
+               [40, 60, WIDTH - 100], numeric=(0,)),
         *_more(len(rows) - len(shown)),
     ]
 
@@ -245,8 +345,6 @@ def _diff_line(line: str) -> Paragraph:
         text = f'<font color="{ADD_HEX}">{text}</font>'
     elif line.startswith("-"):
         text = f'<font color="{DEL_HEX}">{text}</font>'
-    elif line.startswith("@@"):
-        text = f'<font color="{GREY_HEX}">{text}</font>'
     return Paragraph(text, CODE)
 
 
@@ -263,15 +361,16 @@ def _changes(model: dict[str, Any], limits: dict[str, int]) -> list[Any]:
     if not changes:
         return [*flow, _p("No changes.")]
     flow += [
-        _table(["File", "+", "-", "Sites"],
-               [[c["file"], Paragraph(f'<font color="{ADD_HEX}">+{c["added"]}</font>', CELL),
-                 Paragraph(f'<font color="{DEL_HEX}">-{c["removed"]}</font>', CELL), c["sites"]]
-                for c in changes],
-               [WIDTH - 54 * mm, 16 * mm, 16 * mm, 22 * mm]),
+        _table(["File", "+", "\u2013", "Sites"],
+               [[c["file"], Paragraph(f'<font color="{ADD_HEX}">+{c["added"]}</font>', CELL_R),
+                 Paragraph(f'<font color="{DEL_HEX}">\u2013{c["removed"]}</font>', CELL_R),
+                 c["sites"]] for c in changes],
+               [WIDTH - 152, 44, 44, 64], numeric=(1, 2, 3), paths=(0,)),
     ]
     excerpted = changes[:limits.get("diff_files", len(changes))]
     for change in excerpted:
-        flow.append(KeepTogether([Spacer(1, 5), _p(change["file"], CELL_B),
+        flow.append(KeepTogether([Spacer(1, 4),
+                                  _p(ellipsize(change["file"], WIDTH, BOLD), CELL_B),
                                   *[_diff_line(line) for line in change["excerpt"]]]))
     if len(changes) > len(excerpted):
         flow += _p(f"Diff excerpts: +{len(changes) - len(excerpted)} more — see report.json",
@@ -298,15 +397,16 @@ def _verification(model: dict[str, Any]) -> list[Any]:
            f"Ruff: {v['lint']['summary']}."),
         _table(["Check", "Result", "Evidence"],
                [[c["check"], _mark(c["passed"]), c["evidence"]] for c in v["checks"]],
-               [62 * mm, 16 * mm, WIDTH - 78 * mm]),
+               [176, 48, WIDTH - 224]),
     ]
     if semantic:
-        flow += [Spacer(1, 6), _table(["Semantic check: file", "Detail", "Result"], semantic,
-                                      [70 * mm, WIDTH - 86 * mm, 16 * mm]),
+        flow += [Spacer(1, 8), _table(["Semantic check: file", "Detail", "Result"], semantic,
+                                      [200, WIDTH - 248, 48], paths=(0,)),
                  *_more(len(v["semantic"]) - len(semantic))]
     if cov_rows:
-        flow += [Spacer(1, 6), _table(["Coverage: edited file", "Changed lines run", "Result"],
-                                      cov_rows, [WIDTH - 56 * mm, 40 * mm, 16 * mm]),
+        flow += [Spacer(1, 8), _table(["Coverage: edited file", "Changed lines run", "Result"],
+                                      cov_rows, [WIDTH - 160, 112, 48], numeric=(1,),
+                                      paths=(0,)),
                  *_more(len(cov) - len(cov_rows))]
     return flow
 
@@ -324,7 +424,8 @@ def _metrics(model: dict[str, Any]) -> list[Any]:
         top = max([total for _, _, total in series] + [1])
         plot.yValueAxis.valueMin, plot.yValueAxis.valueMax = 0, top
         plot.xValueAxis.valueMin, plot.xValueAxis.valueMax = 0, max(len(series) - 1, 1)
-        plot.xValueAxis.valueSteps = list(range(len(series)))
+        # At most ~12 ticks: one label per step overprints itself on a long run.
+        plot.xValueAxis.valueSteps = list(range(0, len(series), -(-len(series) // 12)))
         plot.xValueAxis.labelTextFormat = lambda i: series[int(i)][0] \
             if int(i) < len(series) else ""
         for axis in (plot.xValueAxis, plot.yValueAxis):
@@ -360,12 +461,15 @@ def _issues(model: dict[str, Any]) -> list[Any]:
     issues = model["issues"]
     if not issues:
         return [_p("Issues & residuals", H1), _p("None. Every check passed.")]
-    rows = [[Paragraph(f'<font color="{STATUS_HEX[r["level"]]}"><b>{r["level"]}'
-                       f"</b></font>", CELL), f"{r['text']} Evidence: {r['evidence']}",
-             r["action"]] for r in issues]
+    rows = [[Paragraph(f'<font color="{STATUS_INK[r["level"]]}"><b>'
+                       f'{status_label(r["level"], 7)}</b></font>', CELL),
+             f"{r['text']} Evidence: {r['evidence']}", r["action"]] for r in issues]
+    fills = [("BACKGROUND", (0, i), (0, i), colors.HexColor(STATUS_FILL[r["level"]]))
+             for i, r in enumerate(issues, start=1)]
+    rest = WIDTH - 68
     return [_p("Issues & residuals", H1),
             _table(["Level", "Issue and evidence", "Recommended action"], rows,
-                   [18 * mm, (WIDTH - 18 * mm) * 0.58, (WIDTH - 18 * mm) * 0.42])]
+                   [68, rest * 0.58, rest * 0.42], style=fills)]
 
 
 # -- assembly ---------------------------------------------------------------
@@ -376,28 +480,117 @@ def _story(model: dict[str, Any], limits: dict[str, int], generated: str) -> lis
         *_summary(model, generated), PageBreak(),
         *_repo_map(model, limits), *_plan(model, limits), *_timeline(model, limits),
         *_changes(model, limits), *_verification(model), *_metrics(model), *_issues(model),
-        Spacer(1, 14), KeepTogether([_p("Final status", H1), banner(model)]),
+        Spacer(1, 16), KeepTogether([_p("Final status", H1), banner(model)]),
     ]
+
+
+class _Doc(SimpleDocTemplate):
+    """Adds a PDF outline entry (bookmark) for every title, H1 and H2."""
+
+    def afterFlowable(self, flowable: Any) -> None:
+        level = {"title": 0, "h1": 0, "h2": 1}.get(getattr(flowable, "style", None)
+                                                   and flowable.style.name)
+        if level is None:
+            return
+        text = flowable.getPlainText()
+        key = f"s{self.seq.nextf('outline')}"
+        self.canv.bookmarkPage(key)
+        self.canv.addOutlineEntry(text, key, level=level, closed=False)
+
+
+def _canvas_maker(model: dict[str, Any]) -> type[Canvas]:
+    """A two-pass canvas: pages are buffered, then stamped once "of Y" is known."""
+    meta = model["meta"]
+    status = model["verdict"]["status"]
+    footer_left = f"Run {str(meta.get('run_id') or '?')[:8]} \u00b7 completed {completed_at(meta)}"
+
+    class NumberedCanvas(Canvas):
+        def __init__(self, *args: Any, **kwargs: Any) -> None:
+            super().__init__(*args, **kwargs)
+            self._pages: list[dict[str, Any]] = []
+
+        def showPage(self) -> None:
+            self._pages.append(dict(self.__dict__))
+            self._startPage()
+
+        def save(self) -> None:
+            for page in self._pages:
+                self.__dict__.update(page)
+                self._chrome(len(self._pages))
+                super().showPage()
+            super().save()
+
+        def _rule(self, y: float) -> None:
+            self.setStrokeColor(GREY)
+            self.setLineWidth(0.4)
+            self.line(MARGIN, y, A4[0] - MARGIN, y)
+
+        def _chrome(self, total: int) -> None:
+            self.saveState()
+            self._rule(FOOTER_RULE_Y)
+            self.setFillColor(INK)
+            self.setFont(FONT, 7)
+            self.drawString(MARGIN, FOOTER_Y, footer_left)
+            self.drawRightString(A4[0] - MARGIN, FOOTER_Y,
+                                 f"Page {self._pageNumber} of {total}")
+            if self._pageNumber > 1:
+                self._header()
+            self.restoreState()
+
+        def _header(self) -> None:
+            self._rule(HEADER_RULE_Y)
+            # Right: "[✓ GREEN] · v0.2.0" — the pill, then the version.
+            version = f"\u00b7 v{meta.get('agent_version') or '?'}"
+            right = A4[0] - MARGIN
+            self.setFont(FONT, 7)
+            self.drawRightString(right, HEADER_Y, version)
+            font, glyph = SYMBOL[status]
+            word_w = stringWidth(status, BOLD, 7)
+            glyph_w = stringWidth(glyph, font, 6.5)
+            pill_w = 4 + glyph_w + 3 + word_w + 4
+            pill_x = right - stringWidth(version, FONT, 7) - 4 - pill_w
+            self.setFillColor(colors.HexColor(STATUS_FILL[status]))
+            self.setStrokeColor(STATUS[status])
+            self.setLineWidth(0.5)
+            self.roundRect(pill_x, HEADER_Y - 3, pill_w, 11, 3, stroke=1, fill=1)
+            self.setFillColor(colors.HexColor(STATUS_INK[status]))
+            self.setFont(font, 6.5)
+            self.drawString(pill_x + 4, HEADER_Y, glyph)
+            self.setFont(BOLD, 7)
+            self.drawString(pill_x + 4 + glyph_w + 3, HEADER_Y, status)
+            # Left: "<repo> · <source> → <target>", ellipsized clear of the pill.
+            room = pill_x - 8 - MARGIN
+            source = str(meta.get("source_api"))
+            target = ellipsize(str(meta.get("target_api")), room / 2, FONT, 7)
+            left = ellipsize(f"{meta.get('repo_name') or '?'} \u00b7 {source}", room / 2,
+                             FONT, 7)
+            self.setFillColor(INK)
+            x = MARGIN
+            for text, face in ((left + " ", FONT), ("\u2192", GLYPHS), (" " + target, FONT)):
+                self.setFont(face, 7)
+                self.drawString(x, HEADER_Y, text)
+                x += stringWidth(text, face, 7)
+
+    return NumberedCanvas
 
 
 def _build(model: dict[str, Any], limits: dict[str, int], generated: str) -> tuple[bytes, int]:
     buffer = io.BytesIO()
-    run_id = model["meta"].get("run_id") or "?"
-
-    def footer(canvas: Any, doc: Any) -> None:
-        canvas.saveState()
-        canvas.setStrokeColor(GREY)
-        canvas.setLineWidth(0.4)
-        canvas.line(MARGIN, 14 * mm, A4[0] - MARGIN, 14 * mm)
-        canvas.setFont(FONT, 7.5)
-        canvas.drawString(MARGIN, 10 * mm, f"MRA run {run_id}")
-        canvas.drawRightString(A4[0] - MARGIN, 10 * mm, f"Page {doc.page}")
-        canvas.restoreState()
-
-    doc = SimpleDocTemplate(buffer, pagesize=A4, leftMargin=MARGIN, rightMargin=MARGIN,
-                            topMargin=MARGIN, bottomMargin=MARGIN,
-                            title=f"Migration report {run_id}", author="MRA")
-    doc.build(_story(model, limits, generated), onFirstPage=footer, onLaterPages=footer)
+    meta = model["meta"]
+    run_id = meta.get("run_id") or "?"
+    # The frame pads 6 pt inside the margins; offset it so text, tables and the
+    # header/footer rules all share the same left and right edge.
+    doc = _Doc(buffer, pagesize=A4, leftMargin=MARGIN - 6, rightMargin=MARGIN - 6,
+               topMargin=TOP - 6, bottomMargin=BOTTOM - 6,
+               title=f"Migration report — {meta.get('repo_name') or run_id}",
+               author=f"MRA v{meta.get('agent_version') or '?'}",
+               subject=f"{meta.get('source_api')} -> {meta.get('target_api')}: "
+                       f"{model['verdict']['status']} (run {run_id})",
+               keywords=", ".join(str(k) for k in (
+                   "migration report", meta.get("repo_name"), meta.get("source_api"),
+                   meta.get("target_api"), model["verdict"]["status"], run_id)),
+               creator="mra report")
+    doc.build(_story(model, limits, generated), canvasmaker=_canvas_maker(model))
     return buffer.getvalue(), doc.page
 
 
