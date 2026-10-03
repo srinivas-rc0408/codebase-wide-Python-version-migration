@@ -43,8 +43,11 @@ def build_report(out_dir: Path | str) -> tuple[Path, dict[str, Any]]:
     out_dir = Path(out_dir).resolve()
     model = build_model(load_run(out_dir))
     now = datetime.now().astimezone()
-    data, pages, cuts = render(model, generated=f"{now:%Y-%m-%d %H:%M:%S} {now.tzname()} "
-                                                f"({now.isoformat(timespec='seconds')[19:]})")
+    data, pages, cuts = render(
+        model,
+        generated=f"{now:%Y-%m-%d %H:%M:%S} {now.tzname()} "
+        f"({now.isoformat(timespec='seconds')[19:]})",
+    )
     model["pdf"] = {"pages": pages, "truncation": cuts}
     (out_dir / "report.json").write_text(json.dumps(model, indent=2, default=str) + "\n")
     path = out_dir / report_filename(model["meta"].get("repo_name") or out_dir.name, now)
@@ -52,10 +55,15 @@ def build_report(out_dir: Path | str) -> tuple[Path, dict[str, Any]]:
     return path, model
 
 
-def run_with_report(task_dir: Path | str, *, run_id: str | None = None,
-                    runs_dir: Path | str = "runs", router: Any = None,
-                    setup: Callable[[str], dict[str, Any]] | None = None,
-                    **run_kwargs: Any) -> dict[str, Any]:
+def run_with_report(
+    task_dir: Path | str,
+    *,
+    run_id: str | None = None,
+    runs_dir: Path | str = "runs",
+    router: Any = None,
+    setup: Callable[[str], dict[str, Any]] | None = None,
+    **run_kwargs: Any,
+) -> dict[str, Any]:
     """Run the migration, then always gather evidence and write the report.
 
     ``setup(run_id)`` returns extra ``run_migration`` kwargs (router, corrector,
@@ -89,9 +97,13 @@ def run_with_report(task_dir: Path | str, *, run_id: str | None = None,
     finally:
         out_dir.mkdir(parents=True, exist_ok=True)
         meta = {
-            "run_id": run_id, "task_id": task_dir.name, "repo_name": task_dir.name,
-            "agent_version": __version__, "target": run_kwargs.get("target", TARGET),
-            "source_api": truth.get("source_api"), "target_api": truth.get("target_api"),
+            "run_id": run_id,
+            "task_id": task_dir.name,
+            "repo_name": task_dir.name,
+            "agent_version": __version__,
+            "target": run_kwargs.get("target", TARGET),
+            "source_api": truth.get("source_api"),
+            "target_api": truth.get("target_api"),
             "has_ground_truth": bool(truth.get("call_sites") is not None),
             "started_at": started.isoformat(timespec="seconds"),
             "wall_clock_s": round(time.perf_counter() - clock, 3),
@@ -113,8 +125,13 @@ def run_with_report(task_dir: Path | str, *, run_id: str | None = None,
         (out_dir / "run_meta.json").write_text(json.dumps(meta, indent=2) + "\n")
         evidence.collect(out_dir, meta["target"], task_dir.name, run_id)
         pdf, model = build_report(out_dir)
-    return {"run_id": run_id, "out_dir": out_dir, "pdf": pdf, "model": model,
-            "crashed": crash is not None}
+    return {
+        "run_id": run_id,
+        "out_dir": out_dir,
+        "pdf": pdf,
+        "model": model,
+        "crashed": crash is not None,
+    }
 
 
 def terminal_summary(model: dict[str, Any], pdf: Path, *, color: bool | None = None) -> str:
@@ -124,13 +141,17 @@ def terminal_summary(model: dict[str, Any], pdf: Path, *, color: bool | None = N
     tag = f" {status} "
     tag = f"{ANSI[status]}{tag}{RESET}" if color else f"[{status}]"
     meta, m = model["meta"], model["metrics"]
-    lines = [f"{tag} {meta.get('repo_name')}  {meta.get('source_api')} -> "
-             f"{meta.get('target_api')}  (run {meta.get('run_id')})",
-             f"  {model['headline']}"]
+    lines = [
+        f"{tag} {meta.get('repo_name')}  {meta.get('source_api')} -> "
+        f"{meta.get('target_api')}  (run {meta.get('run_id')})",
+        f"  {model['headline']}",
+    ]
     if m:
-        lines.append(f"  M1 recall {m['m1_recall']:.1f}%  precision {m['m1_precision']:.1f}%   "
-                     f"M2 {m['m2_pass_rate']:.1f}% ({m['m2_regressions']} regressions)   "
-                     f"M3 {m['m3_tokens']:,} tokens, {m['m3_steps']} steps")
+        lines.append(
+            f"  M1 recall {m['m1_recall']:.1f}%  precision {m['m1_precision']:.1f}%   "
+            f"M2 {m['m2_pass_rate']:.1f}% ({m['m2_regressions']} regressions)   "
+            f"M3 {m['m3_tokens']:,} tokens, {m['m3_steps']} steps"
+        )
     lines.append(f"  Data egress: {model['llm']['egress_line']}")
     for reason in model["verdict"]["reasons"]:
         lines.append(f"  - {reason['level']}: {reason['text']} [{reason['evidence']}]")
@@ -138,5 +159,4 @@ def terminal_summary(model: dict[str, Any], pdf: Path, *, color: bool | None = N
     return "\n".join(lines)
 
 
-__all__ = ["build_report", "report_filename", "run_with_report", "sanitize",
-           "terminal_summary"]
+__all__ = ["build_report", "report_filename", "run_with_report", "sanitize", "terminal_summary"]

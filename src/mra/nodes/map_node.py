@@ -21,7 +21,7 @@ def make_map_node(target: str):
             "file_status": dict.fromkeys(analysis["call_sites"], "pending"),
             "note": {
                 "action": f"found {len(sites)} call site(s) in "
-                          f"{len(analysis['call_sites'])} file(s)",
+                f"{len(analysis['call_sites'])} file(s)",
                 "detail": {"files": sorted(analysis["call_sites"]), "target": target},
             },
         }

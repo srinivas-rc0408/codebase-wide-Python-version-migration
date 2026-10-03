@@ -55,12 +55,12 @@ def is_local(base_url: str | None) -> bool:
 #: is replaced whole except the key=value form, which keeps its key name.
 SECRET_PATTERNS = [
     re.compile(r"-----BEGIN [A-Z ]*PRIVATE KEY-----.*?-----END [A-Z ]*PRIVATE KEY-----", re.S),
-    re.compile(r"\bsk-[A-Za-z0-9_-]{20,}"),                       # OpenAI, Anthropic, DeepSeek
-    re.compile(r"\b(?:AKIA|ASIA)[0-9A-Z]{16}\b"),                 # AWS access key id
-    re.compile(r"\bgh[pousr]_[A-Za-z0-9]{36,}\b"),                # GitHub tokens
+    re.compile(r"\bsk-[A-Za-z0-9_-]{20,}"),  # OpenAI, Anthropic, DeepSeek
+    re.compile(r"\b(?:AKIA|ASIA)[0-9A-Z]{16}\b"),  # AWS access key id
+    re.compile(r"\bgh[pousr]_[A-Za-z0-9]{36,}\b"),  # GitHub tokens
     re.compile(r"\bgithub_pat_[A-Za-z0-9_]{22,}\b"),
-    re.compile(r"\bxox[abprs]-[A-Za-z0-9-]{10,}\b"),              # Slack
-    re.compile(r"\bAIza[0-9A-Za-z_-]{35}\b"),                     # Google API key
+    re.compile(r"\bxox[abprs]-[A-Za-z0-9-]{10,}\b"),  # Slack
+    re.compile(r"\bAIza[0-9A-Za-z_-]{35}\b"),  # Google API key
     re.compile(r"\beyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}"),  # JWT
 ]
 ASSIGNMENT = re.compile(

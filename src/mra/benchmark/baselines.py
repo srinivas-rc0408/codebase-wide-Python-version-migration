@@ -45,19 +45,23 @@ def _ruff(argv: list[str]) -> subprocess.CompletedProcess[str]:
 
 def _detect_with_ruff(tree: Path) -> list[dict[str, Any]]:
     """Every DTZ finding in ``tree``, as ``{file, line, code}``."""
-    result = _ruff(["check", "--isolated", "--select", RUFF_SELECT,
-                    "--output-format", "json", str(tree)])
+    result = _ruff(
+        ["check", "--isolated", "--select", RUFF_SELECT, "--output-format", "json", str(tree)]
+    )
     try:
         findings = json.loads(result.stdout or "[]")
     except json.JSONDecodeError:  # pragma: no cover - ruff failed to run at all
         return []
-    return [{
-        "file": Path(f["filename"]).resolve().relative_to(tree.resolve()).as_posix(),
-        # ruff columns are 1-based and ours are 0-based, so only (file, line) is
-        # compared; the column convention is not what this measurement is about.
-        "line": f["location"]["row"],
-        "code": f["code"],
-    } for f in findings]
+    return [
+        {
+            "file": Path(f["filename"]).resolve().relative_to(tree.resolve()).as_posix(),
+            # ruff columns are 1-based and ours are 0-based, so only (file, line) is
+            # compared; the column convention is not what this measurement is about.
+            "line": f["location"]["row"],
+            "code": f["code"],
+        }
+        for f in findings
+    ]
 
 
 def _remaining_sites(tree: Path) -> int:
@@ -67,12 +71,24 @@ def _remaining_sites(tree: Path) -> int:
 
 def _suite(tree: Path, task_id: str, runs_dir: Path) -> dict[str, Any]:
     runner = SandboxRunner(runs_dir=runs_dir)
-    return runner.run(tree, task_id=task_id, phase="post",
-                      run_id=f"baseline-{task_id}-{uuid.uuid4().hex[:6]}", lint=False)
+    return runner.run(
+        tree,
+        task_id=task_id,
+        phase="post",
+        run_id=f"baseline-{task_id}-{uuid.uuid4().hex[:6]}",
+        lint=False,
+    )
 
 
-def _score(tree: Path, task_id: str, truth: dict[str, Any], detected: list[dict[str, Any]],
-           fixed_files: int, tool: str, runs_dir: Path) -> dict[str, Any]:
+def _score(
+    tree: Path,
+    task_id: str,
+    truth: dict[str, Any],
+    detected: list[dict[str, Any]],
+    fixed_files: int,
+    tool: str,
+    runs_dir: Path,
+) -> dict[str, Any]:
     expected = {(site["file"], site["line"]) for site in truth["call_sites"]}
     hits = {(f["file"], f["line"]) for f in detected}
     total = len(expected)
@@ -102,14 +118,14 @@ def ruff_baseline(task_dir: Path | str, runs_dir: Path | str = "runs/benchmark/r
         shutil.copytree(task_dir / "old", tree)
         detected = _detect_with_ruff(tree)
         before = {path: path.read_bytes() for path in tree.rglob("*.py")}
-        _ruff(["check", "--isolated", "--select", RUFF_SELECT, "--fix",
-               "--unsafe-fixes", str(tree)])
+        _ruff(
+            ["check", "--isolated", "--select", RUFF_SELECT, "--fix", "--unsafe-fixes", str(tree)]
+        )
         fixed = sum(1 for path, blob in before.items() if path.read_bytes() != blob)
         return _score(tree, task_dir.name, truth, detected, fixed, "ruff (DTZ)", runs_dir)
 
 
-def pyupgrade_baseline(task_dir: Path | str,
-                       runs_dir: Path | str = "runs/benchmark/runs") -> dict:
+def pyupgrade_baseline(task_dir: Path | str, runs_dir: Path | str = "runs/benchmark/runs") -> dict:
     """Run pyupgrade over the task and score it the same way."""
     task_dir, runs_dir = Path(task_dir), Path(runs_dir)
     truth = json.loads((task_dir / "ground_truth.json").read_text())
@@ -120,31 +136,48 @@ def pyupgrade_baseline(task_dir: Path | str,
         files = sorted(tree.rglob("*.py"))
         before = {path: path.read_bytes() for path in files}
         if binary.exists() or binary.name == binary.as_posix():
-            subprocess.run([str(binary), "--py312-plus", *map(str, files)],
-                           capture_output=True, text=True, check=False)
+            subprocess.run(
+                [str(binary), "--py312-plus", *map(str, files)],
+                capture_output=True,
+                text=True,
+                check=False,
+            )
         else:  # pragma: no cover - environment without the tool installed
-            return {"tool": "pyupgrade", "detected": 0, "detect_recall": 0.0,
-                    "detect_precision": 0.0, "fixed_files": 0, "m1_recall_after_fix": 0.0,
-                    "sites_remaining": len(truth["call_sites"]),
-                    "suite_after_fix": "not installed", "suite_green": False,
-                    "can_repair_cross_file_break": False}
+            return {
+                "tool": "pyupgrade",
+                "detected": 0,
+                "detect_recall": 0.0,
+                "detect_precision": 0.0,
+                "fixed_files": 0,
+                "m1_recall_after_fix": 0.0,
+                "sites_remaining": len(truth["call_sites"]),
+                "suite_after_fix": "not installed",
+                "suite_green": False,
+                "can_repair_cross_file_break": False,
+            }
         fixed = sum(1 for path, blob in before.items() if path.read_bytes() != blob)
         # pyupgrade has no report mode: what it rewrote is its whole output, so
         # "detected" can only be counted as "files it chose to touch".
         return _score(tree, task_dir.name, truth, [], fixed, "pyupgrade", runs_dir)
 
 
-def baseline_table(tasks, corpus: Path | str = "corpus/tierA",
-                   runs_dir: Path | str = "runs/benchmark/runs") -> list[dict[str, Any]]:
+def baseline_table(
+    tasks, corpus: Path | str = "corpus/tierA", runs_dir: Path | str = "runs/benchmark/runs"
+) -> list[dict[str, Any]]:
     """Both tools over every task, in the shape ``results.json`` carries."""
     corpus = Path(corpus)
     table = []
     for task in tasks:
         task_dir = corpus / task
         truth = json.loads((task_dir / "ground_truth.json").read_text())
-        table.append({
-            "task_id": task,
-            "ground_truth_sites": len(truth["call_sites"]),
-            "tools": [ruff_baseline(task_dir, runs_dir), pyupgrade_baseline(task_dir, runs_dir)],
-        })
+        table.append(
+            {
+                "task_id": task,
+                "ground_truth_sites": len(truth["call_sites"]),
+                "tools": [
+                    ruff_baseline(task_dir, runs_dir),
+                    pyupgrade_baseline(task_dir, runs_dir),
+                ],
+            }
+        )
     return table

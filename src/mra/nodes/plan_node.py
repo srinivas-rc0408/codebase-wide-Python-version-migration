@@ -38,13 +38,16 @@ DEFAULT_EDIT_BATCH_SIZE = 3
 
 
 def _chunk(items: list[str], size: int) -> list[list[str]]:
-    return [items[i:i + size] for i in range(0, len(items), size)]
+    return [items[i : i + size] for i in range(0, len(items), size)]
 
 
 def cycles(graph: nx.DiGraph) -> list[list[str]]:
     """Every import cycle, as the set of files that must be edited together."""
-    return [sorted(component) for component in nx.strongly_connected_components(graph)
-            if len(component) > 1]
+    return [
+        sorted(component)
+        for component in nx.strongly_connected_components(graph)
+        if len(component) > 1
+    ]
 
 
 def plan_batches(
@@ -83,8 +86,7 @@ def plan_batches(
     # migrated first — the leaf-most contracts.
     for generation in nx.topological_generations(condensed.reverse()):
         atomic = [members[c] for c in generation if len(members[c]) > 1]
-        singles = sorted(file for c in generation for file in members[c]
-                         if len(members[c]) == 1)
+        singles = sorted(file for c in generation for file in members[c] if len(members[c]) == 1)
         # A cycle keeps its own batch whatever the cap says; splitting it is
         # the one thing rule 1 forbids.
         batches.extend(sorted(atomic))
@@ -113,19 +115,19 @@ def plan_node(state: dict[str, Any]) -> dict[str, Any]:
 
     graph = state.get("graph") or dep_graph_module.build(state["repo_path"])
     batches = plan_batches(graph, state.get("call_sites", {}))
-    collapsed = [c for c in cycles(graph) if any(f in set().union(*batches) for f in c)] \
-        if batches else []
+    collapsed = (
+        [c for c in cycles(graph) if any(f in set().union(*batches) for f in c)] if batches else []
+    )
     return {
         "edit_batches": batches,
         "current_batch": 0,
         "note": {
             "action": f"planned {len(batches)} batch(es) over "
-                      f"{sum(len(b) for b in batches)} file(s)",
+            f"{sum(len(b) for b in batches)} file(s)",
             "detail": {
                 "batches": batches,
                 "cycles_collapsed": collapsed,
-                "batch_size": int(os.getenv("MRA_EDIT_BATCH_SIZE",
-                                            str(DEFAULT_EDIT_BATCH_SIZE))),
+                "batch_size": int(os.getenv("MRA_EDIT_BATCH_SIZE", str(DEFAULT_EDIT_BATCH_SIZE))),
                 "fr3_violations": violations(batches, graph),
             },
         },

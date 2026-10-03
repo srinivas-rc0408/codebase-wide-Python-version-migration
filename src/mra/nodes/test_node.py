@@ -27,11 +27,13 @@ def make_test_node(runner: SandboxRunner, task_id: str, run_id: str | None = Non
             "last_test_report": report,
             "note": {
                 "action": f"suite after batch {state.get('current_batch', 0)}: "
-                          f"{report['passed']}/{report['total']} passed",
+                f"{report['passed']}/{report['total']} passed",
                 "detail": {
                     "phase": phase,
-                    "total": report["total"], "passed": report["passed"],
-                    "failed": report["failed"], "errors": report["errors"],
+                    "total": report["total"],
+                    "passed": report["passed"],
+                    "failed": report["failed"],
+                    "errors": report["errors"],
                     "failures": [f["nodeid"] for f in report["failures"]],
                 },
             },

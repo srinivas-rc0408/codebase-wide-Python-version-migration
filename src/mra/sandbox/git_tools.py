@@ -39,8 +39,7 @@ def snapshot(repo_path: Path | str, message: str = "mra snapshot") -> str:
     """
     repo = _repo(repo_path)
     repo.git.add("-A")
-    repo.git.commit("-m", message, "--allow-empty",
-                    f"--author={ACTOR_NAME} <{ACTOR_EMAIL}>")
+    repo.git.commit("-m", message, "--allow-empty", f"--author={ACTOR_NAME} <{ACTOR_EMAIL}>")
     return repo.head.commit.hexsha
 
 

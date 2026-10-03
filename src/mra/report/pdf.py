@@ -79,8 +79,11 @@ WIDTH = A4[0] - 2 * MARGIN
 #: Truncation levels, tried in order until the document fits.
 LADDER: list[dict[str, int]] = [
     {},
-    {"diff_files": 8}, {"diff_files": 3}, {"diff_files": 0},
-    {"diff_files": 0, "timeline": 60}, {"diff_files": 0, "timeline": 25},
+    {"diff_files": 8},
+    {"diff_files": 3},
+    {"diff_files": 0},
+    {"diff_files": 0, "timeline": 60},
+    {"diff_files": 0, "timeline": 25},
     {"diff_files": 0, "timeline": 10},
     {"diff_files": 0, "timeline": 10, "file_rows": 80},
     {"diff_files": 0, "timeline": 10, "file_rows": 40},
@@ -90,11 +93,26 @@ LADDER: list[dict[str, int]] = [
 ]
 
 
-def _style(name: str, size: float, leading: float, font: str = FONT, color: Any = INK,
-           space_after: float = 0, **extra: Any) -> ParagraphStyle:
-    return ParagraphStyle(name, fontName=font, fontSize=size, leading=leading,
-                          textColor=color, spaceAfter=space_after,
-                          allowWidows=0, allowOrphans=0, **extra)
+def _style(
+    name: str,
+    size: float,
+    leading: float,
+    font: str = FONT,
+    color: Any = INK,
+    space_after: float = 0,
+    **extra: Any,
+) -> ParagraphStyle:
+    return ParagraphStyle(
+        name,
+        fontName=font,
+        fontSize=size,
+        leading=leading,
+        textColor=color,
+        spaceAfter=space_after,
+        allowWidows=0,
+        allowOrphans=0,
+        **extra,
+    )
 
 
 # The type scale: title, H1, H2, body, small, mono. Leadings and gaps are x4.
@@ -118,8 +136,8 @@ def ellipsize(text: str, width: float, font: str = FONT, size: float = 8.5) -> s
     keep = len(text)
     while keep > 1:
         keep -= 1
-        head = text[:keep // 2]
-        short = f"{head}…{text[len(text) - (keep - len(head)):]}"
+        head = text[: keep // 2]
+        short = f"{head}…{text[len(text) - (keep - len(head)) :]}"
         if stringWidth(short, font, size) <= width:
             return short
     return "…"
@@ -140,11 +158,17 @@ def _more(hidden: int) -> list[Any]:
     return [_p(f"+{hidden} more — see report.json", SMALL)] if hidden > 0 else []
 
 
-def _table(header: list[str], rows: list[list[Any]], widths: list[float],
-           numeric: tuple[int, ...] = (), paths: tuple[int, ...] = (),
-           style: list[tuple[Any, ...]] = ()) -> Table:
+def _table(
+    header: list[str],
+    rows: list[list[Any]],
+    widths: list[float],
+    numeric: tuple[int, ...] = (),
+    paths: tuple[int, ...] = (),
+    style: list[tuple[Any, ...]] = (),
+) -> Table:
     """A ruled table: header repeats across pages, ``numeric`` columns align right,
     ``paths`` columns are middle-ellipsized to their cell instead of overflowing."""
+
     def cell(value: Any, col: int) -> Any:
         if isinstance(value, Paragraph):
             return value
@@ -153,18 +177,23 @@ def _table(header: list[str], rows: list[list[Any]], widths: list[float],
         return _p(value, CELL_R if col in numeric else CELL)
 
     data = [[_p(h, CELL_BR if i in numeric else CELL_B) for i, h in enumerate(header)]] + [
-        [cell(value, i) for i, value in enumerate(row)] for row in rows]
+        [cell(value, i) for i, value in enumerate(row)] for row in rows
+    ]
     table = Table(data, colWidths=widths, repeatRows=1)
-    table.setStyle(TableStyle([
-        ("LINEBELOW", (0, 0), (-1, 0), 0.8, GREY),
-        ("LINEBELOW", (0, 1), (-1, -1), 0.3, GREY),
-        ("VALIGN", (0, 0), (-1, -1), "TOP"),
-        ("TOPPADDING", (0, 0), (-1, -1), 2),
-        ("BOTTOMPADDING", (0, 0), (-1, -1), 2),
-        ("LEFTPADDING", (0, 0), (-1, -1), PAD),
-        ("RIGHTPADDING", (0, 0), (-1, -1), PAD),
-        *style,
-    ]))
+    table.setStyle(
+        TableStyle(
+            [
+                ("LINEBELOW", (0, 0), (-1, 0), 0.8, GREY),
+                ("LINEBELOW", (0, 1), (-1, -1), 0.3, GREY),
+                ("VALIGN", (0, 0), (-1, -1), "TOP"),
+                ("TOPPADDING", (0, 0), (-1, -1), 2),
+                ("BOTTOMPADDING", (0, 0), (-1, -1), 2),
+                ("LEFTPADDING", (0, 0), (-1, -1), PAD),
+                ("RIGHTPADDING", (0, 0), (-1, -1), PAD),
+                *style,
+            ]
+        )
+    )
     return table
 
 
@@ -173,24 +202,35 @@ def _mark(passed: bool | None) -> Paragraph:
         return _p("n/a", CELL)
     status = "GREEN" if passed else "RED"
     font, glyph = SYMBOL[status]
-    return Paragraph(f'<font color="{STATUS_INK[status]}"><font name="{font}" size="7">'
-                     f'{glyph}</font> <b>{"PASS" if passed else "FAIL"}</b></font>', CELL)
+    return Paragraph(
+        f'<font color="{STATUS_INK[status]}"><font name="{font}" size="7">'
+        f"{glyph}</font> <b>{'PASS' if passed else 'FAIL'}</b></font>",
+        CELL,
+    )
 
 
 def banner(model: dict[str, Any]) -> Table:
     """Light status fill, dark text, a strong status edge — and the word + symbol."""
     status = model["verdict"]["status"]
     ink = colors.HexColor(STATUS_INK[status])
-    table = Table([[Paragraph(status_label(status), _style("status", 20, 24, BOLD, ink))],
-                   [_p(model["headline"], _style("why", 10, 12, color=INK))]],
-                  colWidths=[WIDTH])
-    table.setStyle(TableStyle([
-        ("BACKGROUND", (0, 0), (-1, -1), colors.HexColor(STATUS_FILL[status])),
-        ("LINEBEFORE", (0, 0), (0, -1), 4, STATUS[status]),
-        ("LEFTPADDING", (0, 0), (-1, -1), 12),
-        ("TOPPADDING", (0, 0), (-1, 0), 12),
-        ("BOTTOMPADDING", (0, -1), (-1, -1), 12),
-    ]))
+    table = Table(
+        [
+            [Paragraph(status_label(status), _style("status", 20, 24, BOLD, ink))],
+            [_p(model["headline"], _style("why", 10, 12, color=INK))],
+        ],
+        colWidths=[WIDTH],
+    )
+    table.setStyle(
+        TableStyle(
+            [
+                ("BACKGROUND", (0, 0), (-1, -1), colors.HexColor(STATUS_FILL[status])),
+                ("LINEBEFORE", (0, 0), (0, -1), 4, STATUS[status]),
+                ("LEFTPADDING", (0, 0), (-1, -1), 12),
+                ("TOPPADDING", (0, 0), (-1, 0), 12),
+                ("BOTTOMPADDING", (0, -1), (-1, -1), 12),
+            ]
+        )
+    )
     return table
 
 
@@ -204,7 +244,8 @@ def completed_at(meta: dict[str, Any]) -> str:
         when, zone = datetime.fromisoformat(meta["completed_at"]), meta.get("completed_tz")
     elif meta.get("started_at"):
         when = datetime.fromisoformat(meta["started_at"]) + timedelta(
-            seconds=float(meta.get("wall_clock_s") or 0))
+            seconds=float(meta.get("wall_clock_s") or 0)
+        )
         zone = None
     else:
         return "time not recorded"
@@ -223,37 +264,59 @@ def stamp(when: datetime, zone: str | None = None) -> str:
 
 def _summary(model: dict[str, Any], generated: str) -> list[Any]:
     meta, m, llm = model["meta"], model["metrics"], model["llm"]
-    providers = ", ".join(f"{p['provider']} ({p['model']}): {p['calls']} call(s)"
-                          for p in llm["providers"]) or "none — deterministic path, no LLM calls"
+    providers = (
+        ", ".join(f"{p['provider']} ({p['model']}): {p['calls']} call(s)" for p in llm["providers"])
+        or "none — deterministic path, no LLM calls"
+    )
     facts = [
         ("Project", meta.get("repo_name")),
-        ("Migration", Paragraph(f"{escape(str(meta.get('source_api')))} {ARROW} "
-                                f"{escape(str(meta.get('target_api')))}", CELL)),
+        (
+            "Migration",
+            Paragraph(
+                f"{escape(str(meta.get('source_api')))} {ARROW} "
+                f"{escape(str(meta.get('target_api')))}",
+                CELL,
+            ),
+        ),
         ("Agent version", meta.get("agent_version")),
         ("Run id", meta.get("run_id")),
-        ("Run started", stamp(datetime.fromisoformat(meta["started_at"]), meta.get("completed_tz"))
-         if meta.get("started_at") else "not recorded"),
+        (
+            "Run started",
+            stamp(datetime.fromisoformat(meta["started_at"]), meta.get("completed_tz"))
+            if meta.get("started_at")
+            else "not recorded",
+        ),
         ("Run completed", completed_at(meta)),
         ("Outcome", m.get("outcome", "no metrics (run did not finish)")),
         ("Providers used", providers),
         ("Data egress", llm["egress_line"]),
     ]
     metric_rows = [
-        ["M1 recall / precision", f"{m['m1_recall']:.1f}% / {m['m1_precision']:.1f}%"
-         if m else "—"],
-        ["M2 pass rate / regressions", f"{m['m2_pass_rate']:.1f}% / {m['m2_regressions']}"
-         if m else "—"],
-        ["M3 tokens / steps / cost", f"{m['m3_tokens']:,} / {m['m3_steps']} / "
-                                     f"${m['m3_cost_usd']:.4f}" if m else "—"],
+        [
+            "M1 recall / precision",
+            f"{m['m1_recall']:.1f}% / {m['m1_precision']:.1f}%" if m else "—",
+        ],
+        [
+            "M2 pass rate / regressions",
+            f"{m['m2_pass_rate']:.1f}% / {m['m2_regressions']}" if m else "—",
+        ],
+        [
+            "M3 tokens / steps / cost",
+            f"{m['m3_tokens']:,} / {m['m3_steps']} / ${m['m3_cost_usd']:.4f}" if m else "—",
+        ],
     ]
     return [
-        _p("Migration report", TITLE), Spacer(1, 4), banner(model), Spacer(1, 16),
+        _p("Migration report", TITLE),
+        Spacer(1, 4),
+        banner(model),
+        Spacer(1, 16),
         _p("Summary", H2),
-        _table(["Field", "Value"], [[_p(k, CELL_B), v] for k, v in facts],
-               [112, WIDTH - 112]),
-        Spacer(1, 12), _p("Headline metrics", H2),
+        _table(["Field", "Value"], [[_p(k, CELL_B), v] for k, v in facts], [112, WIDTH - 112]),
+        Spacer(1, 12),
+        _p("Headline metrics", H2),
         _table(["Metric", "Value"], metric_rows, [168, WIDTH - 168], numeric=(1,)),
-        Spacer(1, 8), _p(f"Report generated {generated}", SMALL),
+        Spacer(1, 8),
+        _p(f"Report generated {generated}", SMALL),
     ]
 
 
@@ -270,13 +333,20 @@ def _graph_figure(graph: dict[str, Any]) -> list[Any]:
     # Layered, not force-directed: dependencies on the left, importers to the
     # right, an import cycle sharing one column. Deterministic and numpy-free.
     condensed = nx.condensation(sub.reverse())
-    layers = [sorted(n for scc in layer for n in condensed.nodes[scc]["members"])
-              for layer in nx.topological_generations(condensed)]
+    layers = [
+        sorted(n for scc in layer for n in condensed.nodes[scc]["members"])
+        for layer in nx.topological_generations(condensed)
+    ]
     height = 95 * mm
     drawing = Drawing(WIDTH, height)
-    pos = {node: (20 + (WIDTH - 110) * col / max(len(layers) - 1, 1),
-                  height - 10 - (height - 20) * (row + 0.5) / len(layer))
-           for col, layer in enumerate(layers) for row, node in enumerate(layer)}
+    pos = {
+        node: (
+            20 + (WIDTH - 110) * col / max(len(layers) - 1, 1),
+            height - 10 - (height - 20) * (row + 0.5) / len(layer),
+        )
+        for col, layer in enumerate(layers)
+        for row, node in enumerate(layer)
+    }
 
     def xy(node: str) -> tuple[float, float]:
         return pos[node]
@@ -286,25 +356,41 @@ def _graph_figure(graph: dict[str, Any]) -> list[Any]:
         drawing.add(Line(x1, y1, x2, y2, strokeColor=GREY, strokeWidth=0.5))
     for node in sorted(sub.nodes()):
         x, y = xy(node)
-        drawing.add(Circle(x, y, 3.2, fillColor=INK if node in changed else colors.white,
-                           strokeColor=INK, strokeWidth=0.6))
-        drawing.add(String(x + 5, y - 2.5, node.rsplit("/", 1)[-1], fontName=FONT,
-                           fontSize=6, fillColor=INK))
-    note = (f"Filled: changed by the migration. Showing {len(keep)} of {len(nodes)} files"
-            + (f"; +{len(nodes) - len(keep)} more — see report.json." if len(nodes) > len(keep)
-               else "."))
+        drawing.add(
+            Circle(
+                x,
+                y,
+                3.2,
+                fillColor=INK if node in changed else colors.white,
+                strokeColor=INK,
+                strokeWidth=0.6,
+            )
+        )
+        drawing.add(
+            String(
+                x + 5, y - 2.5, node.rsplit("/", 1)[-1], fontName=FONT, fontSize=6, fillColor=INK
+            )
+        )
+    note = f"Filled: changed by the migration. Showing {len(keep)} of {len(nodes)} files" + (
+        f"; +{len(nodes) - len(keep)} more — see report.json." if len(nodes) > len(keep) else "."
+    )
     return [drawing, _p(note, SMALL)]
 
 
 def _repo_map(model: dict[str, Any], limits: dict[str, int]) -> list[Any]:
     files = model["files"]
-    shown = files[:limits.get("file_rows", len(files))]
+    shown = files[: limits.get("file_rows", len(files))]
     return [
         _p("Repository map", H1),
-        _table(["File", "LOC", "Call sites", "Final status"],
-               [[f["file"], f["loc"], f["sites"], f["status"]] for f in shown],
-               [WIDTH - 212, 48, 64, 100], numeric=(1, 2), paths=(0,)),
-        *_more(len(files) - len(shown)), Spacer(1, 8),
+        _table(
+            ["File", "LOC", "Call sites", "Final status"],
+            [[f["file"], f["loc"], f["sites"], f["status"]] for f in shown],
+            [WIDTH - 212, 48, 64, 100],
+            numeric=(1, 2),
+            paths=(0,),
+        ),
+        *_more(len(files) - len(shown)),
+        Spacer(1, 8),
         Paragraph(f"Dependency graph (importer {ARROW} imported)", H2),
         *_graph_figure(model["graph"]),
     ]
@@ -313,28 +399,37 @@ def _repo_map(model: dict[str, Any], limits: dict[str, int]) -> list[Any]:
 def _plan(model: dict[str, Any], limits: dict[str, int]) -> list[Any]:
     plan = model["plan"]
     batches = plan["batches"]
-    shown = batches[:limits.get("plan_rows", len(batches))]
+    shown = batches[: limits.get("plan_rows", len(batches))]
     cycles = {frozenset(c) for c in plan["cycles"]}
-    rows = [[i, ", ".join(b), "cycle (atomic)" if frozenset(b) in cycles else ""]
-            for i, b in enumerate(shown)]
+    rows = [
+        [i, ", ".join(b), "cycle (atomic)" if frozenset(b) in cycles else ""]
+        for i, b in enumerate(shown)
+    ]
     return [
-        _p("Plan", H1), _p(plan["rationale"]),
+        _p("Plan", H1),
+        _p(plan["rationale"]),
         _table(["Batch", "Files", "Note"], rows, [40, WIDTH - 124, 84], numeric=(0,)),
         *_more(len(batches) - len(shown)),
-        _p("Collapsed cycles: " + ("; ".join(" <-> ".join(c) for c in plan["cycles"]) or
-                                    "none") + f". FR-3 violations: {plan['fr3_violations']}.",
-           SMALL),
+        _p(
+            "Collapsed cycles: "
+            + ("; ".join(" <-> ".join(c) for c in plan["cycles"]) or "none")
+            + f". FR-3 violations: {plan['fr3_violations']}.",
+            SMALL,
+        ),
     ]
 
 
 def _timeline(model: dict[str, Any], limits: dict[str, int]) -> list[Any]:
     rows = model["timeline"]
-    shown = rows[:limits.get("timeline", len(rows))]
+    shown = rows[: limits.get("timeline", len(rows))]
     return [
         _p("Execution timeline", H1),
-        _table(["Step", "Node", "What happened"],
-               [[r["step"], r["node"], r["text"]] for r in shown],
-               [40, 60, WIDTH - 100], numeric=(0,)),
+        _table(
+            ["Step", "Node", "What happened"],
+            [[r["step"], r["node"], r["text"]] for r in shown],
+            [40, 60, WIDTH - 100],
+            numeric=(0,),
+        ),
         *_more(len(rows) - len(shown)),
     ]
 
@@ -350,31 +445,53 @@ def _diff_line(line: str) -> Paragraph:
 
 def _changes(model: dict[str, Any], limits: dict[str, int]) -> list[Any]:
     changes = model["changes"]
-    salvaged = (" Salvaged from the run's git history: the run crashed before writing it."
-                if model["verification"]["patch_salvaged"] else "")
+    salvaged = (
+        " Salvaged from the run's git history: the run crashed before writing it."
+        if model["verification"]["patch_salvaged"]
+        else ""
+    )
     flow: list[Any] = [
         _p("Changes", H1),
-        _p(f"Full patch: migration.patch ({len(changes)} file(s), "
-           f"+{sum(c['added'] for c in changes)} / -{sum(c['removed'] for c in changes)})."
-           + salvaged),
+        _p(
+            f"Full patch: migration.patch ({len(changes)} file(s), "
+            f"+{sum(c['added'] for c in changes)} / -{sum(c['removed'] for c in changes)})."
+            + salvaged
+        ),
     ]
     if not changes:
         return [*flow, _p("No changes.")]
     flow += [
-        _table(["File", "+", "\u2013", "Sites"],
-               [[c["file"], Paragraph(f'<font color="{ADD_HEX}">+{c["added"]}</font>', CELL_R),
-                 Paragraph(f'<font color="{DEL_HEX}">\u2013{c["removed"]}</font>', CELL_R),
-                 c["sites"]] for c in changes],
-               [WIDTH - 152, 44, 44, 64], numeric=(1, 2, 3), paths=(0,)),
+        _table(
+            ["File", "+", "\u2013", "Sites"],
+            [
+                [
+                    c["file"],
+                    Paragraph(f'<font color="{ADD_HEX}">+{c["added"]}</font>', CELL_R),
+                    Paragraph(f'<font color="{DEL_HEX}">\u2013{c["removed"]}</font>', CELL_R),
+                    c["sites"],
+                ]
+                for c in changes
+            ],
+            [WIDTH - 152, 44, 44, 64],
+            numeric=(1, 2, 3),
+            paths=(0,),
+        ),
     ]
-    excerpted = changes[:limits.get("diff_files", len(changes))]
+    excerpted = changes[: limits.get("diff_files", len(changes))]
     for change in excerpted:
-        flow.append(KeepTogether([Spacer(1, 4),
-                                  _p(ellipsize(change["file"], WIDTH, BOLD), CELL_B),
-                                  *[_diff_line(line) for line in change["excerpt"]]]))
+        flow.append(
+            KeepTogether(
+                [
+                    Spacer(1, 4),
+                    _p(ellipsize(change["file"], WIDTH, BOLD), CELL_B),
+                    *[_diff_line(line) for line in change["excerpt"]],
+                ]
+            )
+        )
     if len(changes) > len(excerpted):
-        flow += _p(f"Diff excerpts: +{len(changes) - len(excerpted)} more — see report.json",
-                   SMALL),
+        flow += (
+            _p(f"Diff excerpts: +{len(changes) - len(excerpted)} more — see report.json", SMALL),
+        )
     return flow
 
 
@@ -383,31 +500,57 @@ def _verification(model: dict[str, Any]) -> list[Any]:
     pre, post = v["pre"], v["post"]
 
     def totals(r: dict[str, Any]) -> str:
-        return (f"{r['passed']}/{r['total']} passed, {r['failed']} failed, {r['errors']} errors"
-                if r.get("total") is not None else "not run")
+        return (
+            f"{r['passed']}/{r['total']} passed, {r['failed']} failed, {r['errors']} errors"
+            if r.get("total") is not None
+            else "not run"
+        )
 
     cov = v["coverage"]
-    cov_rows = [[f, f"{len(c['executed'])}/{len(c['changed'])}",
-                 _mark(bool(c["executed"]) or not c["changed"])]
-                for f, c in sorted(cov.items())][:15]
+    cov_rows = [
+        [
+            f,
+            f"{len(c['executed'])}/{len(c['changed'])}",
+            _mark(bool(c["executed"]) or not c["changed"]),
+        ]
+        for f, c in sorted(cov.items())
+    ][:15]
     semantic = [[c["file"], c["detail"], _mark(c["passed"])] for c in v["semantic"]][:15]
     flow: list[Any] = [
         _p("Verification", H1),
-        _p(f"Tests before: {totals(pre)}. Tests after: {totals(post)}. "
-           f"Ruff: {v['lint']['summary']}."),
-        _table(["Check", "Result", "Evidence"],
-               [[c["check"], _mark(c["passed"]), c["evidence"]] for c in v["checks"]],
-               [176, 48, WIDTH - 224]),
+        _p(
+            f"Tests before: {totals(pre)}. Tests after: {totals(post)}. "
+            f"Ruff: {v['lint']['summary']}."
+        ),
+        _table(
+            ["Check", "Result", "Evidence"],
+            [[c["check"], _mark(c["passed"]), c["evidence"]] for c in v["checks"]],
+            [176, 48, WIDTH - 224],
+        ),
     ]
     if semantic:
-        flow += [Spacer(1, 8), _table(["Semantic check: file", "Detail", "Result"], semantic,
-                                      [200, WIDTH - 248, 48], paths=(0,)),
-                 *_more(len(v["semantic"]) - len(semantic))]
+        flow += [
+            Spacer(1, 8),
+            _table(
+                ["Semantic check: file", "Detail", "Result"],
+                semantic,
+                [200, WIDTH - 248, 48],
+                paths=(0,),
+            ),
+            *_more(len(v["semantic"]) - len(semantic)),
+        ]
     if cov_rows:
-        flow += [Spacer(1, 8), _table(["Coverage: edited file", "Changed lines run", "Result"],
-                                      cov_rows, [WIDTH - 160, 112, 48], numeric=(1,),
-                                      paths=(0,)),
-                 *_more(len(cov) - len(cov_rows))]
+        flow += [
+            Spacer(1, 8),
+            _table(
+                ["Coverage: edited file", "Changed lines run", "Result"],
+                cov_rows,
+                [WIDTH - 160, 112, 48],
+                numeric=(1,),
+                paths=(0,),
+            ),
+            *_more(len(cov) - len(cov_rows)),
+        ]
     return flow
 
 
@@ -426,14 +569,22 @@ def _metrics(model: dict[str, Any]) -> list[Any]:
         plot.xValueAxis.valueMin, plot.xValueAxis.valueMax = 0, max(len(series) - 1, 1)
         # At most ~12 ticks: one label per step overprints itself on a long run.
         plot.xValueAxis.valueSteps = list(range(0, len(series), -(-len(series) // 12)))
-        plot.xValueAxis.labelTextFormat = lambda i: series[int(i)][0] \
-            if int(i) < len(series) else ""
+        plot.xValueAxis.labelTextFormat = lambda i: (
+            series[int(i)][0] if int(i) < len(series) else ""
+        )
         for axis in (plot.xValueAxis, plot.yValueAxis):
             axis.strokeColor = GREY
             axis.labels.fontName, axis.labels.fontSize = FONT, 7
         drawing.add(plot)
-        drawing.add(String(30, 60 * mm - 10, "Tests passing per step (x: step, 'pre' = baseline)",
-                           fontName=FONT, fontSize=8))
+        drawing.add(
+            String(
+                30,
+                60 * mm - 10,
+                "Tests passing per step (x: step, 'pre' = baseline)",
+                fontName=FONT,
+                fontSize=8,
+            )
+        )
         flow.append(drawing)
     by_role = model["series"]["tokens_by_role"]
     if by_role:
@@ -449,8 +600,7 @@ def _metrics(model: dict[str, Any]) -> list[Any]:
             axis.strokeColor = GREY
             axis.labels.fontName, axis.labels.fontSize = FONT, 7
         drawing.add(chart)
-        drawing.add(String(0, height - 10, "Tokens by role / provider", fontName=FONT,
-                           fontSize=8))
+        drawing.add(String(0, height - 10, "Tokens by role / provider", fontName=FONT, fontSize=8))
         flow.append(drawing)
     else:
         flow.append(_p("Tokens by role / provider: no LLM calls — deterministic run, 0 tokens."))
@@ -461,15 +611,32 @@ def _issues(model: dict[str, Any]) -> list[Any]:
     issues = model["issues"]
     if not issues:
         return [_p("Issues & residuals", H1), _p("None. Every check passed.")]
-    rows = [[Paragraph(f'<font color="{STATUS_INK[r["level"]]}"><b>'
-                       f'{status_label(r["level"], 7)}</b></font>', CELL),
-             f"{r['text']} Evidence: {r['evidence']}", r["action"]] for r in issues]
-    fills = [("BACKGROUND", (0, i), (0, i), colors.HexColor(STATUS_FILL[r["level"]]))
-             for i, r in enumerate(issues, start=1)]
+    rows = [
+        [
+            Paragraph(
+                f'<font color="{STATUS_INK[r["level"]]}"><b>'
+                f"{status_label(r['level'], 7)}</b></font>",
+                CELL,
+            ),
+            f"{r['text']} Evidence: {r['evidence']}",
+            r["action"],
+        ]
+        for r in issues
+    ]
+    fills = [
+        ("BACKGROUND", (0, i), (0, i), colors.HexColor(STATUS_FILL[r["level"]]))
+        for i, r in enumerate(issues, start=1)
+    ]
     rest = WIDTH - 68
-    return [_p("Issues & residuals", H1),
-            _table(["Level", "Issue and evidence", "Recommended action"], rows,
-                   [68, rest * 0.58, rest * 0.42], style=fills)]
+    return [
+        _p("Issues & residuals", H1),
+        _table(
+            ["Level", "Issue and evidence", "Recommended action"],
+            rows,
+            [68, rest * 0.58, rest * 0.42],
+            style=fills,
+        ),
+    ]
 
 
 # -- assembly ---------------------------------------------------------------
@@ -477,10 +644,17 @@ def _issues(model: dict[str, Any]) -> list[Any]:
 
 def _story(model: dict[str, Any], limits: dict[str, int], generated: str) -> list[Any]:
     return [
-        *_summary(model, generated), PageBreak(),
-        *_repo_map(model, limits), *_plan(model, limits), *_timeline(model, limits),
-        *_changes(model, limits), *_verification(model), *_metrics(model), *_issues(model),
-        Spacer(1, 16), KeepTogether([_p("Final status", H1), banner(model)]),
+        *_summary(model, generated),
+        PageBreak(),
+        *_repo_map(model, limits),
+        *_plan(model, limits),
+        *_timeline(model, limits),
+        *_changes(model, limits),
+        *_verification(model),
+        *_metrics(model),
+        *_issues(model),
+        Spacer(1, 16),
+        KeepTogether([_p("Final status", H1), banner(model)]),
     ]
 
 
@@ -488,8 +662,9 @@ class _Doc(SimpleDocTemplate):
     """Adds a PDF outline entry (bookmark) for every title, H1 and H2."""
 
     def afterFlowable(self, flowable: Any) -> None:
-        level = {"title": 0, "h1": 0, "h2": 1}.get(getattr(flowable, "style", None)
-                                                   and flowable.style.name)
+        level = {"title": 0, "h1": 0, "h2": 1}.get(
+            getattr(flowable, "style", None) and flowable.style.name
+        )
         if level is None:
             return
         text = flowable.getPlainText()
@@ -531,8 +706,7 @@ def _canvas_maker(model: dict[str, Any]) -> type[Canvas]:
             self.setFillColor(INK)
             self.setFont(FONT, 7)
             self.drawString(MARGIN, FOOTER_Y, footer_left)
-            self.drawRightString(A4[0] - MARGIN, FOOTER_Y,
-                                 f"Page {self._pageNumber} of {total}")
+            self.drawRightString(A4[0] - MARGIN, FOOTER_Y, f"Page {self._pageNumber} of {total}")
             if self._pageNumber > 1:
                 self._header()
             self.restoreState()
@@ -562,8 +736,7 @@ def _canvas_maker(model: dict[str, Any]) -> type[Canvas]:
             room = pill_x - 8 - MARGIN
             source = str(meta.get("source_api"))
             target = ellipsize(str(meta.get("target_api")), room / 2, FONT, 7)
-            left = ellipsize(f"{meta.get('repo_name') or '?'} \u00b7 {source}", room / 2,
-                             FONT, 7)
+            left = ellipsize(f"{meta.get('repo_name') or '?'} \u00b7 {source}", room / 2, FONT, 7)
             self.setFillColor(INK)
             x = MARGIN
             for text, face in ((left + " ", FONT), ("\u2192", GLYPHS), (" " + target, FONT)):
@@ -580,16 +753,30 @@ def _build(model: dict[str, Any], limits: dict[str, int], generated: str) -> tup
     run_id = meta.get("run_id") or "?"
     # The frame pads 6 pt inside the margins; offset it so text, tables and the
     # header/footer rules all share the same left and right edge.
-    doc = _Doc(buffer, pagesize=A4, leftMargin=MARGIN - 6, rightMargin=MARGIN - 6,
-               topMargin=TOP - 6, bottomMargin=BOTTOM - 6,
-               title=f"Migration report — {meta.get('repo_name') or run_id}",
-               author=f"MRA v{meta.get('agent_version') or '?'}",
-               subject=f"{meta.get('source_api')} -> {meta.get('target_api')}: "
-                       f"{model['verdict']['status']} (run {run_id})",
-               keywords=", ".join(str(k) for k in (
-                   "migration report", meta.get("repo_name"), meta.get("source_api"),
-                   meta.get("target_api"), model["verdict"]["status"], run_id)),
-               creator="mra report")
+    doc = _Doc(
+        buffer,
+        pagesize=A4,
+        leftMargin=MARGIN - 6,
+        rightMargin=MARGIN - 6,
+        topMargin=TOP - 6,
+        bottomMargin=BOTTOM - 6,
+        title=f"Migration report — {meta.get('repo_name') or run_id}",
+        author=f"MRA v{meta.get('agent_version') or '?'}",
+        subject=f"{meta.get('source_api')} -> {meta.get('target_api')}: "
+        f"{model['verdict']['status']} (run {run_id})",
+        keywords=", ".join(
+            str(k)
+            for k in (
+                "migration report",
+                meta.get("repo_name"),
+                meta.get("source_api"),
+                meta.get("target_api"),
+                model["verdict"]["status"],
+                run_id,
+            )
+        ),
+        creator="mra report",
+    )
     doc.build(_story(model, limits, generated), canvasmaker=_canvas_maker(model))
     return buffer.getvalue(), doc.page
 

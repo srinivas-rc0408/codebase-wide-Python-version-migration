@@ -144,11 +144,13 @@ Reference computation:
 ```python
 import json, subprocess
 
+
 def migration_completeness(agent_sites: set, ground_truth_path: str) -> float:
     gt = json.load(open(ground_truth_path))
     gt_sites = {(s["file"], s["line"], s["symbol"]) for s in gt["call_sites"]}
     correct = agent_sites & gt_sites
     return 100.0 * len(correct) / max(len(gt_sites), 1)
+
 
 def test_pass_rate(repo_dir: str) -> float:
     # run in the sandbox; requires pytest-json-report
@@ -167,9 +169,11 @@ Generate the `.patch` deliverable (unified git diff across the whole repo):
 
 ```python
 from git import Repo
+
+
 def make_patch(repo_dir: str, out="migration.patch") -> str:
     repo = Repo(repo_dir)
-    diff = repo.git.diff()          # working tree vs HEAD, after edits
+    diff = repo.git.diff()  # working tree vs HEAD, after edits
     open(out, "w").write(diff)
     return out
 ```
@@ -188,18 +192,19 @@ from operator import add
 
 FileStatus = Literal["pending", "in_progress", "migrated", "partial", "verified", "failed"]
 
+
 class MigrationState(TypedDict):
     repo_path: str
-    task: str                          # human-readable migration spec
-    target_pattern: str                # e.g. "datetime.utcnow"
-    call_sites: dict                   # file -> [ {line, symbol, context} ]  (from MAP)
-    dep_graph: dict                    # file -> [files importing it]         (from MAP)
-    edit_batches: list                 # ordered list of file batches         (from PLAN)
-    file_status: dict                  # file -> FileStatus
+    task: str  # human-readable migration spec
+    target_pattern: str  # e.g. "datetime.utcnow"
+    call_sites: dict  # file -> [ {line, symbol, context} ]  (from MAP)
+    dep_graph: dict  # file -> [files importing it]         (from MAP)
+    edit_batches: list  # ordered list of file batches         (from PLAN)
+    file_status: dict  # file -> FileStatus
     current_batch: int
-    last_test_report: dict             # {passed, failed, failures:[{test, trace}]}
-    fix_attempts: dict                 # failure_signature -> count  (for N-retry stop)
-    trajectory: Annotated[list, add]   # append-only audit log (this IS your deliverable log)
+    last_test_report: dict  # {passed, failed, failures:[{test, trace}]}
+    fix_attempts: dict  # failure_signature -> count  (for N-retry stop)
+    trajectory: Annotated[list, add]  # append-only audit log (this IS your deliverable log)
     done: bool
 ```
 
@@ -217,11 +222,13 @@ from langgraph.checkpoint.sqlite import SqliteSaver
 
 MAX_FIX_ATTEMPTS = 3
 
-def map_node(state):        ...   # static analysis -> call_sites + dep_graph
-def plan_node(state):       ...   # topological sort -> edit_batches
-def edit_node(state):       ...   # apply next batch (libcst codemod or LLM edit)
-def test_node(state):       ...   # run pytest+ruff in sandbox -> last_test_report
-def correct_node(state):    ...   # parse trace -> locate broken contract -> patch
+
+def map_node(state): ...  # static analysis -> call_sites + dep_graph
+def plan_node(state): ...  # topological sort -> edit_batches
+def edit_node(state): ...  # apply next batch (libcst codemod or LLM edit)
+def test_node(state): ...  # run pytest+ruff in sandbox -> last_test_report
+def correct_node(state): ...  # parse trace -> locate broken contract -> patch
+
 
 def route_after_test(state) -> str:
     report = state["last_test_report"]
@@ -232,8 +239,9 @@ def route_after_test(state) -> str:
         return "next_batch"
     sig = report["failures"][0]["signature"]
     if state["fix_attempts"].get(sig, 0) >= MAX_FIX_ATTEMPTS:
-        return "give_up"          # log + flag for human
+        return "give_up"  # log + flag for human
     return "correct"
+
 
 g = StateGraph(MigrationState)
 g.add_node("map", map_node)
@@ -246,16 +254,20 @@ g.add_edge(START, "map")
 g.add_edge("map", "plan")
 g.add_edge("plan", "edit")
 g.add_edge("edit", "test")
-g.add_conditional_edges("test", route_after_test, {
-    "correct": "correct",
-    "next_batch": "edit",
-    "done": END,
-    "give_up": END,
-})
-g.add_edge("correct", "test")     # re-test after every corrective patch
+g.add_conditional_edges(
+    "test",
+    route_after_test,
+    {
+        "correct": "correct",
+        "next_batch": "edit",
+        "done": END,
+        "give_up": END,
+    },
+)
+g.add_edge("correct", "test")  # re-test after every corrective patch
 
 with SqliteSaver.from_conn_string("state.db") as saver:
-    app = g.compile(checkpointer=saver)   # checkpointer = your trajectory log
+    app = g.compile(checkpointer=saver)  # checkpointer = your trajectory log
 ```
 
 Stop conditions (from your brief, encoded above): all batches done AND suite green → success; same failure N times → give up, log, flag. The checkpointer persists every node transition — that's your **execution trajectory / state audit log** deliverable, for free.
@@ -272,6 +284,7 @@ import libcst.matchers as m
 from libcst.codemod import VisitorBasedCodemodCommand
 from libcst.codemod.visitors import AddImportsVisitor
 
+
 class ConvertUtcnowCommand(VisitorBasedCodemodCommand):
     DESCRIPTION = "Replace datetime.utcnow() with datetime.now(timezone.utc)."
 
@@ -287,8 +300,9 @@ class ConvertUtcnowCommand(VisitorBasedCodemodCommand):
             AddImportsVisitor.add_needed_import(self.context, "datetime", "timezone")
             return updated_node.with_changes(
                 func=cst.Attribute(value=cst.Name("datetime"), attr=cst.Name("now")),
-                args=[cst.Arg(value=cst.Attribute(
-                    value=cst.Name("timezone"), attr=cst.Name("utc")))],
+                args=[
+                    cst.Arg(value=cst.Attribute(value=cst.Name("timezone"), attr=cst.Name("utc")))
+                ],
             )
         return updated_node
 ```

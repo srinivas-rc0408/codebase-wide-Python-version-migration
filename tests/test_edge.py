@@ -19,8 +19,14 @@ from mra.benchmark.edge import cases, run_suite
 
 def _docker_ok() -> bool:
     try:
-        return subprocess.run(["docker", "image", "inspect", "mra-sandbox:py312"],
-                              capture_output=True, check=False).returncode == 0
+        return (
+            subprocess.run(
+                ["docker", "image", "inspect", "mra-sandbox:py312"],
+                capture_output=True,
+                check=False,
+            ).returncode
+            == 0
+        )
     except FileNotFoundError:
         return False
 
@@ -45,7 +51,8 @@ def test_every_category_is_covered() -> None:
 
 
 @pytest.mark.parametrize("case", CASES)
-def test_case_gives_the_expected_verdict(case: str,
-                                         edge_results: dict[str, dict[str, Any]]) -> None:
+def test_case_gives_the_expected_verdict(
+    case: str, edge_results: dict[str, dict[str, Any]]
+) -> None:
     row = edge_results[case]
     assert row["pass"], f"{case}: {'; '.join(row['problems'])} (reasons: {row['reasons']})"

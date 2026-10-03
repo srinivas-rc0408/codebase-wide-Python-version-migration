@@ -40,8 +40,15 @@ FAILURE_CLASSES = ("import", "signature", "behaviour", "assertion", "non_fixable
 #: in docs/04 §2.5 terms. Only argument-shaped TypeErrors are signature breaks.
 _CLASS_HINTS: tuple[tuple[str, tuple[str, ...]], ...] = (
     ("import", ("ImportError", "ModuleNotFoundError")),
-    ("signature", ("unexpected keyword argument", "positional argument",
-                   "missing 1 required", "takes no arguments")),
+    (
+        "signature",
+        (
+            "unexpected keyword argument",
+            "positional argument",
+            "missing 1 required",
+            "takes no arguments",
+        ),
+    ),
     ("assertion", ("AssertionError",)),
 )
 
@@ -51,7 +58,8 @@ _CODE_FENCE = re.compile(r"```(?:python|py)?\s*\n(.*?)```", re.S)
 CLASSIFY_SYSTEM = (
     "You triage Python test failures during a library migration. "
     "Answer with exactly one word from this list and nothing else: "
-    + ", ".join(FAILURE_CLASSES) + "."
+    + ", ".join(FAILURE_CLASSES)
+    + "."
 )
 
 PATCH_SYSTEM = (
@@ -222,8 +230,9 @@ class LLMCorrector:
     instead of being guessed at in one shot.
     """
 
-    def __init__(self, router: Router, target: str, contract: dict[str, Any],
-                 experience: Any = None) -> None:
+    def __init__(
+        self, router: Router, target: str, contract: dict[str, Any], experience: Any = None
+    ) -> None:
         self.router = router
         self.target = target
         self.contract = contract
@@ -235,18 +244,23 @@ class LLMCorrector:
         #: rather than asserted (NFR-12, M3).
         self.payload_chars: list[int] = []
 
-    def __call__(
-        self, repo: Path, failure: dict[str, Any], context: dict[str, Any]
-    ) -> list[str]:
+    def __call__(self, repo: Path, failure: dict[str, Any], context: dict[str, Any]) -> list[str]:
         klass = classify(failure, self.router)
         located = locate(repo, failure, self.target, dep_graph=context.get("graph"))
         if located is None or klass == "non_fixable":
             self.log.append({"class": klass, "file": None, "reason": "nothing left to migrate"})
             return []
         summary = context.get("summary", "")
-        hints = [] if self.experience is None else [
-            format_hint(fix) for fix in self.experience.hints(
-                classify_offline(failure), failure.get("message", ""), self.contract)]
+        hints = (
+            []
+            if self.experience is None
+            else [
+                format_hint(fix)
+                for fix in self.experience.hints(
+                    classify_offline(failure), failure.get("message", ""), self.contract
+                )
+            ]
+        )
         self.payload_chars.append(
             len(patch_prompt(failure, located, self.contract, klass, summary, hints))
         )
@@ -254,13 +268,15 @@ class LLMCorrector:
             self.router, failure, located, self.contract, klass, summary, hints
         )
         changed = apply_source(repo, located["file"], source)
-        self.log.append({
-            "class": klass,
-            "file": located["file"],
-            "hinted_by_trace": located["hinted_by_trace"],
-            "memory_hints": len(hints),
-            "changed": changed,
-        })
+        self.log.append(
+            {
+                "class": klass,
+                "file": located["file"],
+                "hinted_by_trace": located["hinted_by_trace"],
+                "memory_hints": len(hints),
+                "changed": changed,
+            }
+        )
         return changed
 
 
@@ -291,23 +307,32 @@ def make_correct_node(corrector: Any, router: Router | None = None):
         summary = summarize(state, router)
 
         base_sha = snapshot(repo, f"pre-correction ({signature})")
-        changed = corrector(repo, failure, {
-            "call_sites": state.get("call_sites") or {},
-            "dep_graph": state.get("dep_graph") or {},
-            "contract": state.get("contract") or {},
-            "summary": summary,
-        })
+        changed = corrector(
+            repo,
+            failure,
+            {
+                "call_sites": state.get("call_sites") or {},
+                "dep_graph": state.get("dep_graph") or {},
+                "contract": state.get("contract") or {},
+                "summary": summary,
+            },
+        )
 
         tampered = [p for p in changed_paths(repo, base_sha) if is_test_path(p)]
         if tampered:
             # Golden rule 1: revert first, report second.
             rollback(repo, base_sha)
             return {
-                "fix_attempts": attempts, "summary": summary,
+                "fix_attempts": attempts,
+                "summary": summary,
                 "note": {
                     "action": "rejected a patch that edited the test oracle (NB-4)",
-                    "detail": {"signature": signature, "attempt": attempts[signature],
-                               "rejected": tampered, "changed": []},
+                    "detail": {
+                        "signature": signature,
+                        "attempt": attempts[signature],
+                        "rejected": tampered,
+                        "changed": [],
+                    },
                 },
             }
 
@@ -321,11 +346,16 @@ def make_correct_node(corrector: Any, router: Router | None = None):
             "summary": summary,
             "note": {
                 "action": f"attempt {attempts[signature]}/{cap} on {failure['nodeid']}",
-                "detail": {"signature": signature, "attempt": attempts[signature],
-                           "exc_type": failure.get("exc_type"), "changed": changed, "sha": sha,
-                           # Store and lookup key on the offline class: stable across runs.
-                           "failure_class": classify_offline(failure),
-                           "message": failure.get("message", "")},
+                "detail": {
+                    "signature": signature,
+                    "attempt": attempts[signature],
+                    "exc_type": failure.get("exc_type"),
+                    "changed": changed,
+                    "sha": sha,
+                    # Store and lookup key on the offline class: stable across runs.
+                    "failure_class": classify_offline(failure),
+                    "message": failure.get("message", ""),
+                },
             },
         }
 

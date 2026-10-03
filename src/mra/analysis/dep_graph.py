@@ -19,8 +19,15 @@ import networkx as nx
 
 #: Directories that never hold repo modules worth graphing.
 SKIP_DIRS = {
-    ".git", ".venv", "venv", "__pycache__", ".pytest_cache", ".ruff_cache",
-    ".mypy_cache", "build", "dist",
+    ".git",
+    ".venv",
+    "venv",
+    "__pycache__",
+    ".pytest_cache",
+    ".ruff_cache",
+    ".mypy_cache",
+    "build",
+    "dist",
 }
 
 
@@ -28,7 +35,8 @@ def python_files(repo: Path | str) -> list[Path]:
     """Every source file in the repo, in stable order, minus build/cache noise."""
     repo = Path(repo)
     return sorted(
-        path for path in repo.rglob("*.py")
+        path
+        for path in repo.rglob("*.py")
         if not any(part in SKIP_DIRS or part.endswith(".egg-info") for part in path.parts)
     )
 

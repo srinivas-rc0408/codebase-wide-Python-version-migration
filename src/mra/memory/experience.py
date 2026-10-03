@@ -67,8 +67,11 @@ def clean_message(message: str) -> str:
 
 def diff_pattern(diff: str) -> str:
     """A ``git diff`` -> its changed lines only: no headers, hunks or paths."""
-    lines = [line for line in diff.splitlines()
-             if line[:1] in "+-" and not line.startswith(("+++", "---"))]
+    lines = [
+        line
+        for line in diff.splitlines()
+        if line[:1] in "+-" and not line.startswith(("+++", "---"))
+    ]
     text = _QUOTED_PATH.sub("'<path>'", "\n".join(lines[:PATTERN_MAX_LINES]))
     return redact_secrets(_ABS_PATH.sub("<path>/", text))[0]
 
@@ -80,13 +83,16 @@ def format_hint(fix: dict[str, Any]) -> str:
 class ExperienceStore:
     """One SQLite file of past fixes. ``readonly`` serves hints but learns nothing."""
 
-    def __init__(self, path: Path | str, *, readonly: bool = False,
-                 forbidden: tuple[Path, ...] = ()) -> None:
+    def __init__(
+        self, path: Path | str, *, readonly: bool = False, forbidden: tuple[Path, ...] = ()
+    ) -> None:
         self.path = Path(path).expanduser().resolve()
         for root in (AGENT_ROOT, *forbidden):
             if self.path.is_relative_to(Path(root).resolve()):
-                raise ValueError(f"experience store {self.path} is inside {root}; it must "
-                                 "live outside every repository (default ~/.mra/)")
+                raise ValueError(
+                    f"experience store {self.path} is inside {root}; it must "
+                    "live outside every repository (default ~/.mra/)"
+                )
         self.readonly = readonly
 
     def _connect(self) -> sqlite3.Connection:
@@ -95,8 +101,7 @@ class ExperienceStore:
         connection.execute(SCHEMA)
         return connection
 
-    def record(self, failure_class: str, message: str, contract: dict[str, Any],
-               diff: str) -> bool:
+    def record(self, failure_class: str, message: str, contract: dict[str, Any], diff: str) -> bool:
         """Store one fix; returns False when read-only, empty, or already known."""
         pattern = diff_pattern(diff)
         if self.readonly or not pattern:
@@ -105,13 +110,20 @@ class ExperienceStore:
             cursor = db.execute(
                 "INSERT OR IGNORE INTO fixes (created_at, failure_class, message, source_api,"
                 " target_api, pattern) VALUES (?, ?, ?, ?, ?, ?)",
-                (datetime.now(UTC).isoformat(timespec="seconds"), failure_class,
-                 clean_message(message), str(contract.get("source_api", "")),
-                 str(contract.get("target_api", "")), pattern))
+                (
+                    datetime.now(UTC).isoformat(timespec="seconds"),
+                    failure_class,
+                    clean_message(message),
+                    str(contract.get("source_api", "")),
+                    str(contract.get("target_api", "")),
+                    pattern,
+                ),
+            )
             return cursor.rowcount == 1
 
-    def similar(self, failure_class: str, message: str, contract: dict[str, Any],
-                k: int = TOP_K) -> list[dict[str, Any]]:
+    def similar(
+        self, failure_class: str, message: str, contract: dict[str, Any], k: int = TOP_K
+    ) -> list[dict[str, Any]]:
         """Same class and contract, ranked by similarity of the normalised message."""
         if not self.path.is_file():
             return []
@@ -119,16 +131,28 @@ class ExperienceStore:
             rows = db.execute(
                 "SELECT id, message, pattern FROM fixes WHERE failure_class = ? AND "
                 "source_api = ? AND target_api = ?",
-                (failure_class, str(contract.get("source_api", "")),
-                 str(contract.get("target_api", "")))).fetchall()
+                (
+                    failure_class,
+                    str(contract.get("source_api", "")),
+                    str(contract.get("target_api", "")),
+                ),
+            ).fetchall()
         wanted = clean_message(message)
-        scored = sorted(((SequenceMatcher(None, wanted, text).ratio(), row_id, text, pattern)
-                         for row_id, text, pattern in rows), key=lambda r: (-r[0], r[1]))
-        return [{"id": row_id, "similarity": round(score, 3), "message": text,
-                 "pattern": pattern} for score, row_id, text, pattern in scored[:k]]
+        scored = sorted(
+            (
+                (SequenceMatcher(None, wanted, text).ratio(), row_id, text, pattern)
+                for row_id, text, pattern in rows
+            ),
+            key=lambda r: (-r[0], r[1]),
+        )
+        return [
+            {"id": row_id, "similarity": round(score, 3), "message": text, "pattern": pattern}
+            for score, row_id, text, pattern in scored[:k]
+        ]
 
-    def hints(self, failure_class: str, message: str,
-              contract: dict[str, Any]) -> list[dict[str, Any]]:
+    def hints(
+        self, failure_class: str, message: str, contract: dict[str, Any]
+    ) -> list[dict[str, Any]]:
         """The top-k fixes whose :func:`format_hint` text fits :data:`HINT_BUDGET_CHARS`."""
         hints, used = [], 0
         for fix in self.similar(failure_class, message, contract):
@@ -138,8 +162,9 @@ class ExperienceStore:
             hints.append(fix)
         return hints
 
-    def learn(self, repo: Path | str, trajectory: list[dict[str, Any]],
-              contract: dict[str, Any]) -> int:
+    def learn(
+        self, repo: Path | str, trajectory: list[dict[str, Any]], contract: dict[str, Any]
+    ) -> int:
         """Record every CORRECT whose very next TEST was green; returns how many were new.
 
         The fix is the diff of that correction's own commit (``sha~1..sha``:
@@ -150,12 +175,18 @@ class ExperienceStore:
         learned = 0
         for event, after in zip(trajectory, trajectory[1:], strict=False):
             detail, verdict = event["detail"], after["detail"]
-            if (event["node"] != "CORRECT" or after["node"] != "TEST" or not detail.get("sha")
-                    or verdict.get("failed", 1) or verdict.get("errors", 1)):
+            if (
+                event["node"] != "CORRECT"
+                or after["node"] != "TEST"
+                or not detail.get("sha")
+                or verdict.get("failed", 1)
+                or verdict.get("errors", 1)
+            ):
                 continue
             diff = Repo(repo).git.diff(f"{detail['sha']}~1", detail["sha"])
-            learned += self.record(detail.get("failure_class", ""), detail.get("message", ""),
-                                   contract, diff)
+            learned += self.record(
+                detail.get("failure_class", ""), detail.get("message", ""), contract, diff
+            )
         return learned
 
     def rows(self) -> list[dict[str, Any]]:
@@ -170,9 +201,13 @@ class ExperienceStore:
         by_class: dict[str, int] = {}
         for row in rows:
             by_class[row["failure_class"]] = by_class.get(row["failure_class"], 0) + 1
-        return {"path": str(self.path), "fixes": len(rows), "by_class": by_class,
-                "contracts": sorted({f"{r['source_api']} -> {r['target_api']}" for r in rows}),
-                "bytes": self.path.stat().st_size if self.path.is_file() else 0}
+        return {
+            "path": str(self.path),
+            "fixes": len(rows),
+            "by_class": by_class,
+            "contracts": sorted({f"{r['source_api']} -> {r['target_api']}" for r in rows}),
+            "bytes": self.path.stat().st_size if self.path.is_file() else 0,
+        }
 
     def purge(self) -> int:
         """Delete every stored fix; returns how many there were."""
@@ -188,8 +223,9 @@ def configured_path(config: dict[str, Any] | None = None) -> Path:
     return Path(os.getenv("MRA_EXPERIENCE_DB") or section.get("path") or DEFAULT_PATH)
 
 
-def from_config(config: dict[str, Any] | None = None,
-                forbidden: tuple[Path, ...] = ()) -> ExperienceStore | None:
+def from_config(
+    config: dict[str, Any] | None = None, forbidden: tuple[Path, ...] = ()
+) -> ExperienceStore | None:
     """The configured store, or None — which is the default."""
     from mra.models.router import load_config
 
@@ -197,7 +233,8 @@ def from_config(config: dict[str, Any] | None = None,
     switch = os.getenv("MRA_EXPERIENCE", "").strip().lower()
     enabled = switch in ("on", "1", "true") or (
         switch not in ("off", "0", "false")
-        and bool((config.get("experience") or {}).get("enabled", False)))
+        and bool((config.get("experience") or {}).get("enabled", False))
+    )
     return ExperienceStore(configured_path(config), forbidden=forbidden) if enabled else None
 
 

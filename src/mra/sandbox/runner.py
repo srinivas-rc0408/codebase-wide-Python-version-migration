@@ -61,14 +61,20 @@ def normalize_message(message: str) -> str:
 #: How a test that needs the network fails under ``--network none`` (NB-5).
 NETWORK_ERROR = re.compile(
     r"name resolution|getaddrinfo|Name or service not known|Network is unreachable|"
-    r"nodename nor servname|gaierror|ConnectionRefused|Errno -3|Errno 101", re.I)
+    r"nodename nor servname|gaierror|ConnectionRefused|Errno -3|Errno 101",
+    re.I,
+)
 
 
 def needs_network(report: dict[str, Any]) -> list[str]:
     """Failing tests whose error is the sandbox's missing network, not the code."""
-    return [f["nodeid"] for f in report.get("failures", [])
-            if NETWORK_ERROR.search(f"{f.get('exc_type', '')} {f.get('message', '')} "
-                                    f"{f.get('trace', '')}")]
+    return [
+        f["nodeid"]
+        for f in report.get("failures", [])
+        if NETWORK_ERROR.search(
+            f"{f.get('exc_type', '')} {f.get('message', '')} {f.get('trace', '')}"
+        )
+    ]
 
 
 def failure_signature(nodeid: str, exc_type: str, message: str) -> str:
@@ -99,15 +105,18 @@ def _exc_type_from(entry: dict[str, Any]) -> str:
 def _relative(path: str) -> str:
     """Container-absolute path -> repo-relative, so reports are host-portable."""
     prefix = f"{CONTAINER_REPO_RW}/"
-    return path[len(prefix):] if path.startswith(prefix) else path
+    return path[len(prefix) :] if path.startswith(prefix) else path
 
 
 def _failure_from_test(test: dict[str, Any]) -> dict[str, Any]:
     """Normalize one failed/errored test into a test_report.failures[] entry."""
     # A test can blow up in setup or teardown, not just in the call phase.
     stage = next(
-        (test[s] for s in ("call", "setup", "teardown")
-         if isinstance(test.get(s), dict) and test[s].get("outcome") != "passed"),
+        (
+            test[s]
+            for s in ("call", "setup", "teardown")
+            if isinstance(test.get(s), dict) and test[s].get("outcome") != "passed"
+        ),
         {},
     )
     crash = stage.get("crash") or {}
@@ -179,8 +188,11 @@ class SandboxRunner:
         """Shell run inside the container. `timeout` here is what enforces NFR-4."""
         # Coverage is opt-in (the run report's evidence pass); without it the
         # script is byte-for-byte the one every benchmark run used.
-        runner = "python -m coverage run --data-file=/tmp/.coverage -m pytest" if coverage \
+        runner = (
+            "python -m coverage run --data-file=/tmp/.coverage -m pytest"
+            if coverage
             else "python -m pytest"
+        )
         lines = [
             "set -u",
             f"cp -a {CONTAINER_REPO} {CONTAINER_REPO_RW}",
@@ -195,8 +207,10 @@ class SandboxRunner:
             "pytest_rc=$?",
         ]
         if coverage:
-            lines.append(f"python -m coverage json --data-file=/tmp/.coverage"
-                         f" -o {CONTAINER_OUT}/coverage.json >/dev/null 2>&1 || true")
+            lines.append(
+                f"python -m coverage json --data-file=/tmp/.coverage"
+                f" -o {CONTAINER_OUT}/coverage.json >/dev/null 2>&1 || true"
+            )
         if lint:
             lines.append(
                 f"ruff check --output-format json . > {CONTAINER_OUT}/ruff.json 2>/dev/null || true"
@@ -204,17 +218,27 @@ class SandboxRunner:
         lines.append("exit $pytest_rc")
         return "\n".join(lines)
 
-    def _docker_argv(self, repo: Path, out_dir: Path, run_id: str, lint: bool,
-                     coverage: bool = False) -> list[str]:
+    def _docker_argv(
+        self, repo: Path, out_dir: Path, run_id: str, lint: bool, coverage: bool = False
+    ) -> list[str]:
         return [
-            self.runtime, "run", "--rm",
-            "--name", f"mra-{run_id}",
-            "--network", "none",
-            "--user", f"{os.getuid()}:{os.getgid()}",
-            "-v", f"{repo.resolve()}:{CONTAINER_REPO}:ro",
-            "-v", f"{out_dir.resolve()}:{CONTAINER_OUT}:rw",
+            self.runtime,
+            "run",
+            "--rm",
+            "--name",
+            f"mra-{run_id}",
+            "--network",
+            "none",
+            "--user",
+            f"{os.getuid()}:{os.getgid()}",
+            "-v",
+            f"{repo.resolve()}:{CONTAINER_REPO}:ro",
+            "-v",
+            f"{out_dir.resolve()}:{CONTAINER_OUT}:rw",
             self.image,
-            "bash", "-c", self._script(lint, coverage),
+            "bash",
+            "-c",
+            self._script(lint, coverage),
         ]
 
     def run(
@@ -258,8 +282,9 @@ class SandboxRunner:
             stderr = completed.stderr
         except subprocess.TimeoutExpired as exc:
             # The runtime itself wedged; stop the container so it cannot outlive us.
-            subprocess.run([self.runtime, "kill", f"mra-{run_id}"],
-                           capture_output=True, check=False)
+            subprocess.run(
+                [self.runtime, "kill", f"mra-{run_id}"], capture_output=True, check=False
+            )
             timed_out = True
             stderr = str(exc)
 
@@ -294,23 +319,35 @@ class SandboxRunner:
 
         if raw is None:
             # No report at all: the suite was killed, or the container never ran.
-            reason = "pytest exceeded the sandbox timeout" if timed_out else (
-                stderr.strip().splitlines()[-1] if stderr.strip() else "no pytest report produced"
+            reason = (
+                "pytest exceeded the sandbox timeout"
+                if timed_out
+                else (
+                    stderr.strip().splitlines()[-1]
+                    if stderr.strip()
+                    else "no pytest report produced"
+                )
             )
             exc_type = "Timeout" if timed_out else "SandboxError"
             report: dict[str, Any] = {
                 "task_id": task_id,
                 "phase": phase,
-                "total": 0, "passed": 0, "failed": 0, "errors": 1, "skipped": 0,
-                "failures": [{
-                    "nodeid": "<sandbox>",
-                    "signature": failure_signature("<sandbox>", exc_type, reason),
-                    "exc_type": exc_type,
-                    "message": reason,
-                    "trace": stderr[-TRACE_MAX_CHARS:],
-                    "file": "",
-                    "line": 0,
-                }],
+                "total": 0,
+                "passed": 0,
+                "failed": 0,
+                "errors": 1,
+                "skipped": 0,
+                "failures": [
+                    {
+                        "nodeid": "<sandbox>",
+                        "signature": failure_signature("<sandbox>", exc_type, reason),
+                        "exc_type": exc_type,
+                        "message": reason,
+                        "trace": stderr[-TRACE_MAX_CHARS:],
+                        "file": "",
+                        "line": 0,
+                    }
+                ],
                 "duration_s": 0.0,
             }
             if lint:
@@ -322,7 +359,8 @@ class SandboxRunner:
             c for c in raw.get("collectors", []) if c.get("outcome") not in (None, "passed")
         ]
         failures = [
-            _failure_from_test(t) for t in raw.get("tests", [])
+            _failure_from_test(t)
+            for t in raw.get("tests", [])
             if t.get("outcome") not in ("passed", "skipped", "xfailed", "xpassed")
         ] + [_failure_from_collector(c) for c in bad_collectors]
 

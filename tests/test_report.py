@@ -36,8 +36,14 @@ TARGET = "datetime.datetime.utcnow"
 
 def _docker_ok() -> bool:
     try:
-        return subprocess.run(["docker", "image", "inspect", "mra-sandbox:py312"],
-                              capture_output=True, check=False).returncode == 0
+        return (
+            subprocess.run(
+                ["docker", "image", "inspect", "mra-sandbox:py312"],
+                capture_output=True,
+                check=False,
+            ).returncode
+            == 0
+        )
     except FileNotFoundError:
         return False
 
@@ -53,9 +59,12 @@ GREEN_RUN: dict[str, Any] = {
     "pre_report": {"total": 5, "passed": 5, "failed": 0, "errors": 0, "failures": []},
     "post_report": {"total": 5, "passed": 5, "failed": 0, "errors": 0, "failures": []},
     "metrics": {"outcome": "success", "m1_precision": 100.0, "m3_tokens": 0},
-    "tamper": [], "rejected_tamper": [],
+    "tamper": [],
+    "rejected_tamper": [],
     "apply_check": {"ok": True, "detail": "applies cleanly"},
-    "token_budget": 1000, "run_timeout_s": 60, "wall_clock_s": 5.0,
+    "token_budget": 1000,
+    "run_timeout_s": 60,
+    "wall_clock_s": 5.0,
     "residual": {"sites": [], "skipped": [], "unparseable": []},
     "has_ground_truth": True,
     "semantic": [{"check": "aware", "file": "a.py", "passed": True, "detail": "ok"}],
@@ -80,25 +89,47 @@ def test_green_when_nothing_is_wrong() -> None:
 
 
 RED_CASES = {
-    "pre-suite not green": (_with(pre_report={**GREEN_RUN["pre_report"], "failed": 1}),
-                            "precondition"),
-    "pre-suite has zero tests": (_with(pre_report={**GREEN_RUN["pre_report"], "total": 0,
-                                                   "passed": 0}), "precondition"),
+    "pre-suite not green": (
+        _with(pre_report={**GREEN_RUN["pre_report"], "failed": 1}),
+        "precondition",
+    ),
+    "pre-suite has zero tests": (
+        _with(pre_report={**GREEN_RUN["pre_report"], "total": 0, "passed": 0}),
+        "precondition",
+    ),
     "crashed": (_with(crash="Traceback ...\nRuntimeError: boom", metrics=None), "crashed"),
     "gave up": (_with(metrics={**GREEN_RUN["metrics"], "outcome": "gave_up"}), "gave_up"),
-    "final suite has a failure": (_with(post_report={
-        **GREEN_RUN["post_report"], "failed": 1,
-        "failures": [{"nodeid": "tests/test_a.py::t"}]}), "suite_red"),
-    "final suite has a collection error": (_with(post_report={
-        **GREEN_RUN["post_report"], "errors": 1,
-        "failures": [{"nodeid": "tests/test_a.py"}]}), "suite_red"),
+    "final suite has a failure": (
+        _with(
+            post_report={
+                **GREEN_RUN["post_report"],
+                "failed": 1,
+                "failures": [{"nodeid": "tests/test_a.py::t"}],
+            }
+        ),
+        "suite_red",
+    ),
+    "final suite has a collection error": (
+        _with(
+            post_report={
+                **GREEN_RUN["post_report"],
+                "errors": 1,
+                "failures": [{"nodeid": "tests/test_a.py"}],
+            }
+        ),
+        "suite_red",
+    ),
     "no final suite at all": (_with(post_report=None), "suite_red"),
     "test file in the patch": (_with(tamper=["tests/test_a.py"]), "tamper"),
     "rejected tamper attempt": (_with(rejected_tamper=["tests/conftest.py"]), "tamper"),
-    "patch does not apply": (_with(apply_check={"ok": False, "detail": "corrupt patch"}),
-                             "apply_check"),
-    "token budget exceeded": (_with(metrics={**GREEN_RUN["metrics"], "m3_tokens": 1001}),
-                              "token_budget"),
+    "patch does not apply": (
+        _with(apply_check={"ok": False, "detail": "corrupt patch"}),
+        "apply_check",
+    ),
+    "token budget exceeded": (
+        _with(metrics={**GREEN_RUN["metrics"], "m3_tokens": 1001}),
+        "token_budget",
+    ),
     "timeout exceeded": (_with(wall_clock_s=61.0), "timeout"),
 }
 
@@ -113,24 +144,56 @@ def test_red_condition(case: str) -> None:
 
 
 YELLOW_CASES = {
-    "residual call site": (_with(residual={"sites": [{"file": "b.py", "line": 4}],
-                                           "skipped": [], "unparseable": []}), "residual"),
-    "skipped star import": (_with(residual={"sites": [], "unparseable": [], "skipped": [
-        {"file": "b.py", "line": 1, "kind": "star-import"}]}), "residual"),
-    "over-editing (precision < 100)": (_with(metrics={**GREEN_RUN["metrics"],
-                                                      "m1_precision": 80.0}), "precision"),
-    "semantic check fails": (_with(semantic=[{"check": "aware", "file": "a.py", "passed": False,
-                                              "detail": "tz not imported: timezone.utc"}]),
-                             "semantic"),
+    "residual call site": (
+        _with(residual={"sites": [{"file": "b.py", "line": 4}], "skipped": [], "unparseable": []}),
+        "residual",
+    ),
+    "skipped star import": (
+        _with(
+            residual={
+                "sites": [],
+                "unparseable": [],
+                "skipped": [{"file": "b.py", "line": 1, "kind": "star-import"}],
+            }
+        ),
+        "residual",
+    ),
+    "over-editing (precision < 100)": (
+        _with(metrics={**GREEN_RUN["metrics"], "m1_precision": 80.0}),
+        "precision",
+    ),
+    "semantic check fails": (
+        _with(
+            semantic=[
+                {
+                    "check": "aware",
+                    "file": "a.py",
+                    "passed": False,
+                    "detail": "tz not imported: timezone.utc",
+                }
+            ]
+        ),
+        "semantic",
+    ),
     "new ruff error": (_with(lint={"pre": [], "post": [FINDING], "exempt": []}), "lint"),
-    "unparseable file": (_with(residual={"sites": [], "skipped": [],
-                                         "unparseable": ["bad.py"]}), "unparseable"),
-    "edited file never executed": (_with(coverage={"available": True, "files": {
-        "a.py": {"changed": [3, 4], "executed": []}}}), "unexecuted"),
-    "coverage unavailable": (_with(coverage={"available": False, "error": "no coverage.json",
-                                             "files": {"a.py": {"changed": [3],
-                                                                "executed": []}}}),
-                             "unexecuted"),
+    "unparseable file": (
+        _with(residual={"sites": [], "skipped": [], "unparseable": ["bad.py"]}),
+        "unparseable",
+    ),
+    "edited file never executed": (
+        _with(coverage={"available": True, "files": {"a.py": {"changed": [3, 4], "executed": []}}}),
+        "unexecuted",
+    ),
+    "coverage unavailable": (
+        _with(
+            coverage={
+                "available": False,
+                "error": "no coverage.json",
+                "files": {"a.py": {"changed": [3], "executed": []}},
+            }
+        ),
+        "unexecuted",
+    ),
 }
 
 
@@ -155,18 +218,33 @@ def test_lint_message_text_is_not_part_of_the_key() -> None:
 
 
 def test_unreachable_provider_and_refusals_have_their_own_reasons() -> None:
-    provider = _with(crash="ProviderError: role 'classify': every provider was unreachable",
-                     metrics=None)
+    provider = _with(
+        crash="ProviderError: role 'classify': every provider was unreachable", metrics=None
+    )
     assert _codes(provider)[0] == "provider"
-    refused = _with(refused="PrivacyError: MRA_PRIVACY=local-only: role 'edit' ...",
-                    pre_report=None, post_report=None, metrics=None)
+    refused = _with(
+        refused="PrivacyError: MRA_PRIVACY=local-only: role 'edit' ...",
+        pre_report=None,
+        post_report=None,
+        metrics=None,
+    )
     assert _codes(refused) == ["refused"]
 
 
 def test_precondition_names_the_network_when_that_is_the_cause() -> None:
-    pre = {"total": 2, "passed": 1, "failed": 1, "errors": 0, "failures": [{
-        "nodeid": "tests/test_a.py::test_fetch", "exc_type": "gaierror",
-        "message": "[Errno -3] Temporary failure in name resolution"}]}
+    pre = {
+        "total": 2,
+        "passed": 1,
+        "failed": 1,
+        "errors": 0,
+        "failures": [
+            {
+                "nodeid": "tests/test_a.py::test_fetch",
+                "exc_type": "gaierror",
+                "message": "[Errno -3] Temporary failure in name resolution",
+            }
+        ],
+    }
     reason = verdict(_with(pre_report=pre))["reasons"][0]
     assert reason["code"] == "precondition" and "--network none" in reason["evidence"]
 
@@ -177,9 +255,10 @@ def test_precision_is_not_judged_without_ground_truth() -> None:
 
 
 def test_red_beats_yellow_and_both_are_reported() -> None:
-    run = _with(tamper=["tests/test_a.py"],
-                residual={"sites": [{"file": "b.py", "line": 4}], "skipped": [],
-                          "unparseable": []})
+    run = _with(
+        tamper=["tests/test_a.py"],
+        residual={"sites": [{"file": "b.py", "line": 4}], "skipped": [], "unparseable": []},
+    )
     result = verdict(run)
     assert result["status"] == "RED"
     assert [r["level"] for r in result["reasons"]] == ["RED", "YELLOW"]
@@ -192,8 +271,10 @@ def test_lint_is_a_multiset_and_contract_exemptions_are_honoured() -> None:
     assert [f["code"] for f in new_lint(swapped)] == ["E711"]
     # UP017 is declared by the migration contract, so it is not "new".
     assert new_lint({"pre": [], "post": [upgrade], "exempt": ["UP017"]}) == []
-    assert verdict(_with(lint={"pre": [], "post": [upgrade], "exempt": ["UP017"]}))[
-        "status"] == "GREEN"
+    assert (
+        verdict(_with(lint={"pre": [], "post": [upgrade], "exempt": ["UP017"]}))["status"]
+        == "GREEN"
+    )
 
 
 # -- evidence scanners -----------------------------------------------------
@@ -204,12 +285,15 @@ def test_residual_scan_reports_calls_skips_and_unparseable(tmp_path: Path) -> No
     (tmp_path / "star.py").write_text("from datetime import *\n")
     (tmp_path / "bare.py").write_text("from datetime import datetime\nclock = datetime.utcnow\n")
     (tmp_path / "broken.py").write_text("def (:\n")
-    (tmp_path / "clean.py").write_text("from datetime import datetime, timezone\n"
-                                       "x = datetime.now(timezone.utc)\n")
+    (tmp_path / "clean.py").write_text(
+        "from datetime import datetime, timezone\nx = datetime.now(timezone.utc)\n"
+    )
     found = residual_scan(tmp_path, TARGET)
     assert [(s["file"], s["line"]) for s in found["sites"]] == [("left.py", 2)]
     assert sorted((s["file"], s["kind"]) for s in found["skipped"]) == [
-        ("bare.py", "bare-reference"), ("star.py", "star-import")]
+        ("bare.py", "bare-reference"),
+        ("star.py", "star-import"),
+    ]
     assert found["unparseable"] == ["broken.py"]
 
 
@@ -222,10 +306,14 @@ def test_semantic_check_catches_unimported_tz_and_new_naive_now(tmp_path: Path) 
     (base / "b.py").write_text("from datetime import datetime\nx = datetime.utcnow()\n")
     (repo / "b.py").write_text("from datetime import datetime\nx = datetime.now()\n")
     (base / "c.py").write_text("from datetime import datetime\nx = datetime.utcnow()\n")
-    (repo / "c.py").write_text("from datetime import datetime, timezone\n"
-                               "x = datetime.now(timezone.utc)\n")
-    checks = {c["file"]: c for c in semantic_checks(base, repo, ["a.py", "b.py", "c.py"], TARGET)
-              if c["check"] != "line endings preserved"}
+    (repo / "c.py").write_text(
+        "from datetime import datetime, timezone\nx = datetime.now(timezone.utc)\n"
+    )
+    checks = {
+        c["file"]: c
+        for c in semantic_checks(base, repo, ["a.py", "b.py", "c.py"], TARGET)
+        if c["check"] != "line endings preserved"
+    }
     assert not checks["a.py"]["passed"] and "tz not imported" in checks["a.py"]["detail"]
     assert not checks["b.py"]["passed"] and "naive" in checks["b.py"]["detail"]
     assert checks["c.py"]["passed"]
@@ -234,11 +322,13 @@ def test_semantic_check_catches_unimported_tz_and_new_naive_now(tmp_path: Path) 
 
 
 def test_parse_patch_counts_lines_and_new_line_numbers() -> None:
-    patch = ("diff --git a/src/a.py b/src/a.py\n--- a/src/a.py\n+++ b/src/a.py\n"
-             "@@ -1,3 +1,3 @@\n-from datetime import datetime\n"
-             "+from datetime import datetime, timezone\n \n"
-             "@@ -8,1 +8,1 @@\n-    return datetime.utcnow()\n"
-             "+    return datetime.now(timezone.utc)\n")
+    patch = (
+        "diff --git a/src/a.py b/src/a.py\n--- a/src/a.py\n+++ b/src/a.py\n"
+        "@@ -1,3 +1,3 @@\n-from datetime import datetime\n"
+        "+from datetime import datetime, timezone\n \n"
+        "@@ -8,1 +8,1 @@\n-    return datetime.utcnow()\n"
+        "+    return datetime.now(timezone.utc)\n"
+    )
     parsed = parse_patch(patch)["src/a.py"]
     assert (parsed["added"], parsed["removed"]) == (2, 2)
     assert parsed["new_lines"] == [1, 8]
@@ -251,62 +341,99 @@ def _migrate(source: str) -> str:
     return ConvertUtcnowCommand(CodemodContext()).transform_module(cst.parse_module(source)).code
 
 
-@pytest.mark.parametrize(("before", "after"), [
-    ("from datetime import datetime\n", "from datetime import datetime, timezone\n"),
-    ("from datetime import date, datetime\n", "from datetime import date, datetime, timezone\n"),
-    ("from datetime import datetime, tzinfo\n",
-     "from datetime import datetime, timezone, tzinfo\n"),
-    ("from datetime import (\n    date,\n    datetime,\n)\n",
-     "from datetime import (\n    date,\n    datetime,\n    timezone,\n)\n"),
-    ("from datetime import datetime, timezone\n", "from datetime import datetime, timezone\n"),
-])
+@pytest.mark.parametrize(
+    ("before", "after"),
+    [
+        ("from datetime import datetime\n", "from datetime import datetime, timezone\n"),
+        (
+            "from datetime import date, datetime\n",
+            "from datetime import date, datetime, timezone\n",
+        ),
+        (
+            "from datetime import datetime, tzinfo\n",
+            "from datetime import datetime, timezone, tzinfo\n",
+        ),
+        (
+            "from datetime import (\n    date,\n    datetime,\n)\n",
+            "from datetime import (\n    date,\n    datetime,\n    timezone,\n)\n",
+        ),
+        ("from datetime import datetime, timezone\n", "from datetime import datetime, timezone\n"),
+    ],
+)
 def test_timezone_lands_in_its_sorted_slot(before: str, after: str) -> None:
-    assert _migrate(before + "x = datetime.utcnow()\n") == after + \
-        "x = datetime.now(timezone.utc)\n"
+    assert (
+        _migrate(before + "x = datetime.utcnow()\n") == after + "x = datetime.now(timezone.utc)\n"
+    )
 
 
 def test_other_import_lines_are_not_touched() -> None:
     source = "import sys\nfrom datetime import datetime, date\nimport os\nx = datetime.utcnow()\n"
-    assert _migrate(source) == ("import sys\nfrom datetime import datetime, date, timezone\n"
-                                "import os\nx = datetime.now(timezone.utc)\n")
+    assert _migrate(source) == (
+        "import sys\nfrom datetime import datetime, date, timezone\n"
+        "import os\nx = datetime.now(timezone.utc)\n"
+    )
 
 
 def test_aliased_import_gets_its_own_timezone_line() -> None:
     """ruff keeps `as` imports on their own line (I001); appending would break that."""
     assert _migrate("from datetime import datetime as DT\nx = DT.utcnow()\n") == (
         "from datetime import datetime as DT\nfrom datetime import timezone\n"
-        "x = DT.now(timezone.utc)\n")
+        "x = DT.now(timezone.utc)\n"
+    )
 
 
 def test_utcfromtimestamp_gains_the_timezone_argument() -> None:
-    assert _migrate("from datetime import datetime\nx = datetime.utcfromtimestamp(t)\n") == \
-        "from datetime import datetime, timezone\nx = datetime.fromtimestamp(t, timezone.utc)\n"
+    assert (
+        _migrate("from datetime import datetime\nx = datetime.utcfromtimestamp(t)\n")
+        == "from datetime import datetime, timezone\nx = datetime.fromtimestamp(t, timezone.utc)\n"
+    )
 
 
-@pytest.mark.parametrize(("source", "site", "expected_head"), [
-    # datetime arrived through a re-export: a new stdlib line goes above first party,
-    ("from pkg import datetime\n\nx = datetime.utcnow()\n", (3, 4),
-     "from datetime import timezone\n\nfrom pkg import datetime\n"),
-    # ...joins an existing stdlib block without a blank line,
-    ("import os\n\nfrom pkg import datetime\n\nx = datetime.utcnow()\n", (5, 4),
-     "import os\nfrom datetime import timezone\n\nfrom pkg import datetime\n"),
-    # ...and sits above a relative import.
-    ("from .compat import datetime\n\nx = datetime.utcnow()\n", (3, 4),
-     "from datetime import timezone\n\nfrom .compat import datetime\n"),
-])
-def test_new_timezone_import_lands_where_isort_puts_it(source: str, site: tuple[int, int],
-                                                      expected_head: str) -> None:
-    out = ConvertUtcnowCommand(CodemodContext(), sites={site}).transform_module(
-        cst.parse_module(source)).code
+@pytest.mark.parametrize(
+    ("source", "site", "expected_head"),
+    [
+        # datetime arrived through a re-export: a new stdlib line goes above first party,
+        (
+            "from pkg import datetime\n\nx = datetime.utcnow()\n",
+            (3, 4),
+            "from datetime import timezone\n\nfrom pkg import datetime\n",
+        ),
+        # ...joins an existing stdlib block without a blank line,
+        (
+            "import os\n\nfrom pkg import datetime\n\nx = datetime.utcnow()\n",
+            (5, 4),
+            "import os\nfrom datetime import timezone\n\nfrom pkg import datetime\n",
+        ),
+        # ...and sits above a relative import.
+        (
+            "from .compat import datetime\n\nx = datetime.utcnow()\n",
+            (3, 4),
+            "from datetime import timezone\n\nfrom .compat import datetime\n",
+        ),
+    ],
+)
+def test_new_timezone_import_lands_where_isort_puts_it(
+    source: str, site: tuple[int, int], expected_head: str
+) -> None:
+    out = (
+        ConvertUtcnowCommand(CodemodContext(), sites={site})
+        .transform_module(cst.parse_module(source))
+        .code
+    )
     assert out.startswith(expected_head), out
 
 
 def test_given_sites_only_those_calls_change() -> None:
     """A shadowed `datetime` the analyzer rejected must not be edited by the codemod."""
-    source = ("from datetime import datetime\n\n\ndef fake():\n    datetime = Clock()\n"
-              "    return datetime.utcnow()\n\n\ndef real():\n    return datetime.utcnow()\n")
-    out = ConvertUtcnowCommand(CodemodContext(), sites={(10, 11)}).transform_module(
-        cst.parse_module(source)).code
+    source = (
+        "from datetime import datetime\n\n\ndef fake():\n    datetime = Clock()\n"
+        "    return datetime.utcnow()\n\n\ndef real():\n    return datetime.utcnow()\n"
+    )
+    out = (
+        ConvertUtcnowCommand(CodemodContext(), sites={(10, 11)})
+        .transform_module(cst.parse_module(source))
+        .code
+    )
     assert "    return datetime.utcnow()\n\n\ndef real" in out, "shadowed call untouched"
     assert out.endswith("    return datetime.now(timezone.utc)\n")
 
@@ -316,14 +443,18 @@ def test_crlf_survives_a_bytes_round_trip(tmp_path: Path) -> None:
 
     (tmp_path / "m.py").write_bytes(b"from datetime import datetime\r\nx = datetime.utcnow()\r\n")
     apply_codemod(tmp_path, {"m.py": [{"line": 2, "col": 4}]})
-    assert (tmp_path / "m.py").read_bytes() == \
-        b"from datetime import datetime, timezone\r\nx = datetime.now(timezone.utc)\r\n"
+    assert (
+        (tmp_path / "m.py").read_bytes()
+        == b"from datetime import datetime, timezone\r\nx = datetime.now(timezone.utc)\r\n"
+    )
 
 
 def test_module_import_still_adds_no_import() -> None:
     """task02's point: `import datetime as dt` already reaches dt.timezone."""
-    assert _migrate("import datetime as dt\nx = dt.datetime.utcnow()\n") == \
-        "import datetime as dt\nx = dt.datetime.now(dt.timezone.utc)\n"
+    assert (
+        _migrate("import datetime as dt\nx = dt.datetime.utcnow()\n")
+        == "import datetime as dt\nx = dt.datetime.now(dt.timezone.utc)\n"
+    )
 
 
 # -- the page budget, on a synthetic 200-file run ---------------------------
@@ -332,17 +463,33 @@ def test_module_import_still_adds_no_import() -> None:
 def _synthetic_run(n: int = 200) -> dict[str, Any]:
     files = [f"src/pkg/mod{i:03d}.py" for i in range(n)]
     sites = {f: [{"file": f, "line": 8, "col": 11, "symbol": TARGET}] for f in files}
-    batches = [files[i:i + 3] for i in range(0, n, 3)]
-    trajectory = [{"seq": 0, "node": "MAP", "action": f"found {n} call site(s)", "detail": {}},
-                  {"seq": 1, "node": "PLAN", "action": f"planned {len(batches)} batch(es)",
-                   "detail": {"batches": batches, "cycles_collapsed": [], "batch_size": 3,
-                              "fr3_violations": []}}]
+    batches = [files[i : i + 3] for i in range(0, n, 3)]
+    trajectory = [
+        {"seq": 0, "node": "MAP", "action": f"found {n} call site(s)", "detail": {}},
+        {
+            "seq": 1,
+            "node": "PLAN",
+            "action": f"planned {len(batches)} batch(es)",
+            "detail": {
+                "batches": batches,
+                "cycles_collapsed": [],
+                "batch_size": 3,
+                "fr3_violations": [],
+            },
+        },
+    ]
     for i, batch in enumerate(batches):
         trajectory += [
-            {"node": "EDIT", "action": f"batch {i}: codemod changed {len(batch)} file(s)",
-             "detail": {"batch": i, "files": batch, "changed": batch}},
-            {"node": "TEST", "action": f"suite after batch {i + 1}: {n}/{n} passed",
-             "detail": {"total": n, "passed": n, "failed": 0, "errors": 0, "failures": []}},
+            {
+                "node": "EDIT",
+                "action": f"batch {i}: codemod changed {len(batch)} file(s)",
+                "detail": {"batch": i, "files": batch, "changed": batch},
+            },
+            {
+                "node": "TEST",
+                "action": f"suite after batch {i + 1}: {n}/{n} passed",
+                "detail": {"total": n, "passed": n, "failed": 0, "errors": 0, "failures": []},
+            },
         ]
     trajectory.append({"node": "FINISH", "action": "success", "detail": {"outcome": "success"}})
     for seq, event in enumerate(trajectory):
@@ -350,35 +497,57 @@ def _synthetic_run(n: int = 200) -> dict[str, Any]:
     patch = "".join(
         f"diff --git a/{f} b/{f}\n--- a/{f}\n+++ b/{f}\n@@ -1,8 +1,8 @@\n"
         "-from datetime import datetime\n+from datetime import datetime, timezone\n \n \n"
-        " def make() -> datetime:\n     \"\"\"Now.\"\"\"\n"
+        ' def make() -> datetime:\n     """Now."""\n'
         "-    return datetime.utcnow()\n+    return datetime.now(timezone.utc)\n"
-        for f in files)
+        for f in files
+    )
     report = {"total": n, "passed": n, "failed": 0, "errors": 0, "failures": []}
     evidence = {
         "target": TARGET,
         "inventory": [{"file": f, "loc": 12} for f in files],
         "residual": {"sites": [], "skipped": [], "unparseable": []},
         "apply_check": {"ok": True, "detail": "applies cleanly"},
-        "semantic": [{"check": "aware", "file": f, "passed": True, "detail": "ok"}
-                     for f in files],
-        "coverage": {"available": True,
-                     "files": {f: {"changed": [1, 7], "executed": [1, 7]} for f in files}},
+        "semantic": [{"check": "aware", "file": f, "passed": True, "detail": "ok"} for f in files],
+        "coverage": {
+            "available": True,
+            "files": {f: {"changed": [1, 7], "executed": [1, 7]} for f in files},
+        },
         "lint": {"pre": [], "post": []},
     }
     return {
-        "meta": {"run_id": "synthetic200", "repo_name": "big repo", "agent_version": "0.2.0",
-                 "source_api": "datetime.utcnow", "target_api": "datetime.now(timezone.utc)",
-                 "started_at": "2026-10-01T00:00:00+00:00", "has_ground_truth": True},
-        "state": {"call_sites": sites,
-                  "dep_graph": {f: [files[i + 1]] for i, f in enumerate(files[:-1])},
-                  "file_status": dict.fromkeys(files, "migrated"), "contract": {}},
-        "trajectory": trajectory, "patch": patch, "evidence": evidence,
+        "meta": {
+            "run_id": "synthetic200",
+            "repo_name": "big repo",
+            "agent_version": "0.2.0",
+            "source_api": "datetime.utcnow",
+            "target_api": "datetime.now(timezone.utc)",
+            "started_at": "2026-10-01T00:00:00+00:00",
+            "has_ground_truth": True,
+        },
+        "state": {
+            "call_sites": sites,
+            "dep_graph": {f: [files[i + 1]] for i, f in enumerate(files[:-1])},
+            "file_status": dict.fromkeys(files, "migrated"),
+            "contract": {},
+        },
+        "trajectory": trajectory,
+        "patch": patch,
+        "evidence": evidence,
         **{k: v for k, v in GREEN_RUN.items() if k not in ("semantic", "coverage", "lint")},
-        "pre_report": report, "post_report": report,
-        "metrics": {"outcome": "success", "m1_recall": 100.0, "m1_precision": 100.0,
-                    "m2_pass_rate": 100.0, "m2_regressions": 0, "m3_tokens": 0,
-                    "m3_steps": len(trajectory), "m3_cost_usd": 0.0},
-        "semantic": evidence["semantic"], "coverage": evidence["coverage"],
+        "pre_report": report,
+        "post_report": report,
+        "metrics": {
+            "outcome": "success",
+            "m1_recall": 100.0,
+            "m1_precision": 100.0,
+            "m2_pass_rate": 100.0,
+            "m2_regressions": 0,
+            "m3_tokens": 0,
+            "m3_steps": len(trajectory),
+            "m3_cost_usd": 0.0,
+        },
+        "semantic": evidence["semantic"],
+        "coverage": evidence["coverage"],
         "lint": {"pre": [], "post": [], "exempt": []},
     }
 
@@ -445,8 +614,9 @@ def _status_on_first_and_last_page(pdf: Path, status: str) -> list[str]:
 @pytest.fixture(scope="module")
 def green_run(tmp_path_factory: pytest.TempPathFactory) -> dict[str, Any]:
     runs = tmp_path_factory.mktemp("runs")
-    return run_with_report(TIER_A / "task01_datetime", run_id="green", runs_dir=runs,
-                           corrector=_codemod_corrector())
+    return run_with_report(
+        TIER_A / "task01_datetime", run_id="green", runs_dir=runs, corrector=_codemod_corrector()
+    )
 
 
 @needs_docker
@@ -463,9 +633,11 @@ def test_forced_yellow_run_renders_yellow(tmp_path: Path) -> None:
     shutil.copytree(TIER_A / "task01_datetime", task)
     (task / "old" / "src" / "pkg" / "orphan.py").write_text(
         "from datetime import datetime\n\n\ndef stamp() -> datetime:\n"
-        "    return datetime.utcnow()\n")
-    result = run_with_report(task, run_id="yellow", runs_dir=tmp_path / "runs",
-                             corrector=_codemod_corrector())
+        "    return datetime.utcnow()\n"
+    )
+    result = run_with_report(
+        task, run_id="yellow", runs_dir=tmp_path / "runs", corrector=_codemod_corrector()
+    )
     codes = {r["code"] for r in result["model"]["issues"]}
     assert result["model"]["verdict"]["status"] == "YELLOW"
     assert {"unexecuted", "precision"} <= codes
@@ -477,8 +649,12 @@ def test_crashed_run_still_writes_a_red_report(tmp_path: Path) -> None:
     def exploding(repo: Path, failure: dict[str, Any], context: dict[str, Any]) -> list[str]:
         raise RuntimeError("corrector exploded")
 
-    result = run_with_report(TIER_A / "task03_half_migration", run_id="red",
-                             runs_dir=tmp_path / "runs", corrector=exploding)
+    result = run_with_report(
+        TIER_A / "task03_half_migration",
+        run_id="red",
+        runs_dir=tmp_path / "runs",
+        corrector=exploding,
+    )
     assert result["crashed"]
     assert result["model"]["verdict"]["status"] == "RED"
     assert "crashed" in {r["code"] for r in result["model"]["issues"]}
@@ -495,8 +671,10 @@ def test_report_rebuilt_from_state_db_is_text_identical(green_run: dict[str, Any
 
     from mra.report.pdf import completed_at
 
-    generated = re.compile(r"Report generated \d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2} \S+ "
-                           r"\([+-]\d{2}:\d{2}\)")
+    generated = re.compile(
+        r"Report generated \d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2} \S+ "
+        r"\([+-]\d{2}:\d{2}\)"
+    )
 
     def text(pdf: Path) -> tuple[list[str], str]:
         pages = [p.extract_text() for p in PdfReader(pdf).pages]
@@ -537,8 +715,17 @@ def test_header_footer_metadata_and_outline() -> None:
     assert info.title and info.author and "GREEN" in info.subject
     assert "big repo" in info["/Keywords"]
     outline = [item.title for item in reader.outline if not isinstance(item, list)]
-    for section in ("Migration report", "Repository map", "Plan", "Execution timeline",
-                    "Changes", "Verification", "Metrics", "Issues & residuals", "Final status"):
+    for section in (
+        "Migration report",
+        "Repository map",
+        "Plan",
+        "Execution timeline",
+        "Changes",
+        "Verification",
+        "Metrics",
+        "Issues & residuals",
+        "Final status",
+    ):
         assert section in outline
 
 
@@ -564,7 +751,11 @@ def test_long_paths_are_middle_ellipsized_to_fit() -> None:
 def test_completion_time_falls_back_to_start_plus_wall_clock() -> None:
     from mra.report.pdf import completed_at
 
-    assert completed_at({"started_at": "2026-10-01T00:00:00+00:00", "wall_clock_s": 61.4}) \
+    assert (
+        completed_at({"started_at": "2026-10-01T00:00:00+00:00", "wall_clock_s": 61.4})
         == "2026-10-01 00:01:01 UTC (+00:00)"
-    assert completed_at({"completed_at": "2026-10-02T19:42:07+05:30", "completed_tz": "IST"}) \
+    )
+    assert (
+        completed_at({"completed_at": "2026-10-02T19:42:07+05:30", "completed_tz": "IST"})
         == "2026-10-02 19:42:07 IST (+05:30)"
+    )

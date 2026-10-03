@@ -138,12 +138,12 @@ def m1(agent_sites: set, correct_sites: set, ground_truth_sites: set):
     tp = len(correct_sites & ground_truth_sites)
     recall = 100 * tp / max(len(ground_truth_sites), 1)
     precision = 100 * tp / max(len(agent_sites), 1)
-    f1 = 0 if (recall + precision) == 0 else 2*recall*precision/(recall+precision)
+    f1 = 0 if (recall + precision) == 0 else 2 * recall * precision / (recall + precision)
     return {"recall": recall, "precision": precision, "f1": f1}
 
+
 def m2(t_total: int, t_post_pass: int):
-    return {"pass_rate": 100 * t_post_pass / max(t_total, 1),
-            "regressions": t_total - t_post_pass}
+    return {"pass_rate": 100 * t_post_pass / max(t_total, 1), "regressions": t_total - t_post_pass}
 ```
 
 ## 3. Experimental protocol

@@ -108,8 +108,9 @@ def endpoints(config: dict[str, Any]) -> dict[str, Endpoint]:
     for name, entry in (config.get("providers") or {}).items():
         if not entry.get("model"):
             raise ValueError(f"providers.{name}: model is required")
-        built[name] = Endpoint(make_provider(name, entry), entry["model"],
-                               entry.get("redact_secrets"))
+        built[name] = Endpoint(
+            make_provider(name, entry), entry["model"], entry.get("redact_secrets")
+        )
     return built
 
 
@@ -140,8 +141,7 @@ def cost_usd(tokens: Tokens | dict[str, int]) -> float:
 
 def total_tokens(tokens: Tokens | dict[str, int]) -> int:
     """Every token in and out, across both tiers — the M3 headline number."""
-    return sum(tokens.get(key, 0) for key in
-               ("pro_in", "pro_out", "flash_in", "flash_out"))
+    return sum(tokens.get(key, 0) for key in ("pro_in", "pro_out", "flash_in", "flash_out"))
 
 
 class Router:
@@ -163,7 +163,8 @@ class Router:
         self.tokens: Tokens = tokens if tokens is not None else new_tokens()
         self.roles: Roles = load_roles() if roles is None else roles
         self.temperature = (
-            temperature if temperature is not None
+            temperature
+            if temperature is not None
             else float(os.getenv("MRA_LLM_TEMPERATURE", "0.1"))
         )
         self.privacy = privacy_mode()
@@ -172,11 +173,14 @@ class Router:
             # before any provider is touched, not at the first call mid-run.
             for role, chain in self.roles.items():
                 if chain and not any(endpoint.local for endpoint in chain):
-                    names = ", ".join(f"{e.provider.name} ({host_of(e.provider.base_url)})"
-                                      for e in chain)
-                    raise PrivacyError(f"MRA_PRIVACY=local-only: role {role!r} has only "
-                                       f"remote providers ({names}); refusing before any "
-                                       "network I/O")
+                    names = ", ".join(
+                        f"{e.provider.name} ({host_of(e.provider.base_url)})" for e in chain
+                    )
+                    raise PrivacyError(
+                        f"MRA_PRIVACY=local-only: role {role!r} has only "
+                        f"remote providers ({names}); refusing before any "
+                        "network I/O"
+                    )
         #: One record per served call: role, provider, model, tokens, latency, redactions.
         self.calls: list[dict[str, Any]] = []
         #: Remote host -> {"calls", "bytes_sent"}: what left the machine this run.
@@ -201,16 +205,19 @@ class Router:
             self._check_privacy(endpoint)
             try:
                 if not endpoint.provider.available:
-                    raise RuntimeError(f"provider {endpoint.provider.name!r}: key env var "
-                                       "is not set")
-                return self._call(task, endpoint, system, user, max_tokens,
-                                  fallback_from=failed)
+                    raise RuntimeError(
+                        f"provider {endpoint.provider.name!r}: key env var is not set"
+                    )
+                return self._call(task, endpoint, system, user, max_tokens, fallback_from=failed)
             except Exception as exc:  # error or timeout: try the next link
                 error, failed = exc, endpoint.provider.name
-                failures.append(f"{failed} at {host_of(endpoint.provider.base_url)}: "
-                                f"{type(exc).__name__}: {exc}")
-        raise ProviderError(f"role {task!r}: every provider was unreachable or failed — "
-                            + "; ".join(failures)) from error
+                failures.append(
+                    f"{failed} at {host_of(endpoint.provider.base_url)}: "
+                    f"{type(exc).__name__}: {exc}"
+                )
+        raise ProviderError(
+            f"role {task!r}: every provider was unreachable or failed — " + "; ".join(failures)
+        ) from error
 
     def _check_privacy(self, endpoint: Endpoint) -> None:
         if self.privacy == "local-only" and not endpoint.local:
@@ -219,8 +226,16 @@ class Router:
                 f"at {host_of(endpoint.provider.base_url)!r}"
             )
 
-    def _call(self, task: Role, endpoint: Endpoint, system: str, user: str,
-              max_tokens: int, *, fallback_from: str | None) -> str:
+    def _call(
+        self,
+        task: Role,
+        endpoint: Endpoint,
+        system: str,
+        user: str,
+        max_tokens: int,
+        *,
+        fallback_from: str | None,
+    ) -> str:
         redact = (not endpoint.local) if endpoint.redact is None else endpoint.redact
         redactions = 0
         if redact:
@@ -237,22 +252,34 @@ class Router:
             sent = self.egress.setdefault(host, {"calls": 0, "bytes_sent": 0})
             sent["calls"] += 1
             sent["bytes_sent"] += len(system.encode()) + len(user.encode())
-        result = endpoint.provider.complete(messages, endpoint.model, self.temperature,
-                                            max_tokens)
-        self._bill(task, result["model"], result["tokens_in"], result["tokens_out"],
-                   provider=result["provider"], latency_s=result["latency_s"],
-                   redactions=redactions, fallback_from=fallback_from)
+        result = endpoint.provider.complete(messages, endpoint.model, self.temperature, max_tokens)
+        self._bill(
+            task,
+            result["model"],
+            result["tokens_in"],
+            result["tokens_out"],
+            provider=result["provider"],
+            latency_s=result["latency_s"],
+            redactions=redactions,
+            fallback_from=fallback_from,
+        )
         return result["text"]
 
-    def _bill(self, task: Role, model: str, tokens_in: int, tokens_out: int,
-              **detail: Any) -> None:
+    def _bill(self, task: Role, model: str, tokens_in: int, tokens_out: int, **detail: Any) -> None:
         tier = TIER[task]
         self.tokens[f"{tier}_in"] = self.tokens.get(f"{tier}_in", 0) + tokens_in  # type: ignore[literal-required]
         self.tokens[f"{tier}_out"] = self.tokens.get(f"{tier}_out", 0) + tokens_out  # type: ignore[literal-required]
         self.tokens["tool_calls"] = self.tokens.get("tool_calls", 0) + 1
         # The model ID and the counts are loggable; the key never is (CONFIGURATION.md §6).
-        self.calls.append({"task": task, "model": model, "tokens_in": tokens_in,
-                           "tokens_out": tokens_out, **detail})
+        self.calls.append(
+            {
+                "task": task,
+                "model": model,
+                "tokens_in": tokens_in,
+                "tokens_out": tokens_out,
+                **detail,
+            }
+        )
 
     def cost_usd(self) -> float:
         return cost_usd(self.tokens)

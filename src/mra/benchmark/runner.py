@@ -53,8 +53,13 @@ from mra.nodes.edit_node import apply_codemod
 from mra.nodes.plan_node import DEFAULT_EDIT_BATCH_SIZE, plan_batches, plan_node
 
 #: The Tier-A corpus, in the order the table reports it.
-TASKS = ("task01_datetime", "task02_datetime_aliased",
-         "task03_half_migration", "task04_multimodule", "task05_signature_break")
+TASKS = (
+    "task01_datetime",
+    "task02_datetime_aliased",
+    "task03_half_migration",
+    "task04_multimodule",
+    "task05_signature_break",
+)
 
 DEFAULT_REPEATS = 3
 DEFAULT_CORPUS = Path("corpus/tierA")
@@ -73,10 +78,10 @@ class Config:
 
     name: str
     recovery: bool = True
-    order: str = "dependency"          # dependency | alphabetical | fr3_violating
+    order: str = "dependency"  # dependency | alphabetical | fr3_violating
     batch_size: int = DEFAULT_EDIT_BATCH_SIZE
-    model: str = "deterministic"       # deterministic | v4-pro | v4-flash
-    memory: str = ""                   # "" (not ablation E) | off | warm
+    model: str = "deterministic"  # deterministic | v4-pro | v4-flash
+    memory: str = ""  # "" (not ablation E) | off | warm
     ablation: str = ""
     note: str = ""
 
@@ -89,54 +94,120 @@ class Config:
 #: The published matrix. ``baseline`` is the reference row every ablation is
 #: read against; each other config changes exactly one thing about it.
 CONFIGS: tuple[Config, ...] = (
-    Config("baseline", ablation="reference",
-           note="recovery on, dependency order, batch 3, deterministic corrector"),
-    Config("no-recovery", recovery=False, ablation="A",
-           note="CORRECT loop disabled (MRA_MAX_FIX_ATTEMPTS=0)"),
-    Config("order-alphabetical", order="alphabetical", ablation="B",
-           note="batches by file name instead of the dependency graph"),
-    Config("order-fr3-violating", order="fr3_violating", ablation="B",
-           note="plain topological order — dependents before dependencies, "
-                "the docs/04 §3.4 pseudocode defect"),
+    Config(
+        "baseline",
+        ablation="reference",
+        note="recovery on, dependency order, batch 3, deterministic corrector",
+    ),
+    Config(
+        "no-recovery",
+        recovery=False,
+        ablation="A",
+        note="CORRECT loop disabled (MRA_MAX_FIX_ATTEMPTS=0)",
+    ),
+    Config(
+        "order-alphabetical",
+        order="alphabetical",
+        ablation="B",
+        note="batches by file name instead of the dependency graph",
+    ),
+    Config(
+        "order-fr3-violating",
+        order="fr3_violating",
+        ablation="B",
+        note="plain topological order — dependents before dependencies, "
+        "the docs/04 §3.4 pseudocode defect",
+    ),
     # At batch 3 a Tier-A task is 1-2 batches wide, so batch size and edit order
     # are confounded: an order that happens to group a producer with its consumer
     # never exposes an intermediate state at all. These two arms re-run the
     # ordering comparison at one file per batch, where the only thing left that
     # can differ is the sequence.
-    Config("order-alphabetical-b1", order="alphabetical", batch_size=1, ablation="B",
-           note="file-name order, one file per EDIT"),
-    Config("order-fr3-violating-b1", order="fr3_violating", batch_size=1, ablation="B",
-           note="dependents-first order, one file per EDIT"),
+    Config(
+        "order-alphabetical-b1",
+        order="alphabetical",
+        batch_size=1,
+        ablation="B",
+        note="file-name order, one file per EDIT",
+    ),
+    Config(
+        "order-fr3-violating-b1",
+        order="fr3_violating",
+        batch_size=1,
+        ablation="B",
+        note="dependents-first order, one file per EDIT",
+    ),
     # With recovery on, every order is rescued and the only thing an order costs
     # is corrective edits. Turning the loop off in the same three arms asks the
     # harder question: does the order alone decide whether the run regresses?
-    Config("order-dependency-b1-norecovery", order="dependency", batch_size=1,
-           recovery=False, ablation="B",
-           note="dependency order, one file per EDIT, CORRECT loop disabled"),
-    Config("order-alphabetical-b1-norecovery", order="alphabetical", batch_size=1,
-           recovery=False, ablation="B",
-           note="file-name order, one file per EDIT, CORRECT loop disabled"),
-    Config("order-fr3-violating-b1-norecovery", order="fr3_violating", batch_size=1,
-           recovery=False, ablation="B",
-           note="dependents-first order, one file per EDIT, CORRECT loop disabled"),
+    Config(
+        "order-dependency-b1-norecovery",
+        order="dependency",
+        batch_size=1,
+        recovery=False,
+        ablation="B",
+        note="dependency order, one file per EDIT, CORRECT loop disabled",
+    ),
+    Config(
+        "order-alphabetical-b1-norecovery",
+        order="alphabetical",
+        batch_size=1,
+        recovery=False,
+        ablation="B",
+        note="file-name order, one file per EDIT, CORRECT loop disabled",
+    ),
+    Config(
+        "order-fr3-violating-b1-norecovery",
+        order="fr3_violating",
+        batch_size=1,
+        recovery=False,
+        ablation="B",
+        note="dependents-first order, one file per EDIT, CORRECT loop disabled",
+    ),
     Config("batch-1", batch_size=1, ablation="D", note="one file per EDIT"),
     Config("batch-5", batch_size=5, ablation="D", note="five files per EDIT"),
-    Config("edit-v4-pro", model="v4-pro", ablation="C",
-           note="live corrective edits from the strong model"),
-    Config("edit-v4-flash", model="v4-flash", ablation="C",
-           note="live corrective edits from the cheap model"),
+    Config(
+        "edit-v4-pro",
+        model="v4-pro",
+        ablation="C",
+        note="live corrective edits from the strong model",
+    ),
+    Config(
+        "edit-v4-flash",
+        model="v4-flash",
+        ablation="C",
+        note="live corrective edits from the cheap model",
+    ),
     # Ablation E. The deterministic pair swaps the codemod for ReplayCorrector,
     # which knows nothing but what memory hands it: a mechanics check that the
     # store learns, retrieves and transfers across tasks. The live pair is the
     # effect size (corrections and tokens with vs without hints).
-    Config("memory-off", memory="off", ablation="E",
-           note="replay corrector, no experience store (control)"),
-    Config("memory-warm", memory="warm", ablation="E",
-           note="replay corrector, store pre-warmed on the edge-corpus training split"),
-    Config("memory-off-llm", model="v4-pro", memory="off", ablation="E",
-           note="live corrective edits, no experience hints"),
-    Config("memory-warm-llm", model="v4-pro", memory="warm", ablation="E",
-           note="live corrective edits with hints from the pre-warmed store"),
+    Config(
+        "memory-off",
+        memory="off",
+        ablation="E",
+        note="replay corrector, no experience store (control)",
+    ),
+    Config(
+        "memory-warm",
+        memory="warm",
+        ablation="E",
+        note="replay corrector, store pre-warmed on the edge-corpus training split",
+    ),
+    Config(
+        "memory-off-llm",
+        model="v4-pro",
+        memory="off",
+        ablation="E",
+        note="live corrective edits, no experience hints",
+    ),
+    Config(
+        "memory-warm-llm",
+        model="v4-pro",
+        memory="warm",
+        ablation="E",
+        note="live corrective edits with hints from the pre-warmed store",
+    ),
 )
 
 
@@ -184,19 +255,22 @@ def replay(pattern: str, source: str) -> str:
     # ponytail: pairs -/+ lines by position and edits text, not the CST; a
     # pattern that adds or drops lines replays wrongly and the suite says so.
     lines = pattern.splitlines()
-    pairs = zip([line[1:] for line in lines if line.startswith("-")],
-                [line[1:] for line in lines if line.startswith("+")], strict=False)
+    pairs = zip(
+        [line[1:] for line in lines if line.startswith("-")],
+        [line[1:] for line in lines if line.startswith("+")],
+        strict=False,
+    )
     for old, new in pairs:
         old, new = old.strip(), new.strip()
         if not old or old == new:
             continue
         source = "".join(
-            line[:len(line) - len(line.lstrip())] + new + "\n"
-            if line.strip() == old else line
-            for line in source.splitlines(keepends=True))
+            line[: len(line) - len(line.lstrip())] + new + "\n" if line.strip() == old else line
+            for line in source.splitlines(keepends=True)
+        )
         head = len(os.path.commonprefix([old, new]))
         tail = len(os.path.commonprefix([old[head:][::-1], new[head:][::-1]]))
-        old_mid, new_mid = old[head:len(old) - tail], new[head:len(new) - tail]
+        old_mid, new_mid = old[head : len(old) - tail], new[head : len(new) - tail]
         if len(old_mid) >= 3 and old_mid not in new_mid:
             source = source.replace(old_mid, new_mid)
     return source
@@ -222,8 +296,9 @@ class ReplayCorrector:
         located = locate(repo, failure, TARGET, dep_graph=context.get("graph"))
         if located is None or self.experience is None:
             return []
-        fixes = self.experience.hints(classify_offline(failure), failure.get("message", ""),
-                                      self.contract)
+        fixes = self.experience.hints(
+            classify_offline(failure), failure.get("message", ""), self.contract
+        )
         self.hints_served += len(fixes)
         self.hint_chars += sum(len(format_hint(fix)) for fix in fixes)
         source = located["source"]
@@ -249,8 +324,9 @@ def train_tasks(edge: Path | str = TRAIN_CORPUS) -> list[Path]:
     return chosen
 
 
-def warm_store(store: ExperienceStore, tasks: Sequence[Path | str],
-               runs_dir: Path | str) -> dict[str, Any]:
+def warm_store(
+    store: ExperienceStore, tasks: Sequence[Path | str], runs_dir: Path | str
+) -> dict[str, Any]:
     """Run the baseline agent over the training split with learning on."""
     leaked = sorted({Path(t).name for t in tasks} & set(TASKS))
     if leaked:
@@ -258,8 +334,13 @@ def warm_store(store: ExperienceStore, tasks: Sequence[Path | str],
     used = []
     for task in tasks:
         try:
-            result = run_migration(task, run_id=f"warm-{Path(task).name}", runs_dir=runs_dir,
-                                   corrector=codemod_corrector, experience=store)
+            result = run_migration(
+                task,
+                run_id=f"warm-{Path(task).name}",
+                runs_dir=runs_dir,
+                corrector=codemod_corrector,
+                experience=store,
+            )
         except PreconditionError:
             continue
         used.append({"task": Path(task).name, "learned": result["experience_learned"]})
@@ -270,7 +351,7 @@ def warm_store(store: ExperienceStore, tasks: Sequence[Path | str],
 
 
 def _chunk(items: list[str], size: int) -> list[list[str]]:
-    return [items[i:i + size] for i in range(0, len(items), size)]
+    return [items[i : i + size] for i in range(0, len(items), size)]
 
 
 def make_planner(order: str) -> Any:
@@ -305,10 +386,14 @@ def make_planner(order: str) -> Any:
             "current_batch": 0,
             "note": {
                 "action": f"planned {len(batches)} batch(es) over "
-                          f"{sum(len(b) for b in batches)} file(s) [{order}]",
-                "detail": {"batches": batches, "order": order, "batch_size": size,
-                           "cycles_collapsed": [],
-                           "fr3_violations": violations(batches, graph)},
+                f"{sum(len(b) for b in batches)} file(s) [{order}]",
+                "detail": {
+                    "batches": batches,
+                    "order": order,
+                    "batch_size": size,
+                    "cycles_collapsed": [],
+                    "fr3_violations": violations(batches, graph),
+                },
             },
         }
 
@@ -324,14 +409,17 @@ def _f1(recall: float, precision: float) -> float:
 
 def _failures(report: dict[str, Any]) -> list[dict[str, Any]]:
     """The surviving failures, tagged with their docs/04 §2.5 class."""
-    return [{
-        "nodeid": failure.get("nodeid", ""),
-        "signature": failure.get("signature", ""),
-        "exc_type": failure.get("exc_type", ""),
-        "message": (failure.get("message") or "")[:200],
-        "file": failure.get("file", ""),
-        "failure_class": classify_offline(failure),
-    } for failure in report.get("failures", [])]
+    return [
+        {
+            "nodeid": failure.get("nodeid", ""),
+            "signature": failure.get("signature", ""),
+            "exc_type": failure.get("exc_type", ""),
+            "message": (failure.get("message") or "")[:200],
+            "file": failure.get("file", ""),
+            "failure_class": classify_offline(failure),
+        }
+        for failure in report.get("failures", [])
+    ]
 
 
 def run_one(
@@ -360,8 +448,9 @@ def run_one(
     corrector: Any = codemod_corrector if config.recovery else None
     if config.memory and not config.requires_key:
         truth = json.loads((task_dir / "ground_truth.json").read_text())
-        corrector = ReplayCorrector({"source_api": truth["source_api"],
-                                     "target_api": truth["target_api"]}, memory)
+        corrector = ReplayCorrector(
+            {"source_api": truth["source_api"], "target_api": truth["target_api"]}, memory
+        )
     router = None
     state = None
     if config.recovery and config.requires_key:
@@ -370,9 +459,15 @@ def run_one(
         from mra.state import new_state
 
         truth = json.loads((task_dir / "ground_truth.json").read_text())
-        state = new_state(run_id, "", {"task_id": task_dir.name,
-                                       "source_api": truth["source_api"],
-                                       "target_api": truth["target_api"]})
+        state = new_state(
+            run_id,
+            "",
+            {
+                "task_id": task_dir.name,
+                "source_api": truth["source_api"],
+                "target_api": truth["target_api"],
+            },
+        )
         roles = load_roles()
         if config.model == "v4-flash":
             # Ablation C: corrective edits served by the cheap role's chain.
@@ -388,8 +483,13 @@ def run_one(
     started = time.perf_counter()
     with _env(**environment):
         result = run_migration(
-            task_dir, run_id=run_id, runs_dir=runs_dir, target=target,
-            corrector=corrector, router=router, state=state,
+            task_dir,
+            run_id=run_id,
+            runs_dir=runs_dir,
+            target=target,
+            corrector=corrector,
+            router=router,
+            state=state,
             planner=make_planner(config.order),
         )
     wall_clock = time.perf_counter() - started
@@ -410,8 +510,10 @@ def run_one(
         "m2_pass_rate": metrics["m2_pass_rate"],
         "m2_regressions": metrics["m2_regressions"],
         "m3_tokens": metrics["m3_tokens"],
-        "pro_in": tokens.get("pro_in", 0), "pro_out": tokens.get("pro_out", 0),
-        "flash_in": tokens.get("flash_in", 0), "flash_out": tokens.get("flash_out", 0),
+        "pro_in": tokens.get("pro_in", 0),
+        "pro_out": tokens.get("pro_out", 0),
+        "flash_in": tokens.get("flash_in", 0),
+        "flash_out": tokens.get("flash_out", 0),
         "m3_steps": metrics["m3_steps"],
         "cost_usd": metrics["m3_cost_usd"],
         "recovery_used": metrics["recovery_used"],
@@ -440,8 +542,18 @@ def _memory_use(corrector: Any) -> dict[str, int]:
 
 # -- the matrix ------------------------------------------------------------
 
-MEAN_FIELDS = ("m1_recall", "m1_precision", "m1_f1", "m2_pass_rate", "m2_regressions",
-               "corrections", "m3_tokens", "m3_steps", "cost_usd", "wall_clock_s")
+MEAN_FIELDS = (
+    "m1_recall",
+    "m1_precision",
+    "m1_f1",
+    "m2_pass_rate",
+    "m2_regressions",
+    "corrections",
+    "m3_tokens",
+    "m3_steps",
+    "cost_usd",
+    "wall_clock_s",
+)
 
 
 def _aggregate(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
@@ -453,10 +565,14 @@ def _aggregate(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
     summary = []
     for (config, task), group in groups.items():
         entry: dict[str, Any] = {
-            "config": config, "task_id": task, "ablation": group[0]["ablation"],
+            "config": config,
+            "task_id": task,
+            "ablation": group[0]["ablation"],
             "n": len(group),
-            "outcomes": {o: sum(1 for r in group if r["outcome"] == o)
-                         for o in sorted({r["outcome"] for r in group})},
+            "outcomes": {
+                o: sum(1 for r in group if r["outcome"] == o)
+                for o in sorted({r["outcome"] for r in group})
+            },
             "recovery_used": any(r["recovery_used"] for r in group),
         }
         for field_name in MEAN_FIELDS:
@@ -501,13 +617,22 @@ def run_matrix(
     try:
         for config in configs:
             if config not in runnable:
-                skipped.extend({"config": config.name, "task_id": task,
-                                "reason": "requires DEEPSEEK_API_KEY"} for task in tasks)
+                skipped.extend(
+                    {"config": config.name, "task_id": task, "reason": "requires DEEPSEEK_API_KEY"}
+                    for task in tasks
+                )
                 continue
             for task in tasks:
                 for repeat in range(repeats):
-                    rows.append(run_one(corpus / task, config, repeat=repeat,
-                                        runs_dir=out_dir / "runs", experience=frozen))
+                    rows.append(
+                        run_one(
+                            corpus / task,
+                            config,
+                            repeat=repeat,
+                            runs_dir=out_dir / "runs",
+                            experience=frozen,
+                        )
+                    )
     finally:
         if scratch is not None:
             shutil.rmtree(scratch, ignore_errors=True)
@@ -547,8 +672,10 @@ def _verdict(entry: dict[str, Any]) -> str:
 
 
 def _table(entries: list[dict[str, Any]], key: str = "config") -> list[str]:
-    header = (f"| {key} | outcome | M1 recall | M1 prec | M1 F1 | M2 % | regr | corr "
-              "| steps | tokens | cost $ | wall s |")
+    header = (
+        f"| {key} | outcome | M1 recall | M1 prec | M1 F1 | M2 % | regr | corr "
+        "| steps | tokens | cost $ | wall s |"
+    )
     lines = [header, "|" + "---|" * 12]
     for entry in entries:
         lines.append(
@@ -562,8 +689,9 @@ def _table(entries: list[dict[str, Any]], key: str = "config") -> list[str]:
     return lines
 
 
-def _pick(aggregates: list[dict[str, Any]], configs: Sequence[str],
-          task: str) -> list[dict[str, Any]]:
+def _pick(
+    aggregates: list[dict[str, Any]], configs: Sequence[str], task: str
+) -> list[dict[str, Any]]:
     order = {name: index for index, name in enumerate(configs)}
     found = [a for a in aggregates if a["task_id"] == task and a["config"] in order]
     return sorted(found, key=lambda a: order[a["config"]])
@@ -591,11 +719,12 @@ def render_markdown(results: dict[str, Any]) -> str:
         "",
     ]
     order = {name: index for index, name in enumerate(results["tasks"])}
-    grid = sorted((a for a in aggregates if a["task_id"] in order),
-                  key=lambda a: (order[a["task_id"]], a["config"]))
+    grid = sorted(
+        (a for a in aggregates if a["task_id"] in order),
+        key=lambda a: (order[a["task_id"]], a["config"]),
+    )
     key = "task / config"
-    lines += _table([{**a, key: f"{a['task_id']} / {a['config']}"} for a in grid],
-                    key=key) + [""]
+    lines += _table([{**a, key: f"{a['task_id']} / {a['config']}"} for a in grid], key=key) + [""]
 
     lines += ["## 1b. Per task, per configuration", ""]
     for task in results["tasks"]:
@@ -616,11 +745,14 @@ def render_markdown(results: dict[str, Any]) -> str:
 
 
 def _ablation_a(results: dict[str, Any]) -> list[str]:
-    lines = ["### A. Recovery loop ON vs OFF — the headline", "",
-             "The only variable is whether the CORRECT loop may run. Both arms use the "
-             "deterministic corrector, so this contrast is reproducible without an API "
-             "key: the loop's *mechanics* are what is being measured, not the model's.",
-             ""]
+    lines = [
+        "### A. Recovery loop ON vs OFF — the headline",
+        "",
+        "The only variable is whether the CORRECT loop may run. Both arms use the "
+        "deterministic corrector, so this contrast is reproducible without an API "
+        "key: the loop's *mechanics* are what is being measured, not the model's.",
+        "",
+    ]
     for task in results["tasks"]:
         entries = _pick(results["aggregates"], ("baseline", "no-recovery"), task)
         if len(entries) == 2:
@@ -629,27 +761,38 @@ def _ablation_a(results: dict[str, Any]) -> list[str]:
 
 
 def _ablation_b(results: dict[str, Any]) -> list[str]:
-    lines = ["### B. Dependency-ordered batching vs arbitrary order", "",
-             "`baseline`/`batch-1` use the FR-3 order; the `order-alphabetical` arms "
-             "ignore the graph; the `order-fr3-violating` arms are `plan_batches` on the "
-             "*reversed* graph — dependents before their dependencies, the inversion "
-             "docs/04 §3.4's pseudocode produces if its missing `.reverse()` is taken "
-             "literally.", "",
-             "Read the three groups separately. At batch 3 a small task is only one or "
-             "two batches wide, so edit order and batch size are confounded — an order "
-             "that happens to put a producer and its consumer in the same batch never "
-             "exposes the intermediate state at all. The `-b1` group edits one file per "
-             "batch, where sequence is the only variable left. The `-norecovery` group "
-             "then removes the loop, which is the only way to see what an order costs "
-             "when nothing is there to repair it.", ""]
+    lines = [
+        "### B. Dependency-ordered batching vs arbitrary order",
+        "",
+        "`baseline`/`batch-1` use the FR-3 order; the `order-alphabetical` arms "
+        "ignore the graph; the `order-fr3-violating` arms are `plan_batches` on the "
+        "*reversed* graph — dependents before their dependencies, the inversion "
+        "docs/04 §3.4's pseudocode produces if its missing `.reverse()` is taken "
+        "literally.",
+        "",
+        "Read the three groups separately. At batch 3 a small task is only one or "
+        "two batches wide, so edit order and batch size are confounded — an order "
+        "that happens to put a producer and its consumer in the same batch never "
+        "exposes the intermediate state at all. The `-b1` group edits one file per "
+        "batch, where sequence is the only variable left. The `-norecovery` group "
+        "then removes the loop, which is the only way to see what an order costs "
+        "when nothing is there to repair it.",
+        "",
+    ]
     groups = (
-        ("batch size 3, recovery on", ("baseline", "order-alphabetical",
-                                       "order-fr3-violating")),
-        ("batch size 1, recovery on", ("batch-1", "order-alphabetical-b1",
-                                       "order-fr3-violating-b1")),
-        ("batch size 1, recovery OFF", ("order-dependency-b1-norecovery",
-                                        "order-alphabetical-b1-norecovery",
-                                        "order-fr3-violating-b1-norecovery")),
+        ("batch size 3, recovery on", ("baseline", "order-alphabetical", "order-fr3-violating")),
+        (
+            "batch size 1, recovery on",
+            ("batch-1", "order-alphabetical-b1", "order-fr3-violating-b1"),
+        ),
+        (
+            "batch size 1, recovery OFF",
+            (
+                "order-dependency-b1-norecovery",
+                "order-alphabetical-b1-norecovery",
+                "order-fr3-violating-b1-norecovery",
+            ),
+        ),
     )
     for label, arms in groups:
         lines += [f"#### {label}", ""]
@@ -658,9 +801,12 @@ def _ablation_b(results: dict[str, Any]) -> list[str]:
             if len(entries) > 1:
                 lines += [f"**{task}**", ""] + _table(entries) + [""]
 
-    lines += ["#### What the data says", "",
-              "Corrective edits per task, one file per batch, recovery on "
-              "(lower is better):", ""]
+    lines += [
+        "#### What the data says",
+        "",
+        "Corrective edits per task, one file per batch, recovery on (lower is better):",
+        "",
+    ]
     dependency, alphabetical, violating = groups[1][1]
     for task in results["tasks"]:
         found = {e["config"]: e for e in _pick(results["aggregates"], groups[1][1], task)}
@@ -672,8 +818,12 @@ def _ablation_b(results: dict[str, Any]) -> list[str]:
             f"dependents-first {found[violating]['corrections_mean']:.0f}"
         )
 
-    lines += ["", "Outcome with the loop off, one file per batch — the same three orders "
-              "with nothing to repair them:", ""]
+    lines += [
+        "",
+        "Outcome with the loop off, one file per batch — the same three orders "
+        "with nothing to repair them:",
+        "",
+    ]
     dep_off, alpha_off, fr3_off = groups[2][1]
     separating: list[str] = []
     for task in results["tasks"]:
@@ -691,8 +841,10 @@ def _ablation_b(results: dict[str, Any]) -> list[str]:
             f"(M1 {found[fr3_off]['m1_recall_mean']:.0f}%, "
             f"{found[fr3_off]['m2_regressions_mean']:.0f} regr)"
         )
-        clean = (found[dep_off]["m2_regressions_mean"] == 0
-                 and found[dep_off]["outcomes"].get("success", 0) == found[dep_off]["n"])
+        clean = (
+            found[dep_off]["m2_regressions_mean"] == 0
+            and found[dep_off]["outcomes"].get("success", 0) == found[dep_off]["n"]
+        )
         broke = any(found[arm]["m2_regressions_mean"] > 0 for arm in (alpha_off, fr3_off))
         if clean and broke:
             separating.append(task)
@@ -713,8 +865,11 @@ def _ablation_b(results: dict[str, Any]) -> list[str]:
             "",
         ]
     else:  # pragma: no cover - only if a future corpus change removes the asymmetry
-        lines += ["1. **No task separates the orders with the loop off.** Every arm that "
-                  "breaks, breaks in both directions.", ""]
+        lines += [
+            "1. **No task separates the orders with the loop off.** Every arm that "
+            "breaks, breaks in both directions.",
+            "",
+        ]
     lines += [
         "2. **The dependents-first order is never cheaper and is sometimes the most "
         "expensive arm run** — on `task04_multimodule` it spends the full NFR-1 retry "
@@ -751,13 +906,14 @@ def _ablation_c(results: dict[str, Any]) -> list[str]:
     if not entries:
         skipped = {s["config"] for s in results["skipped"]}
         lines += [
-            "**Requires a key — not run.** " + (", ".join(f"`{s}`" for s in sorted(skipped))
-                                                or "No live configuration") +
-            " needs `DEEPSEEK_API_KEY`; the offline matrix above is complete without it.",
+            "**Requires a key — not run.** "
+            + (", ".join(f"`{s}`" for s in sorted(skipped)) or "No live configuration")
+            + " needs `DEEPSEEK_API_KEY`; the offline matrix above is complete without it.",
             "",
             "Caveat for when it does run: `Router.TIER` bills a *recover* call to the pro "
             "tier whatever model serves it, so the cost column for the V4-Flash arm "
-            "is an upper bound, not a quote.", "",
+            "is an upper bound, not a quote.",
+            "",
         ]
         return lines
     for task in results["tasks"]:
@@ -774,15 +930,18 @@ def _ablation_e(results: dict[str, Any]) -> list[str]:
     warm = results.get("experience_warmup") or {}
     trained = warm.get("train_tasks", [])
     lines = [
-        "### E. Experience store OFF vs pre-warmed", "",
+        "### E. Experience store OFF vs pre-warmed",
+        "",
         f"Warm-up: the baseline agent, learning on, over {len(trained)} edge-corpus "
         f"task(s) (the training split; no Tier-A task) stored {warm.get('fixes', 0)} "
         f"fix(es) {warm.get('by_class', {})}. The store is then frozen read-only, so no "
-        "evaluation run learns from another.", "",
+        "evaluation run learns from another.",
+        "",
         "The deterministic pair uses a corrector that can only replay recalled fixes: it "
         "shows the store learns, retrieves and transfers, not how much an LLM gains. That "
         "is the live pair, which needs a key. `hint chars` is what the hints would add to "
-        "a CORRECT prompt (≈ chars/4 tokens); the deterministic arms make no LLM call.", "",
+        "a CORRECT prompt (≈ chars/4 tokens); the deterministic arms make no LLM call.",
+        "",
         "| task | config | outcome | corrections | tokens | hints served | hint chars |",
         "|" + "---|" * 7,
     ]
@@ -791,14 +950,19 @@ def _ablation_e(results: dict[str, Any]) -> list[str]:
             group = [r for r in results["rows"] if r["config"] == arm and r["task_id"] == task]
             if not group:
                 continue
-            outcomes = {o: sum(1 for r in group if r["outcome"] == o)
-                        for o in sorted({r["outcome"] for r in group})}
-            mean = {f: statistics.fmean(r.get(f, 0) for r in group)
-                    for f in ("corrections", "m3_tokens", "memory_hints", "hint_chars")}
+            outcomes = {
+                o: sum(1 for r in group if r["outcome"] == o)
+                for o in sorted({r["outcome"] for r in group})
+            }
+            mean = {
+                f: statistics.fmean(r.get(f, 0) for r in group)
+                for f in ("corrections", "m3_tokens", "memory_hints", "hint_chars")
+            }
             lines.append(
                 f"| {task} | `{arm}` | {', '.join(f'{n}× {o}' for o, n in outcomes.items())} "
                 f"| {mean['corrections']:.1f} | {mean['m3_tokens']:.0f} "
-                f"| {mean['memory_hints']:.1f} | {mean['hint_chars']:.0f} |")
+                f"| {mean['memory_hints']:.1f} | {mean['hint_chars']:.0f} |"
+            )
     if not any(r["config"].endswith("-llm") for r in results["rows"]):
         lines += ["", "**Live pair requires a key — not run.**"]
     return lines + [""]
@@ -806,10 +970,14 @@ def _ablation_e(results: dict[str, Any]) -> list[str]:
 
 def _ablation_d(results: dict[str, Any]) -> list[str]:
     arms = ("batch-1", "baseline", "batch-5")
-    lines = ["### D. Batch size 1 vs 3 vs 5", "",
-             "Batch size caps how many files one EDIT touches before the suite runs "
-             "again (NFR-5): smaller batches localize a failure more precisely and cost "
-             "more TEST steps.", ""]
+    lines = [
+        "### D. Batch size 1 vs 3 vs 5",
+        "",
+        "Batch size caps how many files one EDIT touches before the suite runs "
+        "again (NFR-5): smaller batches localize a failure more precisely and cost "
+        "more TEST steps.",
+        "",
+    ]
     for task in results["tasks"]:
         entries = _pick(results["aggregates"], arms, task)
         if len(entries) > 1:
@@ -819,11 +987,16 @@ def _ablation_d(results: dict[str, Any]) -> list[str]:
 
 def _baseline_section(results: dict[str, Any]) -> list[str]:
     baselines = results.get("baselines") or []
-    lines = ["## 3. Deterministic baselines — ruff (DTZ) and pyupgrade", "",
-             "The honesty check (docs/05, RESOURCE_PACK §2.2): what do the existing "
-             "static tools already do on these tasks?", "",
-             "| task | tool | detected | \\|A\\| | detect recall | fixed | M1 recall "
-             "after fix | suite after fix |", "|" + "---|" * 8]
+    lines = [
+        "## 3. Deterministic baselines — ruff (DTZ) and pyupgrade",
+        "",
+        "The honesty check (docs/05, RESOURCE_PACK §2.2): what do the existing "
+        "static tools already do on these tasks?",
+        "",
+        "| task | tool | detected | \\|A\\| | detect recall | fixed | M1 recall "
+        "after fix | suite after fix |",
+        "|" + "---|" * 8,
+    ]
     for entry in baselines:
         for tool in entry["tools"]:
             lines.append(
@@ -832,11 +1005,15 @@ def _baseline_section(results: dict[str, Any]) -> list[str]:
                 f"| {tool['fixed_files']} | {tool['m1_recall_after_fix']:.0f}% "
                 f"| {tool['suite_after_fix']} |"
             )
-    lines += ["", "`detected` counts sites the tool reported; `fixed` counts files it "
-              "rewrote. A tool that reports a site but cannot rewrite it scores 0 on M1 "
-              "however good its detection is — and none of them can repair the cross-file "
-              "break that task03/task04 are built around, because they never edit "
-              "anything.", ""]
+    lines += [
+        "",
+        "`detected` counts sites the tool reported; `fixed` counts files it "
+        "rewrote. A tool that reports a site but cannot rewrite it scores 0 on M1 "
+        "however good its detection is — and none of them can repair the cross-file "
+        "break that task03/task04 are built around, because they never edit "
+        "anything.",
+        "",
+    ]
     return lines
 
 
@@ -846,29 +1023,37 @@ def _baseline_section(results: dict[str, Any]) -> list[str]:
 def _why(row: dict[str, Any], configs: dict[str, dict[str, Any]]) -> str:
     config = configs.get(row["config"], {})
     if config.get("memory") == "off" and config.get("model") == "deterministic":
-        return ("ablation E control: the replay corrector has no experience store, so it "
-                "has nothing to apply and every attempt changes nothing")
+        return (
+            "ablation E control: the replay corrector has no experience store, so it "
+            "has nothing to apply and every attempt changes nothing"
+        )
     if not config.get("recovery", True):
-        return (f"recovery disabled (ablation {config.get('ablation') or 'A'}): the run "
-                "gives up on the first red suite, so the remaining batches are never edited")
+        return (
+            f"recovery disabled (ablation {config.get('ablation') or 'A'}): the run "
+            "gives up on the first red suite, so the remaining batches are never edited"
+        )
     cap = max(row["fix_attempts"].values(), default=0)
     if row["fix_attempts"]:
-        return (f"the CORRECT loop spent its per-signature retry ceiling (NFR-1): "
-                f"{cap} attempt(s) on this signature without reaching green")
+        return (
+            f"the CORRECT loop spent its per-signature retry ceiling (NFR-1): "
+            f"{cap} attempt(s) on this signature without reaching green"
+        )
     return "the suite was red and no failure had an attempt left to spend"
 
 
 def failure_analysis(results: dict[str, Any]) -> str:
     """One entry per failing (config, task): class, signature, and why it stood."""
     configs = {c["name"]: c for c in results["configs"]}
-    failing = [r for r in results["rows"]
-               if r["outcome"] != "success" or r["m2_pass_rate"] < 100]
+    failing = [r for r in results["rows"] if r["outcome"] != "success" or r["m2_pass_rate"] < 100]
     lines = [
-        "# Failure analysis", "",
+        "# Failure analysis",
+        "",
         f"Generated {results['generated_at']}. Every run that gave up or finished with "
         f"M2 < 100 is listed with its failure class (docs/04 §2.5), its normalized "
-        f"signature, and why the loop did not recover it.", "",
-        f"{len(failing)} of {len(results['rows'])} runs failed.", "",
+        f"signature, and why the loop did not recover it.",
+        "",
+        f"{len(failing)} of {len(results['rows'])} runs failed.",
+        "",
     ]
     if not failing:
         return "\n".join(lines + ["No run failed.", ""])
@@ -880,10 +1065,12 @@ def failure_analysis(results: dict[str, Any]) -> str:
         if key in seen:  # repeats of the same deterministic outcome
             continue
         seen.add(key)
-        repeats = sum(1 for r in failing if r["config"] == row["config"]
-                      and r["task_id"] == row["task_id"])
+        repeats = sum(
+            1 for r in failing if r["config"] == row["config"] and r["task_id"] == row["task_id"]
+        )
         lines += [
-            f"## `{row['config']}` on {row['task_id']}", "",
+            f"## `{row['config']}` on {row['task_id']}",
+            "",
             f"- **outcome:** {row['outcome']} ({repeats}/{results['repeats']} repeats) — "
             f"{row['stopped_at_batch']}",
             f"- **M1 recall:** {row['m1_recall']:.0f}%   **M2:** "
@@ -912,17 +1099,24 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--out-dir", default=str(DEFAULT_OUT))
     parser.add_argument("--repeats", type=int, default=DEFAULT_REPEATS)
     parser.add_argument("--tasks", nargs="*", default=list(TASKS))
-    parser.add_argument("--configs", nargs="*", default=None,
-                        help="config names to run (default: all)")
+    parser.add_argument(
+        "--configs", nargs="*", default=None, help="config names to run (default: all)"
+    )
     args = parser.parse_args(argv)
 
-    chosen = CONFIGS if args.configs is None else tuple(
-        c for c in CONFIGS if c.name in set(args.configs))
-    results = run_matrix(args.tasks, chosen, repeats=args.repeats,
-                         corpus=args.corpus, out_dir=args.out_dir)
+    chosen = (
+        CONFIGS
+        if args.configs is None
+        else tuple(c for c in CONFIGS if c.name in set(args.configs))
+    )
+    results = run_matrix(
+        args.tasks, chosen, repeats=args.repeats, corpus=args.corpus, out_dir=args.out_dir
+    )
     failed = sum(1 for r in results["rows"] if r["outcome"] != "success")
-    print(f"{len(results['rows'])} run(s), {failed} not green "
-          f"({len(results['skipped'])} skipped without a key)")
+    print(
+        f"{len(results['rows'])} run(s), {failed} not green "
+        f"({len(results['skipped'])} skipped without a key)"
+    )
     print(f"  -> {Path(args.out_dir) / 'results.md'}")
     return 0
 

@@ -25,8 +25,9 @@ class Provider(Protocol):
     @property
     def available(self) -> bool: ...
 
-    def complete(self, messages: list[Message], model: str, temperature: float,
-                 max_tokens: int) -> Completion: ...
+    def complete(
+        self, messages: list[Message], model: str, temperature: float, max_tokens: int
+    ) -> Completion: ...
 
 
 class KeyedProvider:
@@ -36,8 +37,9 @@ class KeyedProvider:
     (golden rule 2). ``None`` means the runtime needs no key — a local server.
     """
 
-    def __init__(self, *, name: str, base_url: str, api_key_env: str | None = None,
-                 timeout_s: float = 120.0) -> None:
+    def __init__(
+        self, *, name: str, base_url: str, api_key_env: str | None = None, timeout_s: float = 120.0
+    ) -> None:
         self.name = name
         self.base_url = base_url
         self.api_key_env = api_key_env

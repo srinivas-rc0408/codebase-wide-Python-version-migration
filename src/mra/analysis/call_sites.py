@@ -118,7 +118,7 @@ class ImportBindings(cst.CSTVisitor):
             climb = len(node.relative) - 1
             if climb >= len(parts) + 1:
                 return
-            module = ".".join([*parts[:len(parts) - climb], *([module] if module else [])])
+            module = ".".join([*parts[: len(parts) - climb], *([module] if module else [])])
         for alias in node.names:
             name = str(alias.evaluated_name)
             binding = str(alias.evaluated_alias) if alias.asname is not None else name
@@ -139,7 +139,7 @@ def canonical(dotted: str, exports: Exports | None) -> str:
         for i in range(len(parts) - 1, 0, -1):
             bound = (exports or {}).get(".".join(parts[:i]), {}).get(parts[i])
             if bound is not None:
-                dotted = ".".join([bound, *parts[i + 1:]])
+                dotted = ".".join([bound, *parts[i + 1 :]])
                 break
         else:
             return dotted
@@ -163,8 +163,9 @@ class _CallSiteVisitor(ImportBindings):
 
     METADATA_DEPENDENCIES = (PositionProvider, ScopeProvider)
 
-    def __init__(self, targets: Collection[str], file: str, package: str = "",
-                 exports: Exports | None = None) -> None:
+    def __init__(
+        self, targets: Collection[str], file: str, package: str = "", exports: Exports | None = None
+    ) -> None:
         super().__init__(package)
         self.targets = set(targets)
         self.exports = exports
@@ -210,8 +211,13 @@ def _targets(target: str | Collection[str]) -> set[str]:
     return {target} if isinstance(target, str) else set(target)
 
 
-def find_in_source(source: str | bytes, target: str | Collection[str], file: str,
-                   package: str = "", exports: Exports | None = None) -> list[CallSite]:
+def find_in_source(
+    source: str | bytes,
+    target: str | Collection[str],
+    file: str,
+    package: str = "",
+    exports: Exports | None = None,
+) -> list[CallSite]:
     """Locate every call to ``target`` (one symbol or several) in one module's source."""
     wrapper = MetadataWrapper(cst.parse_module(source))
     visitor = _CallSiteVisitor(_targets(target), file, package, exports)
@@ -237,8 +243,11 @@ def parse_repo(repo: Path | str) -> tuple[dict[Path, tuple[cst.Module, str]], li
 
 def exports_of(repo: Path | str, parsed: dict[Path, tuple[cst.Module, str]]) -> Exports:
     """What each in-repo module binds by import — the names it re-exports."""
-    return {name: bindings_of(parsed[path][0], parsed[path][1])
-            for name, path in module_index(repo).items() if path in parsed}
+    return {
+        name: bindings_of(parsed[path][0], parsed[path][1])
+        for name, path in module_index(repo).items()
+        if path in parsed
+    }
 
 
 def find_in_repo(

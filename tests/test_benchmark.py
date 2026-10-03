@@ -86,11 +86,11 @@ def ablation_b(runs_dir: Path, corpus_digests: dict[str, str]) -> dict[str, dict
         "alphabetical": Config("b-alpha", order="alphabetical", batch_size=1),
         "fr3_violating": Config("b-fr3", order="fr3_violating", batch_size=1),
         "dependency-off": Config("b-dep-off", order="dependency", batch_size=1, recovery=False),
-        "fr3_violating-off": Config("b-fr3-off", order="fr3_violating", batch_size=1,
-                                    recovery=False),
+        "fr3_violating-off": Config(
+            "b-fr3-off", order="fr3_violating", batch_size=1, recovery=False
+        ),
     }
-    return {name: run_one(TASK04, config, runs_dir=runs_dir)
-            for name, config in arms.items()}
+    return {name: run_one(TASK04, config, runs_dir=runs_dir) for name, config in arms.items()}
 
 
 @pytest.fixture(scope="session")
@@ -106,15 +106,15 @@ def ablation_b_task05(runs_dir: Path, corpus_digests: dict[str, str]) -> dict[st
         "dependency": Config("b5-dep", order="dependency", batch_size=1),
         "alphabetical": Config("b5-alpha", order="alphabetical", batch_size=1),
         "fr3_violating": Config("b5-fr3", order="fr3_violating", batch_size=1),
-        "dependency-off": Config("b5-dep-off", order="dependency", batch_size=1,
-                                 recovery=False),
-        "alphabetical-off": Config("b5-alpha-off", order="alphabetical", batch_size=1,
-                                   recovery=False),
-        "fr3_violating-off": Config("b5-fr3-off", order="fr3_violating", batch_size=1,
-                                    recovery=False),
+        "dependency-off": Config("b5-dep-off", order="dependency", batch_size=1, recovery=False),
+        "alphabetical-off": Config(
+            "b5-alpha-off", order="alphabetical", batch_size=1, recovery=False
+        ),
+        "fr3_violating-off": Config(
+            "b5-fr3-off", order="fr3_violating", batch_size=1, recovery=False
+        ),
     }
-    return {name: run_one(TASK05, config, runs_dir=runs_dir)
-            for name, config in arms.items()}
+    return {name: run_one(TASK05, config, runs_dir=runs_dir) for name, config in arms.items()}
 
 
 # -- A. the recovery loop, offline -----------------------------------------
@@ -141,11 +141,13 @@ def test_without_the_loop_the_half_migrations_regress(
 
 
 def test_the_loop_is_not_what_makes_the_single_file_task_work(
-    ablation_a: dict[str, dict[str, Any]]
+    ablation_a: dict[str, dict[str, Any]],
 ) -> None:
     """The control: with no cross-file break there is nothing to recover, so A is flat."""
-    off, on = ablation_a[("no-recovery", "task01_datetime")], ablation_a[
-        ("baseline", "task01_datetime")]
+    off, on = (
+        ablation_a[("no-recovery", "task01_datetime")],
+        ablation_a[("baseline", "task01_datetime")],
+    )
     assert off["outcome"] == on["outcome"] == "success"
     assert off["m1_recall"] == on["m1_recall"] == 100
     assert off["corrections"] == on["corrections"] == 0
@@ -155,7 +157,7 @@ def test_the_loop_is_not_what_makes_the_single_file_task_work(
 
 
 def test_a_dependents_first_order_costs_more_corrective_edits(
-    ablation_b: dict[str, dict[str, Any]]
+    ablation_b: dict[str, dict[str, Any]],
 ) -> None:
     """FR-3 order is not free to violate: the loop pays for it in CORRECT visits."""
     dependency, violating = ablation_b["dependency"], ablation_b["fr3_violating"]
@@ -164,7 +166,7 @@ def test_a_dependents_first_order_costs_more_corrective_edits(
 
 
 def test_without_the_loop_a_dependents_first_order_stops_sooner(
-    ablation_b: dict[str, dict[str, Any]]
+    ablation_b: dict[str, dict[str, Any]],
 ) -> None:
     """With nothing to repair the regression, the wrong order leaves less migrated.
 
@@ -178,7 +180,7 @@ def test_without_the_loop_a_dependents_first_order_stops_sooner(
 
 
 def test_every_order_is_still_a_complete_migration_when_the_loop_runs(
-    ablation_b: dict[str, dict[str, Any]]
+    ablation_b: dict[str, dict[str, Any]],
 ) -> None:
     """The honest half of B: on a six-file task, recovery rescues all three orders."""
     for arm in ("dependency", "alphabetical", "fr3_violating"):
@@ -205,7 +207,7 @@ def test_dependency_order_is_never_worse_than_an_arbitrary_one_on_task05(
 
 
 def test_the_dependency_order_needs_no_corrective_edit_on_task05(
-    ablation_b_task05: dict[str, dict[str, Any]]
+    ablation_b_task05: dict[str, dict[str, Any]],
 ) -> None:
     """The asymmetry: migrating the contract owner first never opens the window."""
     dependency = ablation_b_task05["dependency"]
@@ -234,7 +236,7 @@ def test_without_the_loop_only_the_dependency_order_survives_task05(
 
 
 def test_the_wrong_order_breaks_task05_at_collection_time(
-    ablation_b_task05: dict[str, dict[str, Any]]
+    ablation_b_task05: dict[str, dict[str, Any]],
 ) -> None:
     """File-name order migrates pkg.boot before pkg.timebase, and boot fails on import.
 
@@ -272,8 +274,7 @@ def test_pyupgrade_does_not_migrate_the_contract_either() -> None:
 
 def test_the_baseline_table_records_both_tools_for_every_task() -> None:
     table = baseline_table(["task01_datetime", "task03_half_migration"])
-    assert [entry["task_id"] for entry in table] == [
-        "task01_datetime", "task03_half_migration"]
+    assert [entry["task_id"] for entry in table] == ["task01_datetime", "task03_half_migration"]
     for entry in table:
         tools = {tool["tool"] for tool in entry["tools"]}
         assert tools == {"ruff (DTZ)", "pyupgrade"}
@@ -283,20 +284,38 @@ def test_the_baseline_table_records_both_tools_for_every_task() -> None:
 # -- the artifacts ---------------------------------------------------------
 
 
-ROW_FIELDS = ("task_id", "config", "outcome", "m1_recall", "m1_precision", "m1_f1",
-              "m2_pass_rate", "m2_regressions", "pro_in", "pro_out", "flash_in",
-              "flash_out", "m3_tokens", "m3_steps", "cost_usd", "recovery_used",
-              "wall_clock_s")
+ROW_FIELDS = (
+    "task_id",
+    "config",
+    "outcome",
+    "m1_recall",
+    "m1_precision",
+    "m1_f1",
+    "m2_pass_rate",
+    "m2_regressions",
+    "pro_in",
+    "pro_out",
+    "flash_in",
+    "flash_out",
+    "m3_tokens",
+    "m3_steps",
+    "cost_usd",
+    "recovery_used",
+    "wall_clock_s",
+)
 
 
 @pytest.fixture(scope="session")
-def matrix(tmp_path_factory: pytest.TempPathFactory,
-           corpus_digests: dict[str, str]) -> dict[str, Any]:
+def matrix(
+    tmp_path_factory: pytest.TempPathFactory, corpus_digests: dict[str, str]
+) -> dict[str, Any]:
     """A small matrix, written exactly as the published one is."""
     return run_matrix(
         ["task01_datetime", "task03_half_migration"],
         [BY_NAME["baseline"], BY_NAME["no-recovery"]],
-        repeats=2, corpus=CORPUS, out_dir=tmp_path_factory.mktemp("matrix"),
+        repeats=2,
+        corpus=CORPUS,
+        out_dir=tmp_path_factory.mktemp("matrix"),
     )
 
 
@@ -326,8 +345,12 @@ def test_the_table_renders_every_task_and_configuration(matrix: dict[str, Any]) 
         assert f"### {task}" in table
     for config in ("baseline", "no-recovery"):
         assert f"`{config}`" in table
-    for heading in ("## 1. The whole offline matrix", "## 1b. Per task, per configuration",
-                    "### A. Recovery loop ON vs OFF", "## 3. Deterministic baselines"):
+    for heading in (
+        "## 1. The whole offline matrix",
+        "## 1b. Per task, per configuration",
+        "### A. Recovery loop ON vs OFF",
+        "## 3. Deterministic baselines",
+    ):
         assert heading in table
     for task in matrix["tasks"]:
         assert f"`{task} / baseline`" in table, "the consolidated grid is missing a row"

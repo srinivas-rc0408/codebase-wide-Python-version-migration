@@ -102,7 +102,8 @@ def test_task02_patch_adds_no_import(runs: dict[str, Any]) -> None:
     assert "+    return datetime.datetime.now(datetime.timezone.utc)" in patch
     assert "+    return (dt.datetime.now(dt.timezone.utc) - generated_at).total_seconds()" in patch
     assert runs["task02_datetime_aliased"]["changed_files"] == [
-        "src/pkg/core.py", "src/pkg/report.py",
+        "src/pkg/core.py",
+        "src/pkg/report.py",
     ]
 
 
@@ -154,7 +155,10 @@ def test_patch_applies_to_a_fresh_checkout(task: str, runs: dict[str, Any], tmp_
     patch_file = runs[task]["out_dir"] / "migration.patch"
     result = subprocess.run(
         ["git", "apply", "--check", str(patch_file)],
-        cwd=fresh, capture_output=True, text=True, check=False,
+        cwd=fresh,
+        capture_output=True,
+        text=True,
+        check=False,
     )
     assert result.returncode == 0, result.stderr
 

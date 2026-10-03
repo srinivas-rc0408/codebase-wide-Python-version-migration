@@ -13,5 +13,16 @@ from mra.models.router import (
     total_tokens,
 )
 
-__all__ = ["ROLES", "TIER", "Endpoint", "PrivacyError", "ProviderError", "Role", "Router",
-           "cost_usd", "load_roles", "redact_secrets", "total_tokens"]
+__all__ = [
+    "ROLES",
+    "TIER",
+    "Endpoint",
+    "PrivacyError",
+    "ProviderError",
+    "Role",
+    "Router",
+    "cost_usd",
+    "load_roles",
+    "redact_secrets",
+    "total_tokens",
+]

@@ -78,18 +78,22 @@ def test_retrieval_returns_the_stored_fix_for_a_matching_failure(db: Path) -> No
     assert store.hints("import", MESSAGE, CONTRACT) == []
     assert store.hints("behaviour", MESSAGE, {**CONTRACT, "target_api": "other"}) == []
 
-    prompt = patch_prompt({"nodeid": "t", "message": MESSAGE},
-                          {"file": "a.py", "importers": [], "imports": [], "sites": [],
-                           "source": "x = 1\n"},
-                          CONTRACT, "behaviour", hints=[format_hint(h) for h in hits])
+    prompt = patch_prompt(
+        {"nodeid": "t", "message": MESSAGE},
+        {"file": "a.py", "importers": [], "imports": [], "sites": [], "source": "x = 1\n"},
+        CONTRACT,
+        "behaviour",
+        hints=[format_hint(h) for h in hits],
+    )
     assert "past fixes for similar failures" in prompt and hits[0]["pattern"] in prompt
 
 
 def test_hints_stay_within_budget(db: Path) -> None:
     store = ExperienceStore(db)
     for n in range(10):
-        store.record("behaviour", f"{MESSAGE} {'x' * n}", CONTRACT,
-                     "-a = 1\n+" + "b" * 600 + f"{n}\n")
+        store.record(
+            "behaviour", f"{MESSAGE} {'x' * n}", CONTRACT, "-a = 1\n+" + "b" * 600 + f"{n}\n"
+        )
     from mra.memory.experience import HINT_BUDGET_CHARS
 
     hits = store.hints("behaviour", MESSAGE, CONTRACT)
@@ -98,11 +102,14 @@ def test_hints_stay_within_budget(db: Path) -> None:
 
 def test_paths_and_secrets_are_stripped_before_storage(db: Path) -> None:
     store = ExperienceStore(db)
-    store.record("import", "ImportError: cannot import name 'x' from 'pkg.mod' "
-                 "(/home/alice/work/acme-repo/src/pkg/mod.py) key sk-abcdefghijklmnopqrstuv",
-                 CONTRACT,
-                 '-open("/home/alice/work/acme-repo/data.csv")\n+open(\'x\')\n'
-                 '-token = "sk-abcdefghijklmnopqrstuvwxyz"\n+token = None\n')
+    store.record(
+        "import",
+        "ImportError: cannot import name 'x' from 'pkg.mod' "
+        "(/home/alice/work/acme-repo/src/pkg/mod.py) key sk-abcdefghijklmnopqrstuv",
+        CONTRACT,
+        "-open(\"/home/alice/work/acme-repo/data.csv\")\n+open('x')\n"
+        '-token = "sk-abcdefghijklmnopqrstuvwxyz"\n+token = None\n',
+    )
     row = repr(store.rows())
     assert "/home/alice" not in row and "acme-repo" not in row and "mod.py" not in row
     assert "sk-abcdefghij" not in row
@@ -124,10 +131,15 @@ def test_readonly_store_learns_nothing(db: Path) -> None:
 
 def test_replay_applies_a_learnt_pattern() -> None:
     source = "from datetime import datetime\n\n\ndef f():\n    x = datetime.utcnow()\n"
-    out = replay("-from datetime import datetime\n+from datetime import datetime, timezone\n"
-                 "-    return datetime.utcnow()\n+    return datetime.now(timezone.utc)", source)
-    assert out == ("from datetime import datetime, timezone\n\n\ndef f():\n"
-                   "    x = datetime.now(timezone.utc)\n")
+    out = replay(
+        "-from datetime import datetime\n+from datetime import datetime, timezone\n"
+        "-    return datetime.utcnow()\n+    return datetime.now(timezone.utc)",
+        source,
+    )
+    assert out == (
+        "from datetime import datetime, timezone\n\n\ndef f():\n"
+        "    x = datetime.now(timezone.utc)\n"
+    )
 
 
 def test_training_split_refuses_evaluation_tasks(tmp_path: Path) -> None:
@@ -140,12 +152,16 @@ def test_training_split_refuses_evaluation_tasks(tmp_path: Path) -> None:
 @needs_docker
 def test_learns_a_green_correction_and_stores_no_repo_path(db: Path, tmp_path: Path) -> None:
     store = ExperienceStore(db)
-    result = run_migration(TASK03, run_id="learn", runs_dir=tmp_path / "runs",
-                           corrector=codemod_corrector, experience=store)
+    result = run_migration(
+        TASK03,
+        run_id="learn",
+        runs_dir=tmp_path / "runs",
+        corrector=codemod_corrector,
+        experience=store,
+    )
     assert result["metrics"]["outcome"] == "success" and result["experience_learned"] >= 1
     rows = store.rows()
-    files = [p.relative_to(result["repo"]).as_posix()
-             for p in Path(result["repo"]).rglob("*.py")]
+    files = [p.relative_to(result["repo"]).as_posix() for p in Path(result["repo"]).rglob("*.py")]
     for row in rows:
         text = repr(row)
         assert str(tmp_path) not in text and "/home/" not in text
@@ -154,24 +170,30 @@ def test_learns_a_green_correction_and_stores_no_repo_path(db: Path, tmp_path: P
 
 
 @needs_docker
-def test_nothing_written_when_off(db: Path, tmp_path: Path,
-                                  monkeypatch: pytest.MonkeyPatch) -> None:
+def test_nothing_written_when_off(
+    db: Path, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
     monkeypatch.setenv("MRA_EXPERIENCE", "off")
     assert cli(["run", "--task-dir", str(TASK03), "--runs-dir", str(tmp_path)]) == 0
     assert not db.exists()
 
 
 @needs_docker
-def test_forced_off_in_the_benchmark(db: Path, tmp_path: Path,
-                                     monkeypatch: pytest.MonkeyPatch) -> None:
+def test_forced_off_in_the_benchmark(
+    db: Path, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
     monkeypatch.setenv("MRA_EXPERIENCE", "on")  # the user's config says on ...
     baseline = next(c for c in CONFIGS if c.name == "baseline")
     row = run_one(TASK03, baseline, runs_dir=tmp_path)
     assert row["corrections"] >= 1  # ... a CORRECT turned the suite green ...
-    assert not db.exists()          # ... and the benchmark still wrote nothing.
+    assert not db.exists()  # ... and the benchmark still wrote nothing.
     with pytest.raises(ValueError, match="read-only"):
-        run_one(TASK03, next(c for c in CONFIGS if c.name == "memory-warm"),
-                runs_dir=tmp_path, experience=ExperienceStore(db))
+        run_one(
+            TASK03,
+            next(c for c in CONFIGS if c.name == "memory-warm"),
+            runs_dir=tmp_path,
+            experience=ExperienceStore(db),
+        )
 
 
 def test_rows_table_has_no_path_column(db: Path) -> None:
@@ -181,11 +203,12 @@ def test_rows_table_has_no_path_column(db: Path) -> None:
 
 
 @needs_docker
-def test_forced_off_in_the_edge_runner(db: Path, tmp_path: Path,
-                                       monkeypatch: pytest.MonkeyPatch) -> None:
+def test_forced_off_in_the_edge_runner(
+    db: Path, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
     from mra.benchmark.edge import run_case
 
     monkeypatch.setenv("MRA_EXPERIENCE", "on")
     row = run_case(REPO_ROOT / "corpus" / "edge" / "cross_file_recovery", tmp_path)
     assert row["pass"], row["problems"]  # the case needs a CORRECT to reach GREEN ...
-    assert not db.exists()               # ... and still nothing was learnt.
+    assert not db.exists()  # ... and still nothing was learnt.

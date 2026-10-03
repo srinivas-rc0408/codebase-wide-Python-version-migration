@@ -52,13 +52,15 @@ class Trajectory:
         self.events: list[dict[str, Any]] = []
 
     def record(self, node: str, action: str, **detail: Any) -> None:
-        self.events.append({
-            "seq": len(self.events),
-            "ts": datetime.now(UTC).isoformat(),
-            "node": node,
-            "action": action,
-            "detail": detail,
-        })
+        self.events.append(
+            {
+                "seq": len(self.events),
+                "ts": datetime.now(UTC).isoformat(),
+                "node": node,
+                "action": action,
+                "detail": detail,
+            }
+        )
 
 
 def migrate_task(
@@ -81,11 +83,15 @@ def migrate_task(
 
     truth = json.loads((task_dir / "ground_truth.json").read_text())
     if state is None:
-        state = new_state(run_id, str(out_dir / "repo"), {
-            "task_id": task_id,
-            "source_api": truth["source_api"],
-            "target_api": truth["target_api"],
-        })
+        state = new_state(
+            run_id,
+            str(out_dir / "repo"),
+            {
+                "task_id": task_id,
+                "source_api": truth["source_api"],
+                "target_api": truth["target_api"],
+            },
+        )
     trajectory = Trajectory()
     work = out_dir / "repo"
     if work.exists():
@@ -95,45 +101,72 @@ def migrate_task(
     # -- MAP ---------------------------------------------------------------
     analysis = analyze(work, target)
     sites = flat_sites(analysis["call_sites"])
-    trajectory.record("MAP", f"found {len(sites)} call site(s)",
-                      files=sorted(analysis["call_sites"]), target=target)
+    trajectory.record(
+        "MAP",
+        f"found {len(sites)} call site(s)",
+        files=sorted(analysis["call_sites"]),
+        target=target,
+    )
 
     # -- TEST (pre) --------------------------------------------------------
     # NB-10: M2 is undefined unless the suite is green before we touch anything.
     runner = SandboxRunner(runs_dir=runs_dir)
     pre = runner.run(work, task_id=task_id, phase="pre", run_id=run_id, lint=False)
     (out_dir / "test_report_pre.json").write_text(json.dumps(pre, indent=2) + "\n")
-    trajectory.record("TEST", "pre-migration suite",
-                      total=pre["total"], passed=pre["passed"], failed=pre["failed"])
+    trajectory.record(
+        "TEST",
+        "pre-migration suite",
+        total=pre["total"],
+        passed=pre["passed"],
+        failed=pre["failed"],
+    )
 
     # -- EDIT --------------------------------------------------------------
     base_sha = snapshot(work, "pre-migration snapshot")
     trajectory.record("EDIT", "git snapshot before batch 0", sha=base_sha)
-    batch = analysis["call_sites"] if edit_only is None else {
-        file: found for file, found in analysis["call_sites"].items() if file in edit_only
-    }
+    batch = (
+        analysis["call_sites"]
+        if edit_only is None
+        else {file: found for file, found in analysis["call_sites"].items() if file in edit_only}
+    )
     if edit_only is not None:
-        trajectory.record("EDIT", f"batch restricted to {len(batch)} of "
-                                  f"{len(analysis['call_sites'])} flagged file(s)",
-                          files=sorted(batch))
+        trajectory.record(
+            "EDIT",
+            f"batch restricted to {len(batch)} of {len(analysis['call_sites'])} flagged file(s)",
+            files=sorted(batch),
+        )
     changed = apply_codemod(work, batch)
     trajectory.record("EDIT", f"codemod applied to {len(changed)} file(s)", files=changed)
 
     # -- TEST (post) -------------------------------------------------------
     post = runner.run(work, task_id=task_id, phase="post", run_id=run_id)
-    trajectory.record("TEST", "post-migration suite",
-                      total=post["total"], passed=post["passed"], failed=post["failed"])
+    trajectory.record(
+        "TEST",
+        "post-migration suite",
+        total=post["total"],
+        passed=post["passed"],
+        failed=post["failed"],
+    )
 
     # -- CORRECT -----------------------------------------------------------
     recovery: dict[str, Any] | None = None
     green = post["failed"] == 0 and post["errors"] == 0
     if corrector is not None and not green:
         recovery = recover(
-            work, post, runner=runner, corrector=corrector, task_id=task_id,
-            trajectory=trajectory, run_id=run_id, max_attempts=max_attempts,
+            work,
+            post,
+            runner=runner,
+            corrector=corrector,
+            task_id=task_id,
+            trajectory=trajectory,
+            run_id=run_id,
+            max_attempts=max_attempts,
             fix_attempts=state.setdefault("fix_attempts", {}),
-            context={"call_sites": analysis["call_sites"], "dep_graph": analysis["dep_graph"],
-                     "contract": state["contract"]},
+            context={
+                "call_sites": analysis["call_sites"],
+                "dep_graph": analysis["dep_graph"],
+                "contract": state["contract"],
+            },
         )
         post = recovery["report"]
         green = recovery["outcome"] == "success"
@@ -195,8 +228,9 @@ def migrate_task(
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Run one Tier-A migration task end to end.")
-    parser.add_argument("--task-dir", required=True,
-                        help="task directory holding old/, gold/ and ground_truth.json")
+    parser.add_argument(
+        "--task-dir", required=True, help="task directory holding old/, gold/ and ground_truth.json"
+    )
     parser.add_argument("--run-id", default=None)
     parser.add_argument("--runs-dir", default="runs")
     args = parser.parse_args(argv)

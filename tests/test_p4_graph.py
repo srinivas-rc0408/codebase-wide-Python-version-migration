@@ -117,9 +117,9 @@ class FakeDeepSeek(FakeProvider):
     def _reply(self, messages: list[dict[str, str]], model: str) -> str:
         system, user = messages[0]["content"], messages[1]["content"]
         self.prompts.append((model, user))
-        if "one word" in system:               # classify (cheap tier)
+        if "one word" in system:  # classify (cheap tier)
             return "behaviour"
-        if "progress note" in system:          # rolling summary (cheap tier)
+        if "progress note" in system:  # rolling summary (cheap tier)
             return "Most files migrated; one cross-module break outstanding."
         source = user.split("```python\n", 1)[1].rsplit("```", 1)[0]  # corrective patch
         return f"```python\n{_codemod(source)}```"
@@ -146,20 +146,32 @@ def corpus_digests() -> dict[str, str]:
 
 @pytest.fixture(scope="session")
 def graph03(tmp_path_factory: pytest.TempPathFactory, corpus_digests: dict[str, str]):
-    return run_migration(TASK03, run_id="p4_task03", corrector=stub_corrector,
-                         runs_dir=tmp_path_factory.mktemp("runs"))
+    return run_migration(
+        TASK03,
+        run_id="p4_task03",
+        corrector=stub_corrector,
+        runs_dir=tmp_path_factory.mktemp("runs"),
+    )
 
 
 @pytest.fixture(scope="session")
 def graph04(tmp_path_factory: pytest.TempPathFactory, corpus_digests: dict[str, str]):
-    return run_migration(TASK04, run_id="p4_task04", corrector=stub_corrector,
-                         runs_dir=tmp_path_factory.mktemp("runs"))
+    return run_migration(
+        TASK04,
+        run_id="p4_task04",
+        corrector=stub_corrector,
+        runs_dir=tmp_path_factory.mktemp("runs"),
+    )
 
 
 @pytest.fixture(scope="session")
 def capped03(tmp_path_factory: pytest.TempPathFactory, corpus_digests: dict[str, str]):
-    return run_migration(TASK03, run_id="p4_task03_cap", corrector=bad_corrector,
-                         runs_dir=tmp_path_factory.mktemp("runs"))
+    return run_migration(
+        TASK03,
+        run_id="p4_task03_cap",
+        corrector=bad_corrector,
+        runs_dir=tmp_path_factory.mktemp("runs"),
+    )
 
 
 def _nodes(trajectory: list[dict[str, Any]]) -> list[str]:
@@ -174,14 +186,22 @@ def test_graph_reaches_the_same_verdict_as_the_p3_loop(graph03: dict[str, Any]) 
     """Same outcome and same scores on task03, now driven by LangGraph."""
     from mra.run import migrate_task
 
-    loop = migrate_task(TASK03, run_id="p3_reference",
-                        runs_dir=graph03["out_dir"].parent / "p3ref",
-                        edit_only=("src/pkg/core.py", "src/pkg/audit.py"),
-                        corrector=stub_corrector)
-    compared = ("outcome", "m1_recall", "m1_precision", "m2_pass_rate",
-                "m2_regressions", "recovery_used")
-    assert {k: graph03["metrics"][k] for k in compared} == \
-           {k: loop["metrics"][k] for k in compared}
+    loop = migrate_task(
+        TASK03,
+        run_id="p3_reference",
+        runs_dir=graph03["out_dir"].parent / "p3ref",
+        edit_only=("src/pkg/core.py", "src/pkg/audit.py"),
+        corrector=stub_corrector,
+    )
+    compared = (
+        "outcome",
+        "m1_recall",
+        "m1_precision",
+        "m2_pass_rate",
+        "m2_regressions",
+        "recovery_used",
+    )
+    assert {k: graph03["metrics"][k] for k in compared} == {k: loop["metrics"][k] for k in compared}
     # m3_steps legitimately differs: the graph runs MAP/PLAN/FINISH as steps.
     assert graph03["metrics"]["outcome"] == "success"
 
@@ -193,8 +213,7 @@ def test_graph_visits_the_nodes_of_the_documented_state_machine(
     """docs/04 §2.4: MAP -> PLAN -> EDIT -> TEST -> {CORRECT | EDIT | FINISH}."""
     nodes = _nodes(graph03["trajectory"])
     assert nodes[0] == "MAP" and nodes[1] == "PLAN" and nodes[-1] == "FINISH"
-    assert nodes == ["MAP", "PLAN", "EDIT", "TEST", "CORRECT", "TEST",
-                     "EDIT", "TEST", "FINISH"]
+    assert nodes == ["MAP", "PLAN", "EDIT", "TEST", "CORRECT", "TEST", "EDIT", "TEST", "FINISH"]
     assert set(nodes) <= set(NODE_LABELS.values())
     assert graph03["trajectory"][-1]["detail"]["outcome"] == "success"
     assert graph03["trajectory"][-1]["detail"]["flagged"] is False
@@ -208,12 +227,12 @@ def test_graph_gives_up_at_the_cap_and_flags_the_run(capped03: dict[str, Any]) -
     assert capped03["metrics"]["outcome"] == "gave_up"
     assert len(corrections) == DEFAULT_MAX_FIX_ATTEMPTS
     assert len({c["detail"]["signature"] for c in corrections}) == 1
-    assert [c["detail"]["attempt"] for c in corrections] == \
-           list(range(1, DEFAULT_MAX_FIX_ATTEMPTS + 1))
+    assert [c["detail"]["attempt"] for c in corrections] == list(
+        range(1, DEFAULT_MAX_FIX_ATTEMPTS + 1)
+    )
     assert trajectory[-1]["node"] == "FINISH"
     assert trajectory[-1]["detail"]["flagged"] is True
-    assert trajectory[-1]["detail"]["blocked_signatures"] == \
-           [corrections[0]["detail"]["signature"]]
+    assert trajectory[-1]["detail"]["blocked_signatures"] == [corrections[0]["detail"]["signature"]]
 
 
 def test_route_after_test_implements_the_documented_table() -> None:
@@ -221,20 +240,36 @@ def test_route_after_test_implements_the_documented_table() -> None:
     green = {"failed": 0, "errors": 0, "failures": []}
     red = {"failed": 1, "errors": 0, "failures": [{"signature": "s"}]}
     batches = [["a.py"], ["b.py"]]
-    assert route_after_test(
-        {"last_test_report": green, "current_batch": 2, "edit_batches": batches}
-    ) == "success"
-    assert route_after_test(
-        {"last_test_report": green, "current_batch": 1, "edit_batches": batches}
-    ) == "next_batch"
-    assert route_after_test(
-        {"last_test_report": red, "current_batch": 1, "edit_batches": batches,
-         "fix_attempts": {"s": 0}}
-    ) == "correct"
-    assert route_after_test(
-        {"last_test_report": red, "current_batch": 1, "edit_batches": batches,
-         "fix_attempts": {"s": DEFAULT_MAX_FIX_ATTEMPTS}}
-    ) == "give_up"
+    assert (
+        route_after_test({"last_test_report": green, "current_batch": 2, "edit_batches": batches})
+        == "success"
+    )
+    assert (
+        route_after_test({"last_test_report": green, "current_batch": 1, "edit_batches": batches})
+        == "next_batch"
+    )
+    assert (
+        route_after_test(
+            {
+                "last_test_report": red,
+                "current_batch": 1,
+                "edit_batches": batches,
+                "fix_attempts": {"s": 0},
+            }
+        )
+        == "correct"
+    )
+    assert (
+        route_after_test(
+            {
+                "last_test_report": red,
+                "current_batch": 1,
+                "edit_batches": batches,
+                "fix_attempts": {"s": DEFAULT_MAX_FIX_ATTEMPTS},
+            }
+        )
+        == "give_up"
+    )
 
 
 # -- 2. batching: dependency order, cycles, size ---------------------------
@@ -274,8 +309,7 @@ def test_batch_size_caps_independent_files_but_never_splits_a_cycle() -> None:
     assert [len(b) for b in plan_batches(independent, sites, batch_size=7)] == [7]
 
     ring = nx.DiGraph()
-    ring.add_edges_from([("a.py", "b.py"), ("b.py", "c.py"), ("c.py", "a.py"),
-                         ("d.py", "a.py")])
+    ring.add_edges_from([("a.py", "b.py"), ("b.py", "c.py"), ("c.py", "a.py"), ("d.py", "a.py")])
     ring_sites = {f: [{"line": 1}] for f in ("a.py", "b.py", "c.py", "d.py")}
     batches = plan_batches(ring, ring_sites, batch_size=2)
     assert ["a.py", "b.py", "c.py"] in batches, "a 3-cycle must survive a cap of 2"
@@ -299,8 +333,9 @@ def test_state_adjacency_round_trips_to_the_same_plan() -> None:
     analysis = analyze(TASK04 / "old", TARGET)
     rebuilt = from_state_adjacency(analysis["dep_graph"])
     assert set(rebuilt.edges) == set(built.edges)
-    assert plan_batches(rebuilt, analysis["call_sites"]) == \
-           plan_batches(built, analysis["call_sites"])
+    assert plan_batches(rebuilt, analysis["call_sites"]) == plan_batches(
+        built, analysis["call_sites"]
+    )
 
 
 @needs_docker
@@ -355,14 +390,22 @@ def test_trajectory_is_reconstructed_from_the_checkpoint_file_on_disk(
     db = graph04["checkpoint_db"]
     assert db.is_file() and db.stat().st_size > 0
     with sqlite3.connect(db) as connection:
-        tables = {row[0] for row in connection.execute(
-            "SELECT name FROM sqlite_master WHERE type='table'")}
+        tables = {
+            row[0]
+            for row in connection.execute("SELECT name FROM sqlite_master WHERE type='table'")
+        }
     assert "checkpoints" in tables
 
-    graph = build_graph(runner=SandboxRunner(runs_dir=db.parent), corrector=stub_corrector,
-                        task_id=graph04["task_id"], run_id=graph04["run_id"])
-    config = {"configurable": {"thread_id": graph04["run_id"]},
-              "recursion_limit": DEFAULT_RECURSION_LIMIT}
+    graph = build_graph(
+        runner=SandboxRunner(runs_dir=db.parent),
+        corrector=stub_corrector,
+        task_id=graph04["task_id"],
+        run_id=graph04["run_id"],
+    )
+    config = {
+        "configurable": {"thread_id": graph04["run_id"]},
+        "recursion_limit": DEFAULT_RECURSION_LIMIT,
+    }
     with SqliteSaver.from_conn_string(str(db)) as saver:
         replayed = trajectory_from_checkpoints(graph.compile(checkpointer=saver), config)
     assert replayed == graph04["trajectory"]
@@ -383,8 +426,14 @@ def test_trajectory_events_match_the_srs_shape(graph04: dict[str, Any]) -> None:
 
 @needs_docker
 def test_run_writes_every_artifact(graph04: dict[str, Any]) -> None:
-    for name in ("migration.patch", "metrics.json", "trajectory.json",
-                 "test_report.json", "test_report_pre.json", "state.db"):
+    for name in (
+        "migration.patch",
+        "metrics.json",
+        "trajectory.json",
+        "test_report.json",
+        "test_report_pre.json",
+        "state.db",
+    ):
         assert (graph04["out_dir"] / name).is_file(), name
     assert "b/src/pkg/report.py" in graph04["patch"]
     assert graph04["pre_report"]["failed"] == 0, "NB-10: the baseline must be green"
@@ -417,12 +466,19 @@ def payload_sizes(tmp_path: Path) -> dict[str, int]:
             "fix_attempts": {"sig": 1},
             "last_test_report": {"total": 11, "failed": 1, "errors": 0},
         }
-        failure = {"nodeid": "tests/test_report.py::t", "exc_type": "TypeError",
-                   "signature": "sig", "file": leave,
-                   "message": "can't subtract offset-naive and offset-aware datetimes",
-                   "trace": f"{leave}:20: TypeError"}
-        corrector = LLMCorrector(fake_router(FakeDeepSeek()), TARGET, {
-            "source_api": "datetime.utcnow", "target_api": "datetime.now(timezone.utc)"})
+        failure = {
+            "nodeid": "tests/test_report.py::t",
+            "exc_type": "TypeError",
+            "signature": "sig",
+            "file": leave,
+            "message": "can't subtract offset-naive and offset-aware datetimes",
+            "trace": f"{leave}:20: TypeError",
+        }
+        corrector = LLMCorrector(
+            fake_router(FakeDeepSeek()),
+            TARGET,
+            {"source_api": "datetime.utcnow", "target_api": "datetime.now(timezone.utc)"},
+        )
         changed = corrector(work, failure, {"summary": summarize(state)})
         assert changed == [leave], "the fake client must apply a real patch"
         assert call_sites_module.find_in_repo(work, TARGET) == {}
@@ -436,13 +492,12 @@ def test_llm_payload_does_not_grow_with_the_repo(payload_sizes: dict[str, int]) 
     large = payload_sizes["task04_multimodule"]
     assert small > 0 and large > 0
     growth = abs(large - small) / small
-    assert growth < 0.25, (
-        f"payload grew {growth:.0%} ({small} -> {large} chars) with repo size"
-    )
+    assert growth < 0.25, f"payload grew {growth:.0%} ({small} -> {large} chars) with repo size"
 
 
 def test_progress_summary_is_constant_size_in_repo_size() -> None:
     """The rolling note carries counts, never file names, so it cannot scale."""
+
     def state_of(n: int) -> dict[str, Any]:
         return {
             "edit_batches": [[f"m{i}.py"] for i in range(n)],
@@ -464,9 +519,7 @@ def test_graph_slice_is_truncated_to_a_constant_number_of_neighbours() -> None:
     """A hub module has hundreds of importers; the prompt shows a handful."""
     from mra.memory import graph_slice
 
-    located = {"file": "core.py",
-               "importers": [f"caller{i}.py" for i in range(300)],
-               "imports": []}
+    located = {"file": "core.py", "importers": [f"caller{i}.py" for i in range(300)], "imports": []}
     rendered = graph_slice(located)
     assert rendered.count("caller") == MAX_NEIGHBOURS
     assert f"+{300 - MAX_NEIGHBOURS} more" in rendered
@@ -477,10 +530,16 @@ def test_summarization_is_billed_to_the_cheap_model() -> None:
     """The rolling note is a V4-Flash job; paying V4-Pro rates for it is an M3 bug."""
     client = FakeDeepSeek()
     router = fake_router(client)
-    summary = summarize({"edit_batches": [["a.py"]], "current_batch": 1,
-                         "file_status": {"a.py": "migrated"}, "fix_attempts": {},
-                         "last_test_report": {"total": 3, "failed": 0, "errors": 0}},
-                        router)
+    summary = summarize(
+        {
+            "edit_batches": [["a.py"]],
+            "current_batch": 1,
+            "file_status": {"a.py": "migrated"},
+            "fix_attempts": {},
+            "last_test_report": {"total": 3, "failed": 0, "errors": 0},
+        },
+        router,
+    )
     assert summary
     assert router.tokens["flash_in"] > 0 and router.tokens["pro_in"] == 0
     assert client.prompts[0][0] == "fake-flash"
@@ -491,7 +550,9 @@ def test_summarization_is_billed_to_the_cheap_model() -> None:
 
 @needs_docker
 def test_no_run_touched_a_test_file_or_the_corpus(
-    graph03: dict[str, Any], graph04: dict[str, Any], capped03: dict[str, Any],
+    graph03: dict[str, Any],
+    graph04: dict[str, Any],
+    capped03: dict[str, Any],
     corpus_digests: dict[str, str],
 ) -> None:
     """NB-4 and sandbox isolation, across all three graph runs."""
@@ -500,8 +561,7 @@ def test_no_run_touched_a_test_file_or_the_corpus(
         assert "a/tests/" not in result["patch"] and "b/tests/" not in result["patch"]
         source = TASK04 if result["task_id"] == "task04_multimodule" else TASK03
         for test_file in (source / "old" / "tests").glob("test_*.py"):
-            assert (result["repo"] / "tests" / test_file.name).read_text() == \
-                   test_file.read_text()
+            assert (result["repo"] / "tests" / test_file.name).read_text() == test_file.read_text()
     assert {name: _tree_digest(CORPUS / name) for name in corpus_digests} == corpus_digests
 
 
@@ -513,7 +573,10 @@ def test_patch_applies_to_a_fresh_checkout(graph04: dict[str, Any], tmp_path: Pa
     subprocess.run(["git", "init", "-q"], cwd=fresh, check=True)
     result = subprocess.run(
         ["git", "apply", "--check", str(graph04["out_dir"] / "migration.patch")],
-        cwd=fresh, capture_output=True, text=True, check=False,
+        cwd=fresh,
+        capture_output=True,
+        text=True,
+        check=False,
     )
     assert result.returncode == 0, result.stderr
 
@@ -527,20 +590,34 @@ def test_live_llm_drives_the_graph_on_the_multimodule_task(tmp_path: Path) -> No
     """The real model, through the real graph, on the biggest fixture."""
     from mra.state import new_state
 
-    state = new_state("p4_live", "", {
-        "task_id": "task04_multimodule", "source_api": "datetime.utcnow",
-        "target_api": "datetime.now(timezone.utc)"})
+    state = new_state(
+        "p4_live",
+        "",
+        {
+            "task_id": "task04_multimodule",
+            "source_api": "datetime.utcnow",
+            "target_api": "datetime.now(timezone.utc)",
+        },
+    )
     router = Router(state["tokens"])
     corrector = LLMCorrector(router, TARGET, state["contract"])
 
-    result = run_migration(TASK04, run_id="p4_live", runs_dir=tmp_path / "runs",
-                           corrector=corrector, router=router, state=state)
+    result = run_migration(
+        TASK04,
+        run_id="p4_live",
+        runs_dir=tmp_path / "runs",
+        corrector=corrector,
+        router=router,
+        state=state,
+    )
 
     assert result["metrics"]["outcome"] == "success"
     assert result["metrics"]["m2_pass_rate"] == 100.0
     assert result["metrics"]["m3_tokens"] > 0
     assert state["tokens"]["flash_in"] > 0 and state["tokens"]["pro_in"] > 0
     assert max(corrector.payload_chars) < 12000, "context budget blown (NFR-12)"
-    print(f"\nlive p4: {result['metrics']['m3_tokens']} tokens, "
-          f"${result['metrics']['m3_cost_usd']:.6f}, "
-          f"max payload {max(corrector.payload_chars)} chars")
+    print(
+        f"\nlive p4: {result['metrics']['m3_tokens']} tokens, "
+        f"${result['metrics']['m3_cost_usd']:.6f}, "
+        f"max payload {max(corrector.payload_chars)} chars"
+    )

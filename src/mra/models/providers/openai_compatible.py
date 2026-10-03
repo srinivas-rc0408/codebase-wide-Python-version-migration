@@ -19,15 +19,20 @@ class OpenAICompatibleProvider(KeyedProvider):
             from openai import OpenAI  # lazy: the deterministic path never imports it
 
             # The SDK refuses an empty key; a keyless local server ignores this one.
-            self._client = OpenAI(api_key=self.api_key or "not-needed",
-                                  base_url=self.base_url, timeout=self.timeout_s)
+            self._client = OpenAI(
+                api_key=self.api_key or "not-needed", base_url=self.base_url, timeout=self.timeout_s
+            )
         return self._client
 
-    def complete(self, messages: list[Message], model: str, temperature: float,
-                 max_tokens: int) -> Completion:
+    def complete(
+        self, messages: list[Message], model: str, temperature: float, max_tokens: int
+    ) -> Completion:
         started = time.perf_counter()
         response = self.client.chat.completions.create(
-            model=model, messages=messages, temperature=temperature, max_tokens=max_tokens,
+            model=model,
+            messages=messages,
+            temperature=temperature,
+            max_tokens=max_tokens,
         )
         usage = getattr(response, "usage", None)
         return Completion(

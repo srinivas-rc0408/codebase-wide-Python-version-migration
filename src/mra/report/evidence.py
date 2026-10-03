@@ -64,8 +64,9 @@ def parse_patch(patch: str) -> dict[str, dict[str, Any]]:
             old_path = line[6:] if line.startswith("--- a/") else ""
         elif line.startswith("+++ "):
             path = line[6:] if line.startswith("+++ b/") else old_path
-            current = files.setdefault(path, {"added": 0, "removed": 0,
-                                              "new_lines": [], "hunks": []})
+            current = files.setdefault(
+                path, {"added": 0, "removed": 0, "new_lines": [], "hunks": []}
+            )
         elif current is not None and (match := HUNK.match(line)):
             line_no = int(match.group(1))
             current["hunks"].append([line])
@@ -90,8 +91,9 @@ class _Skipped(ImportBindings):
 
     METADATA_DEPENDENCIES = (PositionProvider,)
 
-    def __init__(self, targets: tuple[str, ...], bindings: dict[str, str],
-                 exports: Exports) -> None:
+    def __init__(
+        self, targets: tuple[str, ...], bindings: dict[str, str], exports: Exports
+    ) -> None:
         super().__init__()
         self.targets, self.resolved_bindings, self.exports = targets, bindings, exports
         self.called: set[int] = set()
@@ -130,8 +132,7 @@ def residual_scan(repo: Path, target: str) -> dict[str, list[Any]]:
     for path, (module, package) in sorted(parsed.items()):
         visitor = _Skipped(targets, bindings_of(module, package), exports)
         MetadataWrapper(module).visit(visitor)
-        skipped += [{"file": path.relative_to(repo).as_posix(), **found}
-                    for found in visitor.found]
+        skipped += [{"file": path.relative_to(repo).as_posix(), **found} for found in visitor.found]
     return {"sites": sites, "skipped": skipped, "unparseable": unparseable}
 
 
@@ -172,8 +173,10 @@ def _aware(path: Path, package: str, exports: Exports) -> tuple[int, list[str]]:
         if position is None:
             continue
         positional = [a.value for a in call.args if a.keyword is None]
-        tz = next((a.value for a in call.args if a.keyword and a.keyword.value == "tz"),
-                  positional[position] if len(positional) > position else None)
+        tz = next(
+            (a.value for a in call.args if a.keyword and a.keyword.value == "tz"),
+            positional[position] if len(positional) > position else None,
+        )
         if tz is None:
             naive += 1
         elif isinstance(tz, cst.Attribute | cst.Name) and resolve(tz) is None:
@@ -186,8 +189,9 @@ def _packages(repo: Path) -> dict[str, str]:
     return {path.relative_to(repo).as_posix(): package for path, (_, package) in parsed.items()}
 
 
-def semantic_checks(base: Path | None, repo: Path, files: list[str],
-                    target: str) -> list[dict[str, Any]]:
+def semantic_checks(
+    base: Path | None, repo: Path, files: list[str], target: str
+) -> list[dict[str, Any]]:
     """Per edited file: does the new code still mean what it meant, and look as it did?
 
     For the ``utcnow`` family: every migrated call must be timezone-aware (no
@@ -207,23 +211,38 @@ def semantic_checks(base: Path | None, repo: Path, files: list[str],
         before = base / file if base is not None else None
         if target in TARGETS:
             naive_after, unresolved = _aware(after, packages.get(file, ""), exports)
-            naive_before = (_aware(before, packages.get(file, ""), base_exports)[0]
-                            if before and before.is_file() else 0)
+            naive_before = (
+                _aware(before, packages.get(file, ""), base_exports)[0]
+                if before and before.is_file()
+                else 0
+            )
             problems = []
             if naive_after > naive_before:
                 problems.append(f"{naive_after - naive_before} new naive datetime call(s)")
             if unresolved:
                 problems.append("tz not imported: " + ", ".join(sorted(set(unresolved))))
-            checks.append({"check": "migrated datetime calls are timezone-aware", "file": file,
-                           "passed": not problems,
-                           "detail": "; ".join(problems) or "aware, tz resolves to an import"})
+            checks.append(
+                {
+                    "check": "migrated datetime calls are timezone-aware",
+                    "file": file,
+                    "passed": not problems,
+                    "detail": "; ".join(problems) or "aware, tz resolves to an import",
+                }
+            )
         if before and before.is_file():
             crlf_before = before.read_bytes().count(b"\r\n")
             lone_lf = after.read_bytes().replace(b"\r\n", b"").count(b"\n")
             kept = not crlf_before or not lone_lf
-            checks.append({"check": "line endings preserved", "file": file, "passed": kept,
-                           "detail": "unchanged" if kept else
-                           f"CRLF file now has {lone_lf} LF-only line(s)"})
+            checks.append(
+                {
+                    "check": "line endings preserved",
+                    "file": file,
+                    "passed": kept,
+                    "detail": "unchanged"
+                    if kept
+                    else f"CRLF file now has {lone_lf} LF-only line(s)",
+                }
+            )
     return checks
 
 
@@ -261,13 +280,22 @@ def _coverage(path: Path, patch_files: dict[str, dict[str, Any]]) -> dict[str, A
     try:
         data = json.loads(path.read_text())["files"]
     except (OSError, ValueError, KeyError) as exc:
-        return {"available": False, "error": f"coverage.json unreadable ({type(exc).__name__})",
-                "files": {f: {"changed": lines, "executed": []} for f, lines in edited.items()}}
-    executed = {name.removeprefix(CONTAINER_PREFIX): entry.get("executed_lines", [])
-                for name, entry in data.items()}
-    return {"available": True, "files": {
-        f: {"changed": lines, "executed": sorted(set(lines) & set(executed.get(f, [])))}
-        for f, lines in edited.items()}}
+        return {
+            "available": False,
+            "error": f"coverage.json unreadable ({type(exc).__name__})",
+            "files": {f: {"changed": lines, "executed": []} for f, lines in edited.items()},
+        }
+    executed = {
+        name.removeprefix(CONTAINER_PREFIX): entry.get("executed_lines", [])
+        for name, entry in data.items()
+    }
+    return {
+        "available": True,
+        "files": {
+            f: {"changed": lines, "executed": sorted(set(lines) & set(executed.get(f, [])))}
+            for f, lines in edited.items()
+        },
+    }
 
 
 def _ruff_findings(path: Path) -> list[dict[str, str]] | None:
@@ -276,9 +304,17 @@ def _ruff_findings(path: Path) -> list[dict[str, str]] | None:
         raw = json.loads(path.read_text())
     except (OSError, ValueError):
         return None
-    return sorted(({"code": d.get("code") or "", "message": d.get("message", ""),
-                    "file": d.get("filename", "").removeprefix(CONTAINER_PREFIX)}
-                   for d in raw), key=lambda f: (f["file"], f["code"], f["message"]))
+    return sorted(
+        (
+            {
+                "code": d.get("code") or "",
+                "message": d.get("message", ""),
+                "file": d.get("filename", "").removeprefix(CONTAINER_PREFIX),
+            }
+            for d in raw
+        ),
+        key=lambda f: (f["file"], f["code"], f["message"]),
+    )
 
 
 def _step(evidence: dict[str, Any], key: str, compute: Any) -> Any:
@@ -298,7 +334,8 @@ def edge_suite() -> dict[str, Any] | None:
     except (OSError, ValueError):
         return None
     return {key: results[key] for key in ("agent_version", "generated_at", "passed", "total")} | {
-        "failing": [row["case"] for row in results["cases"] if not row["pass"]]}
+        "failing": [row["case"] for row in results["cases"] if not row["pass"]]
+    }
 
 
 def collect(out_dir: Path, target: str, task_id: str, run_id: str) -> dict[str, Any]:
@@ -316,17 +353,28 @@ def collect(out_dir: Path, target: str, task_id: str, run_id: str) -> dict[str, 
             return True
 
         _step(evidence, "patch_salvaged", salvage)
-    patch_files = (parse_patch(patch_path.read_text(errors="surrogateescape"))
-                   if patch_path.is_file() else {})
+    patch_files = (
+        parse_patch(patch_path.read_text(errors="surrogateescape")) if patch_path.is_file() else {}
+    )
 
-    _step(evidence, "inventory", lambda: [
-        {"file": p.relative_to(repo).as_posix(), "loc": len(p.read_text(errors="replace")
-                                                            .splitlines())}
-        for p in python_files(repo)])
+    _step(
+        evidence,
+        "inventory",
+        lambda: [
+            {
+                "file": p.relative_to(repo).as_posix(),
+                "loc": len(p.read_text(errors="replace").splitlines()),
+            }
+            for p in python_files(repo)
+        ],
+    )
     _step(evidence, "residual", lambda: residual_scan(repo, target))
     evidence["edge_suite"] = edge_suite()
-    fresh = _step(evidence, "fresh_checkout",
-                  lambda: str(export_tree(repo, sha, verify_dir / "fresh"))) if sha else None
+    fresh = (
+        _step(evidence, "fresh_checkout", lambda: str(export_tree(repo, sha, verify_dir / "fresh")))
+        if sha
+        else None
+    )
     fresh_path = Path(fresh) if fresh else None
     if fresh_path and patch_path.is_file():
         _step(evidence, "apply_check", lambda: apply_check(fresh_path, patch_path))
@@ -336,15 +384,26 @@ def collect(out_dir: Path, target: str, task_id: str, run_id: str) -> dict[str, 
     sandbox = SandboxRunner(runs_dir=verify_dir)
     lint: dict[str, Any] = {"pre": None, "post": None}
     if fresh_path:
-        _step(evidence, "lint_baseline_report", lambda: sandbox.run(
-            fresh_path, task_id=task_id, phase="pre", run_id=f"{run_id}-baseline"))
+        _step(
+            evidence,
+            "lint_baseline_report",
+            lambda: sandbox.run(
+                fresh_path, task_id=task_id, phase="pre", run_id=f"{run_id}-baseline"
+            ),
+        )
         lint["pre"] = _ruff_findings(verify_dir / f"{run_id}-baseline" / "ruff.json")
     if repo.is_dir():
-        _step(evidence, "coverage_report", lambda: sandbox.run(
-            repo, task_id=task_id, phase="post", run_id=f"{run_id}-coverage", coverage=True))
+        _step(
+            evidence,
+            "coverage_report",
+            lambda: sandbox.run(
+                repo, task_id=task_id, phase="post", run_id=f"{run_id}-coverage", coverage=True
+            ),
+        )
         lint["post"] = _ruff_findings(verify_dir / f"{run_id}-coverage" / "ruff.json")
-        evidence["coverage"] = _coverage(verify_dir / f"{run_id}-coverage" / "coverage.json",
-                                         patch_files)
+        evidence["coverage"] = _coverage(
+            verify_dir / f"{run_id}-coverage" / "coverage.json", patch_files
+        )
     evidence["lint"] = lint
     evidence.pop("fresh_checkout", None)
     shutil.rmtree(verify_dir / "fresh", ignore_errors=True)

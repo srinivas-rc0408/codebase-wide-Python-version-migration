@@ -78,8 +78,7 @@ def make_edit_node(runs_dir_unused: Any = None):
             "current_batch": index + 1,
             "file_status": status,
             "note": {
-                "action": f"batch {index}: codemod changed {len(changed)} of "
-                          f"{len(batch)} file(s)",
+                "action": f"batch {index}: codemod changed {len(changed)} of {len(batch)} file(s)",
                 "detail": {"batch": index, "files": batch, "changed": changed, "sha": sha},
             },
         }

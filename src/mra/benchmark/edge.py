@@ -37,8 +37,9 @@ ORDER = {"common": 0, "rare": 1, "twisted": 2, "failure": 3}
 
 def cases(edge: Path = DEFAULT_EDGE) -> list[Path]:
     found = [p.parent for p in edge.glob("*/case.json")]
-    return sorted(found, key=lambda p: (ORDER[json.loads((p / "case.json").read_text())
-                                              ["category"]], p.name))
+    return sorted(
+        found, key=lambda p: (ORDER[json.loads((p / "case.json").read_text())["category"]], p.name)
+    )
 
 
 # -- LLM set-ups ------------------------------------------------------------
@@ -79,19 +80,28 @@ def _llm_setup(mode: str, task_dir: Path) -> Any:
             provider: Any = FakeProvider("fake-llm", reply=_fake_reply)
         elif mode == "llm-unreachable":
             provider = OpenAICompatibleProvider(
-                name="local-dead", base_url=f"http://127.0.0.1:{_dead_port()}/v1", timeout_s=2)
+                name="local-dead", base_url=f"http://127.0.0.1:{_dead_port()}/v1", timeout_s=2
+            )
         else:  # llm-remote: a key is "set", the host is remote
             os.environ["EDGE_DUMMY_KEY"] = "not-a-real-key"
-            provider = OpenAICompatibleProvider(name="deepseek", base_url="https://api.deepseek.com",
-                                                api_key_env="EDGE_DUMMY_KEY")
+            provider = OpenAICompatibleProvider(
+                name="deepseek", base_url="https://api.deepseek.com", api_key_env="EDGE_DUMMY_KEY"
+            )
         truth = json.loads((task_dir / "ground_truth.json").read_text())
-        contract = {"task_id": task_dir.name, "source_api": truth["source_api"],
-                    "target_api": truth["target_api"]}
+        contract = {
+            "task_id": task_dir.name,
+            "source_api": truth["source_api"],
+            "target_api": truth["target_api"],
+        }
         state = new_state(run_id, "", contract)
-        router = Router(state["tokens"],
-                        roles={role: [Endpoint(provider, "edge-model")] for role in ROLES})
-        return {"router": router, "state": state,
-                "corrector": LLMCorrector(router, TARGET, contract)}
+        router = Router(
+            state["tokens"], roles={role: [Endpoint(provider, "edge-model")] for role in ROLES}
+        )
+        return {
+            "router": router,
+            "state": state,
+            "corrector": LLMCorrector(router, TARGET, contract),
+        }
 
     return setup
 
@@ -113,8 +123,9 @@ def run_case(task_dir: Path | str, runs_dir: Path | str) -> dict[str, Any]:
     spec = json.loads((task_dir / "case.json").read_text())
     os.environ.update(spec["env"])
     setup = None if spec["mode"] == "deterministic" else _llm_setup(spec["mode"], task_dir)
-    result = run_with_report(task_dir, run_id=task_dir.name, runs_dir=runs_dir,
-                             corrector=codemod_corrector, setup=setup)
+    result = run_with_report(
+        task_dir, run_id=task_dir.name, runs_dir=runs_dir, corrector=codemod_corrector, setup=setup
+    )
     model = result["model"]
     actual = model["verdict"]["status"]
     reasons = model["verdict"]["reasons"]
@@ -126,8 +137,8 @@ def run_case(task_dir: Path | str, runs_dir: Path | str) -> dict[str, Any]:
         if not matching:
             problems.append(f"no `{spec['code']}` reason")
         elif spec["evidence"] and not any(
-                spec["evidence"].lower() in f"{r['text']} {r['evidence']}".lower()
-                for r in matching):
+            spec["evidence"].lower() in f"{r['text']} {r['evidence']}".lower() for r in matching
+        ):
             problems.append(f"`{spec['code']}` reason does not mention '{spec['evidence']}'")
     if spec["code"] in ("precondition", "refused") and model["changes"]:
         problems.append(f"refused, yet edited {len(model['changes'])} file(s)")
@@ -142,11 +153,16 @@ def run_case(task_dir: Path | str, runs_dir: Path | str) -> dict[str, Any]:
         if not produced.is_file() or produced.read_bytes() != expected:
             problems.append(f"{rel} is not byte-identical to gold/")
     return {
-        "case": task_dir.name, "category": spec["category"], "expected": spec["expect"],
-        "actual": actual, "pass": not problems, "problems": problems,
+        "case": task_dir.name,
+        "category": spec["category"],
+        "expected": spec["expect"],
+        "actual": actual,
+        "pass": not problems,
+        "problems": problems,
         "reasons": [f"{r['level']} {r['code']}: {r['evidence']}" for r in reasons],
         # Relative: results.json is committed, and an absolute path names the machine.
-        "note": spec["note"], "pdf": _relative(result["pdf"]),
+        "note": spec["note"],
+        "pdf": _relative(result["pdf"]),
     }
 
 
@@ -156,22 +172,38 @@ def _judge(task_dir: Path, runs_dir: Path) -> dict[str, Any]:
         return run_case(task_dir, runs_dir)
     except Exception as exc:
         spec = json.loads((task_dir / "case.json").read_text())
-        return {"case": task_dir.name, "category": spec["category"], "expected": spec["expect"],
-                "actual": "NO REPORT", "pass": False,
-                "problems": [f"no report: {type(exc).__name__}: {exc}"[:300]],
-                "reasons": [], "note": spec["note"], "pdf": ""}
+        return {
+            "case": task_dir.name,
+            "category": spec["category"],
+            "expected": spec["expect"],
+            "actual": "NO REPORT",
+            "pass": False,
+            "problems": [f"no report: {type(exc).__name__}: {exc}"[:300]],
+            "reasons": [],
+            "note": spec["note"],
+            "pdf": "",
+        }
 
 
-def run_suite(edge: Path = DEFAULT_EDGE, runs_dir: Path = DEFAULT_RUNS,
-              only: list[str] | None = None, workers: int = 6) -> dict[str, Any]:
+def run_suite(
+    edge: Path = DEFAULT_EDGE,
+    runs_dir: Path = DEFAULT_RUNS,
+    only: list[str] | None = None,
+    workers: int = 6,
+) -> dict[str, Any]:
     selected = [c for c in cases(edge) if not only or c.name in only]
     # One process per case (max_tasks_per_child=1): no env var leaks between cases.
-    with ProcessPoolExecutor(max_workers=workers, mp_context=get_context("spawn"),
-                             max_tasks_per_child=1) as pool:
+    with ProcessPoolExecutor(
+        max_workers=workers, mp_context=get_context("spawn"), max_tasks_per_child=1
+    ) as pool:
         rows = list(pool.map(_judge, selected, [runs_dir] * len(selected)))
-    return {"agent_version": __version__,
-            "generated_at": datetime.now(UTC).isoformat(timespec="seconds"),
-            "passed": sum(r["pass"] for r in rows), "total": len(rows), "cases": rows}
+    return {
+        "agent_version": __version__,
+        "generated_at": datetime.now(UTC).isoformat(timespec="seconds"),
+        "passed": sum(r["pass"] for r in rows),
+        "total": len(rows),
+        "cases": rows,
+    }
 
 
 def render(results: dict[str, Any]) -> str:
@@ -191,8 +223,10 @@ def render(results: dict[str, Any]) -> str:
     for row in results["cases"]:
         detail = "; ".join(row["problems"]) or "; ".join(row["reasons"]) or row["note"] or "—"
         detail = re.sub(r"\s+", " ", detail).replace("|", "\\|")
-        lines.append(f"| `{row['case']}` | {row['category']} | {row['expected']} | "
-                     f"{row['actual']} | {'yes' if row['pass'] else '**NO**'} | {detail} |")
+        lines.append(
+            f"| `{row['case']}` | {row['category']} | {row['expected']} | "
+            f"{row['actual']} | {'yes' if row['pass'] else '**NO**'} | {detail} |"
+        )
     return "\n".join(lines) + "\n"
 
 
@@ -200,8 +234,9 @@ def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Run the edge-case accuracy suite.")
     parser.add_argument("--edge", default=str(DEFAULT_EDGE))
     parser.add_argument("--runs-dir", default=str(DEFAULT_RUNS))
-    parser.add_argument("--out", default=None, help="where RESULTS.md/results.json go "
-                                                     "(default: the edge directory)")
+    parser.add_argument(
+        "--out", default=None, help="where RESULTS.md/results.json go (default: the edge directory)"
+    )
     parser.add_argument("--cases", nargs="*", default=None)
     parser.add_argument("--workers", type=int, default=6)
     args = parser.parse_args(argv)
@@ -210,8 +245,10 @@ def main(argv: list[str] | None = None) -> int:
     out.mkdir(parents=True, exist_ok=True)
     (out / "results.json").write_text(json.dumps(results, indent=2) + "\n")
     (out / "RESULTS.md").write_text(render(results))
-    print(f"{results['passed']}/{results['total']} cases give the expected verdict "
-          f"-> {out / 'RESULTS.md'}")
+    print(
+        f"{results['passed']}/{results['total']} cases give the expected verdict "
+        f"-> {out / 'RESULTS.md'}"
+    )
     for row in results["cases"]:
         if not row["pass"]:
             print(f"  MISMATCH {row['case']}: {'; '.join(row['problems'])}")

@@ -139,18 +139,19 @@ Each node is `state → partial state update`. Pure where possible; side effects
 ```python
 MAX_FIX_ATTEMPTS = 3
 
+
 def route_after_test(state) -> str:
     r = state["last_test_report"]
     if r["failed"] == 0 and r["errors"] == 0:
         # batch is green
         if state["current_batch"] + 1 >= len(state["edit_batches"]):
-            return "success"          # all batches done, suite green
+            return "success"  # all batches done, suite green
         state["current_batch"] += 1
-        return "next_batch"           # -> EDIT (k+1)
+        return "next_batch"  # -> EDIT (k+1)
     sig = r["failures"][0]["signature"]
     if state["fix_attempts"].get(sig, 0) >= MAX_FIX_ATTEMPTS:
-        return "give_up"              # same failure N times -> log + flag
-    return "correct"                  # -> CORRECT -> TEST
+        return "give_up"  # same failure N times -> log + flag
+    return "correct"  # -> CORRECT -> TEST
 ```
 
 > **Implementation note (P4).** The `state["current_batch"] += 1` above is
@@ -169,25 +170,33 @@ from langgraph.graph import StateGraph, START, END
 from langgraph.checkpoint.sqlite import SqliteSaver
 
 g = StateGraph(MigrationState)
-for name, fn in [("map", map_node), ("plan", plan_node),
-                 ("edit", edit_node), ("test", test_node),
-                 ("correct", correct_node)]:
+for name, fn in [
+    ("map", map_node),
+    ("plan", plan_node),
+    ("edit", edit_node),
+    ("test", test_node),
+    ("correct", correct_node),
+]:
     g.add_node(name, fn)
 
 g.add_edge(START, "map")
 g.add_edge("map", "plan")
 g.add_edge("plan", "edit")
 g.add_edge("edit", "test")
-g.add_conditional_edges("test", route_after_test, {
-    "correct":    "correct",
-    "next_batch": "edit",
-    "success":    END,
-    "give_up":    END,
-})
+g.add_conditional_edges(
+    "test",
+    route_after_test,
+    {
+        "correct": "correct",
+        "next_batch": "edit",
+        "success": END,
+        "give_up": END,
+    },
+)
 g.add_edge("correct", "test")
 
 with SqliteSaver.from_conn_string("runs/<run_id>/state.db") as saver:
-    app = g.compile(checkpointer=saver)   # checkpointer = trajectory/audit log
+    app = g.compile(checkpointer=saver)  # checkpointer = trajectory/audit log
 ```
 
 ### 2.5 Recovery-node internals (the hardest part)
@@ -242,20 +251,21 @@ The naive "topological order" is not enough on its own, because a migration edit
 ```python
 import networkx as nx
 
+
 def plan_batches(dep_graph: nx.DiGraph, call_sites: dict) -> list[list[str]]:
     files_with_sites = {f for f in call_sites if call_sites[f]}
     # collapse import cycles: each cycle -> one atomic batch
     cycles = list(nx.simple_cycles(dep_graph))
     atomic = {frozenset(c) for c in cycles if len(c) > 1}
     # condensation gives a DAG over strongly-connected components
-    cond = nx.condensation(dep_graph)            # DAG of SCCs
-    order = list(nx.topological_sort(cond))       # dependency order
+    cond = nx.condensation(dep_graph)  # DAG of SCCs
+    order = list(nx.topological_sort(cond))  # dependency order
     batches = []
     for scc_id in order:
         members = set(cond.nodes[scc_id]["members"])
         batch = sorted(members & files_with_sites)
         if batch:
-            batches.append(batch)                 # atomic per SCC
+            batches.append(batch)  # atomic per SCC
     return batches
 ```
 

@@ -128,8 +128,7 @@ class ConvertUtcnowCommand(VisitorBasedCodemodCommand):
         method = attributes[-1]
         # utcnow() takes no arguments, utcfromtimestamp(t) exactly one positional.
         arity = 0 if method == "utcnow" else 1
-        if len(updated_node.args) != arity or any(a.keyword or a.star
-                                                  for a in updated_node.args):
+        if len(updated_node.args) != arity or any(a.keyword or a.star for a in updated_node.args):
             return updated_node
         form = self._form(original_node, head, attributes)
         if form is None:
@@ -149,8 +148,10 @@ class ConvertUtcnowCommand(VisitorBasedCodemodCommand):
                 attr=cst.Name("utc"),
             )
         self.edits.append(f"{head.value}.{'.'.join(attributes)} -> {_RENAMES[method]}(...)")
-        args = [*(a.with_changes(comma=cst.MaybeSentinel.DEFAULT) for a in updated_node.args),
-                cst.Arg(value=timezone)]
+        args = [
+            *(a.with_changes(comma=cst.MaybeSentinel.DEFAULT) for a in updated_node.args),
+            cst.Arg(value=timezone),
+        ]
         return updated_node.with_changes(func=new_func, args=args)
 
 
@@ -166,20 +167,32 @@ class _InsertTimezone(cst.CSTTransformer):
         self.done = False
 
     def leave_SimpleStatementLine(
-        self, original_node: cst.SimpleStatementLine, updated_node: cst.SimpleStatementLine,
+        self,
+        original_node: cst.SimpleStatementLine,
+        updated_node: cst.SimpleStatementLine,
     ) -> cst.SimpleStatementLine | cst.FlattenSentinel[cst.SimpleStatementLine]:
         if self.done or len(updated_node.body) != 1:
             return updated_node
         node = updated_node.body[0]
-        if (not isinstance(node, cst.ImportFrom) or isinstance(node.names, cst.ImportStar)
-                or node.relative or node.module is None
-                or cst.Module([]).code_for_node(node.module) != "datetime"
-                or not any(alias.evaluated_name == "datetime" for alias in node.names)):
+        if (
+            not isinstance(node, cst.ImportFrom)
+            or isinstance(node.names, cst.ImportStar)
+            or node.relative
+            or node.module is None
+            or cst.Module([]).code_for_node(node.module) != "datetime"
+            or not any(alias.evaluated_name == "datetime" for alias in node.names)
+        ):
             return updated_node
         self.done = True
         if any(alias.asname is not None for alias in node.names):
-            own_line = cst.SimpleStatementLine(body=[cst.ImportFrom(
-                module=cst.Name("datetime"), names=[cst.ImportAlias(name=cst.Name("timezone"))])])
+            own_line = cst.SimpleStatementLine(
+                body=[
+                    cst.ImportFrom(
+                        module=cst.Name("datetime"),
+                        names=[cst.ImportAlias(name=cst.Name("timezone"))],
+                    )
+                ]
+            )
             return cst.FlattenSentinel([updated_node, own_line])
         return updated_node.with_changes(body=[_with_timezone(node)])
 
@@ -216,8 +229,13 @@ def _place_timezone_import(tree: cst.Module) -> cst.Module | None:
     if not imports:
         return None
     later = next((i for i in imports if _import_key(body[i]) > new_key), None)
-    new = cst.SimpleStatementLine(body=[cst.ImportFrom(
-        module=cst.Name("datetime"), names=[cst.ImportAlias(name=cst.Name("timezone"))])])
+    new = cst.SimpleStatementLine(
+        body=[
+            cst.ImportFrom(
+                module=cst.Name("datetime"), names=[cst.ImportAlias(name=cst.Name("timezone"))]
+            )
+        ]
+    )
     if later is None:
         body.insert(imports[-1] + 1, new)
         return tree.with_changes(body=body)
@@ -230,17 +248,20 @@ def _place_timezone_import(tree: cst.Module) -> cst.Module | None:
         following = following.with_changes(leading_lines=[cst.EmptyLine()])
     else:
         following = following.with_changes(leading_lines=[])
-    body[later:later + 1] = [new, following]
+    body[later : later + 1] = [new, following]
     return tree.with_changes(body=body)
 
 
 def _with_timezone(node: cst.ImportFrom) -> cst.ImportFrom:
     names = list(node.names)
-    index = next((i for i, alias in enumerate(names) if alias.evaluated_name > "timezone"),
-                 len(names))
+    index = next(
+        (i for i, alias in enumerate(names) if alias.evaluated_name > "timezone"), len(names)
+    )
     # Reuse the list's own separator, so a one-per-line list stays one per line.
-    comma = next((alias.comma for alias in names[:-1] if isinstance(alias.comma, cst.Comma)),
-                 cst.Comma(whitespace_after=cst.SimpleWhitespace(" ")))
+    comma = next(
+        (alias.comma for alias in names[:-1] if isinstance(alias.comma, cst.Comma)),
+        cst.Comma(whitespace_after=cst.SimpleWhitespace(" ")),
+    )
     if index == len(names):
         # Appending: the old last name now needs a separator, and the new one
         # inherits whatever trailed it (nothing, or a trailing comma).

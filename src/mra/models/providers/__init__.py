@@ -25,16 +25,26 @@ def make_provider(name: str, entry: dict[str, Any]) -> Provider:
     """Build the provider for one ``[providers.<name>]`` table of ``mra.toml``."""
     kind = entry.get("provider")
     if kind not in KINDS:
-        raise ValueError(f"providers.{name}: provider must be one of {sorted(KINDS)}, "
-                         f"got {kind!r}")
+        raise ValueError(f"providers.{name}: provider must be one of {sorted(KINDS)}, got {kind!r}")
     if kind == "fake":
         return FakeProvider(name=name)
     if not entry.get("base_url"):
         raise ValueError(f"providers.{name}: base_url is required")
-    return KINDS[kind](name=name, base_url=entry["base_url"],
-                       api_key_env=entry.get("api_key_env"),
-                       timeout_s=float(entry.get("timeout_s", 120)))
+    return KINDS[kind](
+        name=name,
+        base_url=entry["base_url"],
+        api_key_env=entry.get("api_key_env"),
+        timeout_s=float(entry.get("timeout_s", 120)),
+    )
 
 
-__all__ = ["KINDS", "AnthropicProvider", "Completion", "FakeProvider", "Message",
-           "OpenAICompatibleProvider", "Provider", "make_provider"]
+__all__ = [
+    "KINDS",
+    "AnthropicProvider",
+    "Completion",
+    "FakeProvider",
+    "Message",
+    "OpenAICompatibleProvider",
+    "Provider",
+    "make_provider",
+]

@@ -91,9 +91,7 @@ def oracle_tampering_corrector(
     """Deletes the failing assertion instead of fixing the code. Must be rejected."""
     victim = repo / "tests" / "test_report.py"
     victim.write_text(
-        victim.read_text().replace(
-            "assert stamp_age_seconds(generated_at) >= 0", "assert True"
-        )
+        victim.read_text().replace("assert stamp_age_seconds(generated_at) >= 0", "assert True")
     )
     return ["tests/test_report.py"]
 
@@ -135,12 +133,13 @@ def test_half_migration_leaves_exactly_one_site(tmp_path: Path) -> None:
 
 
 @pytest.fixture(scope="session")
-def recovered(
-    tmp_path_factory: pytest.TempPathFactory, corpus_digest: str
-) -> dict[str, Any]:
+def recovered(tmp_path_factory: pytest.TempPathFactory, corpus_digest: str) -> dict[str, Any]:
     return migrate_task(
-        TASK, run_id="p3_recovery_stub", runs_dir=tmp_path_factory.mktemp("runs"),
-        edit_only=FIRST_BATCH, corrector=stub_corrector,
+        TASK,
+        run_id="p3_recovery_stub",
+        runs_dir=tmp_path_factory.mktemp("runs"),
+        edit_only=FIRST_BATCH,
+        corrector=stub_corrector,
     )
 
 
@@ -160,8 +159,7 @@ def test_the_break_was_the_designed_one(recovered: dict[str, Any]) -> None:
     """Recovery from the wrong failure would prove nothing about this fixture."""
     first = recovered["recovery"]["corrections"][0]
     correct_events = [
-        e for e in recovered["trajectory"]
-        if e["node"] == "CORRECT" and e["detail"].get("exc_type")
+        e for e in recovered["trajectory"] if e["node"] == "CORRECT" and e["detail"].get("exc_type")
     ]
     assert correct_events[0]["detail"]["exc_type"] == "TypeError"
     assert BREAKING_TEST in correct_events[0]["action"]
@@ -174,8 +172,7 @@ def test_trajectory_shows_edit_test_correct_test(recovered: dict[str, Any]) -> N
     nodes = _nodes(recovered["trajectory"])
     # MAP, TEST(pre), EDIT x3 (snapshot, batch restriction, codemod), TEST(post, red),
     # CORRECT, TEST(recovery, green), CORRECT(summary).
-    assert nodes == ["MAP", "TEST", "EDIT", "EDIT", "EDIT", "TEST",
-                     "CORRECT", "TEST", "CORRECT"]
+    assert nodes == ["MAP", "TEST", "EDIT", "EDIT", "EDIT", "TEST", "CORRECT", "TEST", "CORRECT"]
     post, recovery_test = [e for e in recovered["trajectory"] if e["node"] == "TEST"][1:3]
     assert post["detail"]["failed"] == 1, "the post-edit suite must be red"
     assert recovery_test["detail"]["failed"] == 0, "the recovery suite must be green"
@@ -209,12 +206,13 @@ def test_recovery_patch_is_the_whole_migration(recovered: dict[str, Any]) -> Non
 
 
 @pytest.fixture(scope="session")
-def gave_up(
-    tmp_path_factory: pytest.TempPathFactory, corpus_digest: str
-) -> dict[str, Any]:
+def gave_up(tmp_path_factory: pytest.TempPathFactory, corpus_digest: str) -> dict[str, Any]:
     return migrate_task(
-        TASK, run_id="p3_recovery_cap", runs_dir=tmp_path_factory.mktemp("runs"),
-        edit_only=FIRST_BATCH, corrector=bad_corrector,
+        TASK,
+        run_id="p3_recovery_cap",
+        runs_dir=tmp_path_factory.mktemp("runs"),
+        edit_only=FIRST_BATCH,
+        corrector=bad_corrector,
     )
 
 
@@ -251,8 +249,12 @@ def test_giving_up_still_scores_the_partial_migration(gave_up: dict[str, Any]) -
 def test_custom_cap_is_honoured(tmp_path: Path) -> None:
     """The ceiling is configurable (MRA_MAX_FIX_ATTEMPTS), not hard-coded at 3."""
     result = migrate_task(
-        TASK, run_id="p3_cap_one", runs_dir=tmp_path / "runs",
-        edit_only=FIRST_BATCH, corrector=bad_corrector, max_attempts=1,
+        TASK,
+        run_id="p3_cap_one",
+        runs_dir=tmp_path / "runs",
+        edit_only=FIRST_BATCH,
+        corrector=bad_corrector,
+        max_attempts=1,
     )
     assert result["recovery"]["rounds"] == 1
     assert result["recovery"]["outcome"] == "gave_up"
@@ -265,13 +267,16 @@ def test_custom_cap_is_honoured(tmp_path: Path) -> None:
 def test_correct_may_not_edit_the_test_oracle(tmp_path: Path) -> None:
     """Golden rule 1. A patch that edits tests is reverted, not just logged."""
     result = migrate_task(
-        TASK, run_id="p3_oracle", runs_dir=tmp_path / "runs",
-        edit_only=FIRST_BATCH, corrector=oracle_tampering_corrector, max_attempts=2,
+        TASK,
+        run_id="p3_oracle",
+        runs_dir=tmp_path / "runs",
+        edit_only=FIRST_BATCH,
+        corrector=oracle_tampering_corrector,
+        max_attempts=2,
     )
     assert result["recovery"]["outcome"] == "gave_up"
     assert all(c["changed"] == [] for c in result["recovery"]["corrections"])
-    assert all(c["rejected"] == ["tests/test_report.py"]
-               for c in result["recovery"]["corrections"])
+    assert all(c["rejected"] == ["tests/test_report.py"] for c in result["recovery"]["corrections"])
     # Reverted on disk, not merely refused in the report.
     original = (TASK / "old" / "tests" / "test_report.py").read_text()
     assert (result["repo"] / "tests" / "test_report.py").read_text() == original
@@ -304,9 +309,10 @@ def test_the_half_migration_failure_classifies_as_a_behaviour_break() -> None:
     }
     assert classify_offline(failure) == "behaviour"
     assert classify_offline({"exc_type": "ImportError", "message": "no name"}) == "import"
-    assert classify_offline(
-        {"exc_type": "TypeError", "message": "got an unexpected keyword argument"}
-    ) == "signature"
+    assert (
+        classify_offline({"exc_type": "TypeError", "message": "got an unexpected keyword argument"})
+        == "signature"
+    )
     assert set(FAILURE_CLASSES) >= {"import", "signature", "behaviour", "assertion"}
 
 
@@ -317,11 +323,15 @@ def test_locate_uses_the_trace_and_the_graph_not_a_guess(tmp_path: Path) -> None
     before = call_sites_module.find_in_repo(work, TARGET)
     apply_codemod(work, {f: before[f] for f in FIRST_BATCH})
 
-    located = locate(work, {
-        "file": BROKEN_FILE,
-        "trace": "src/pkg/report.py:20: TypeError",
-        "exc_type": "TypeError",
-    }, TARGET)
+    located = locate(
+        work,
+        {
+            "file": BROKEN_FILE,
+            "trace": "src/pkg/report.py:20: TypeError",
+            "exc_type": "TypeError",
+        },
+        TARGET,
+    )
     assert located is not None
     assert located["file"] == BROKEN_FILE
     assert located["hinted_by_trace"] is True
@@ -371,8 +381,13 @@ def test_router_bills_each_tier_separately() -> None:
     router = Router(tokens, roles={})
     router._bill("recover", "strong-model", 1000, 200)
     router._bill("classify", "cheap-model", 500, 10)
-    assert tokens == {"pro_in": 1000, "pro_out": 200, "flash_in": 500,
-                      "flash_out": 10, "tool_calls": 2}
+    assert tokens == {
+        "pro_in": 1000,
+        "pro_out": 200,
+        "flash_in": 500,
+        "flash_out": 10,
+        "tool_calls": 2,
+    }
     assert total_tokens(tokens) == 1710
     assert router.cost_usd() == pytest.approx(
         1000 * 0.66e-6 + 200 * 1.98e-6 + 500 * 0.22e-6 + 10 * 0.66e-6
@@ -386,17 +401,25 @@ def test_router_bills_each_tier_separately() -> None:
 @needs_key
 def test_live_llm_recovers_the_half_migration(tmp_path: Path) -> None:
     """FR-7 end to end with the real model. Reports its own token cost."""
-    state = new_state("p3_live", str(tmp_path), {
-        "task_id": "task03_half_migration",
-        "source_api": "datetime.utcnow",
-        "target_api": "datetime.now(timezone.utc)",
-    })
+    state = new_state(
+        "p3_live",
+        str(tmp_path),
+        {
+            "task_id": "task03_half_migration",
+            "source_api": "datetime.utcnow",
+            "target_api": "datetime.now(timezone.utc)",
+        },
+    )
     router = Router(state["tokens"])
     corrector = LLMCorrector(router, TARGET, state["contract"])
 
     result = migrate_task(
-        TASK, run_id="p3_recovery_live", runs_dir=tmp_path / "runs",
-        edit_only=FIRST_BATCH, corrector=corrector, state=state,
+        TASK,
+        run_id="p3_recovery_live",
+        runs_dir=tmp_path / "runs",
+        edit_only=FIRST_BATCH,
+        corrector=corrector,
+        state=state,
     )
 
     assert result["recovery"]["outcome"] == "success", "live model failed to recover"
@@ -412,6 +435,8 @@ def test_live_llm_recovers_the_half_migration(tmp_path: Path) -> None:
     assert result["metrics"]["m3_cost_usd"] > 0
     # NB-4 holds for the model too, not just for the stubs.
     assert not any(is_test_path(c["file"]) for c in corrector.log if c["file"])
-    print(f"\nlive recovery: {result['recovery']['rounds']} round(s), "
-          f"{result['metrics']['m3_tokens']} tokens, "
-          f"${result['metrics']['m3_cost_usd']:.6f}")
+    print(
+        f"\nlive recovery: {result['recovery']['rounds']} round(s), "
+        f"{result['metrics']['m3_tokens']} tokens, "
+        f"${result['metrics']['m3_cost_usd']:.6f}"
+    )

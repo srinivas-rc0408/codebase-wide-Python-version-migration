@@ -49,8 +49,12 @@ from mra.state import MigrationState, new_state
 
 #: Node name -> the ``trajectory_event.node`` enum in SRS §4.1.
 NODE_LABELS = {
-    "map": "MAP", "plan": "PLAN", "edit": "EDIT",
-    "test": "TEST", "correct": "CORRECT", "finish": "FINISH",
+    "map": "MAP",
+    "plan": "PLAN",
+    "edit": "EDIT",
+    "test": "TEST",
+    "correct": "CORRECT",
+    "finish": "FINISH",
 }
 
 #: EDIT+TEST per batch, plus corrections, plus MAP/PLAN/FINISH. Well clear of
@@ -73,11 +77,15 @@ def precondition_problem(pre: dict[str, Any]) -> str | None:
     if is_green(pre):
         return None
     failing = [f.get("nodeid", "?") for f in pre.get("failures", [])]
-    problem = (f"the pre-migration suite is not green: {pre.get('failed', 0)} failed, "
-               f"{pre.get('errors', 0)} errors ({', '.join(failing[:3])})")
+    problem = (
+        f"the pre-migration suite is not green: {pre.get('failed', 0)} failed, "
+        f"{pre.get('errors', 0)} errors ({', '.join(failing[:3])})"
+    )
     if offline := needs_network(pre):
-        problem += (f"; {', '.join(offline[:3])} need(s) the network, which the sandbox "
-                    "does not have (--network none)")
+        problem += (
+            f"; {', '.join(offline[:3])} need(s) the network, which the sandbox "
+            "does not have (--network none)"
+        )
     return problem
 
 
@@ -115,8 +123,9 @@ def route_after_test(state: dict[str, Any]) -> str:
 
 def outcome_of(state: dict[str, Any]) -> str:
     """The same predicate ``route_after_test`` used, recomputed where it can be stored."""
-    return "success" if is_green(state["last_test_report"]) and all_batches_done(state) \
-        else "gave_up"
+    return (
+        "success" if is_green(state["last_test_report"]) and all_batches_done(state) else "gave_up"
+    )
 
 
 def finish_node(state: dict[str, Any]) -> dict[str, Any]:
@@ -128,7 +137,7 @@ def finish_node(state: dict[str, Any]) -> dict[str, Any]:
         "done": outcome == "success",
         "note": {
             "action": f"{outcome} after batch "
-                      f"{state.get('current_batch', 0)}/{len(state.get('edit_batches') or [])}",
+            f"{state.get('current_batch', 0)}/{len(state.get('edit_batches') or [])}",
             "detail": {
                 "outcome": outcome,
                 "flagged": outcome != "success",
@@ -173,12 +182,16 @@ def build_graph(
     graph.add_edge("map", "plan")
     graph.add_edge("plan", "edit")
     graph.add_edge("edit", "test")
-    graph.add_conditional_edges("test", route_after_test, {
-        "correct": "correct",
-        "next_batch": "edit",
-        "success": "finish",
-        "give_up": "finish",
-    })
+    graph.add_conditional_edges(
+        "test",
+        route_after_test,
+        {
+            "correct": "correct",
+            "next_batch": "edit",
+            "success": "finish",
+            "give_up": "finish",
+        },
+    )
     graph.add_edge("correct", "test")
     graph.add_edge("finish", END)
     return graph
@@ -202,22 +215,28 @@ def trajectory_from_checkpoints(app: Any, config: dict[str, Any]) -> list[dict[s
         if node not in NODE_LABELS:
             continue  # __start__, and any internal step that is not one of ours
         note = (current.values or {}).get("note") or {}
-        events.append({
-            "seq": len(events),
-            "ts": current.created_at,
-            "node": NODE_LABELS[node],
-            "action": note.get("action", ""),
-            "detail": note.get("detail", {}),
-        })
+        events.append(
+            {
+                "seq": len(events),
+                "ts": current.created_at,
+                "node": NODE_LABELS[node],
+                "action": note.get("action", ""),
+                "detail": note.get("detail", {}),
+            }
+        )
     return events
 
 
 def changed_files(trajectory: list[dict[str, Any]]) -> list[str]:
     """Every file the agent actually rewrote, per the reconstructed log."""
-    return sorted({
-        file for event in trajectory if event["node"] in ("EDIT", "CORRECT")
-        for file in event["detail"].get("changed", [])
-    })
+    return sorted(
+        {
+            file
+            for event in trajectory
+            if event["node"] in ("EDIT", "CORRECT")
+            for file in event["detail"].get("changed", [])
+        }
+    )
 
 
 # -- the run ---------------------------------------------------------------
@@ -258,11 +277,15 @@ def run_migration(
     shutil.copytree(task_dir / "old", work)
 
     if state is None:
-        state = new_state(run_id, str(work), {
-            "task_id": task_id,
-            "source_api": truth["source_api"],
-            "target_api": truth["target_api"],
-        })
+        state = new_state(
+            run_id,
+            str(work),
+            {
+                "task_id": task_id,
+                "source_api": truth["source_api"],
+                "target_api": truth["target_api"],
+            },
+        )
     state["repo_path"] = str(work)
     state["contract"].setdefault("expected_lint", list(EXPECTED_LINT) if target == TARGET else [])
 
@@ -277,8 +300,15 @@ def run_migration(
 
     base_sha = snapshot(work, "pre-migration snapshot")
 
-    graph = build_graph(runner=runner, corrector=corrector, task_id=task_id,
-                        target=target, run_id=run_id, router=router, planner=planner)
+    graph = build_graph(
+        runner=runner,
+        corrector=corrector,
+        task_id=task_id,
+        target=target,
+        run_id=run_id,
+        router=router,
+        planner=planner,
+    )
     config = {"configurable": {"thread_id": run_id}, "recursion_limit": recursion_limit}
     # Re-running a run_id starts a fresh audit log; appending to the old one
     # would interleave two runs' steps in one trajectory.
@@ -300,8 +330,12 @@ def run_migration(
     # Non-UTF-8 sources come back from git surrogate-escaped; write the original bytes.
     (out_dir / "migration.patch").write_text(patch, errors="surrogateescape")
 
-    edited = {_key(site) for sites in final.get("call_sites", {}).values()
-              for site in sites if site["file"] in set(changed)}
+    edited = {
+        _key(site)
+        for sites in final.get("call_sites", {}).values()
+        for site in sites
+        if site["file"] in set(changed)
+    }
     expected = {_key(site) for site in truth["call_sites"]}
     m1_score = m1(agent_sites=edited, correct_sites=edited, ground_truth_sites=expected)
     m2_score = m2(t_total=pre["total"], t_post_pass=post["passed"])
@@ -324,9 +358,18 @@ def run_migration(
     (out_dir / "test_report.json").write_text(json.dumps(post, indent=2) + "\n")
 
     return {
-        "run_id": run_id, "task_id": task_id, "out_dir": out_dir, "repo": work,
-        "state": final, "trajectory": trajectory, "batches": final.get("edit_batches") or [],
-        "changed_files": changed, "pre_report": pre, "test_report": post,
-        "patch": patch, "metrics": metrics, "checkpoint_db": out_dir / "state.db",
+        "run_id": run_id,
+        "task_id": task_id,
+        "out_dir": out_dir,
+        "repo": work,
+        "state": final,
+        "trajectory": trajectory,
+        "batches": final.get("edit_batches") or [],
+        "changed_files": changed,
+        "pre_report": pre,
+        "test_report": post,
+        "patch": patch,
+        "metrics": metrics,
+        "checkpoint_db": out_dir / "state.db",
         "experience_learned": learned,
     }

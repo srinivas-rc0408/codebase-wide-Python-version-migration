@@ -102,8 +102,10 @@ def recover(
         ``outcome`` is ``"success"`` or ``"gave_up"``.
     """
     repo = Path(repo)
-    cap = max_attempts if max_attempts is not None else int(
-        os.getenv("MRA_MAX_FIX_ATTEMPTS", str(DEFAULT_MAX_FIX_ATTEMPTS))
+    cap = (
+        max_attempts
+        if max_attempts is not None
+        else int(os.getenv("MRA_MAX_FIX_ATTEMPTS", str(DEFAULT_MAX_FIX_ATTEMPTS)))
     )
     attempts = fix_attempts if fix_attempts is not None else {}
     context = context or {}
@@ -115,13 +117,20 @@ def recover(
         if failure is None:
             blocked = sorted({f["signature"] for f in report.get("failures", [])})
             trajectory.record(
-                "CORRECT", f"gave up after {cap} attempt(s) per signature",
-                signatures=blocked, attempts={s: attempts.get(s, 0) for s in blocked},
+                "CORRECT",
+                f"gave up after {cap} attempt(s) per signature",
+                signatures=blocked,
+                attempts={s: attempts.get(s, 0) for s in blocked},
                 flagged=True,
             )
-            return {"outcome": "gave_up", "report": report, "rounds": rounds,
-                    "flagged": True, "signature": blocked[0] if blocked else None,
-                    "corrections": corrections}
+            return {
+                "outcome": "gave_up",
+                "report": report,
+                "rounds": rounds,
+                "flagged": True,
+                "signature": blocked[0] if blocked else None,
+                "corrections": corrections,
+            }
 
         signature = failure["signature"]
         attempts[signature] = attempts.get(signature, 0) + 1
@@ -136,30 +145,54 @@ def recover(
             # oracle must not survive long enough to be tested against it.
             rollback(repo, base_sha)
             trajectory.record(
-                "CORRECT", "rejected a patch that edited the test oracle (NB-4)",
-                signature=signature, attempt=attempts[signature], files=tampered,
+                "CORRECT",
+                "rejected a patch that edited the test oracle (NB-4)",
+                signature=signature,
+                attempt=attempts[signature],
+                files=tampered,
             )
-            corrections.append({"signature": signature, "attempt": attempts[signature],
-                                "changed": [], "rejected": tampered})
+            corrections.append(
+                {
+                    "signature": signature,
+                    "attempt": attempts[signature],
+                    "changed": [],
+                    "rejected": tampered,
+                }
+            )
             continue
 
         sha = snapshot(repo, f"correction {rounds} for {signature}")
         trajectory.record(
-            "CORRECT", f"attempt {attempts[signature]}/{cap} on {failure['nodeid']}",
-            signature=signature, attempt=attempts[signature], exc_type=failure.get("exc_type"),
-            files=changed, sha=sha,
+            "CORRECT",
+            f"attempt {attempts[signature]}/{cap} on {failure['nodeid']}",
+            signature=signature,
+            attempt=attempts[signature],
+            exc_type=failure.get("exc_type"),
+            files=changed,
+            sha=sha,
         )
-        corrections.append({"signature": signature, "attempt": attempts[signature],
-                            "changed": changed, "sha": sha})
+        corrections.append(
+            {"signature": signature, "attempt": attempts[signature], "changed": changed, "sha": sha}
+        )
 
         report = runner.run(repo, task_id=task_id, phase="recovery", run_id=run_id, lint=False)
         trajectory.record(
-            "TEST", f"recovery suite after attempt {attempts[signature]}",
-            total=report["total"], passed=report["passed"], failed=report["failed"],
+            "TEST",
+            f"recovery suite after attempt {attempts[signature]}",
+            total=report["total"],
+            passed=report["passed"],
+            failed=report["failed"],
             errors=report["errors"],
         )
 
-    trajectory.record("CORRECT", f"recovered to green in {rounds} attempt(s)",
-                      rounds=rounds, flagged=False)
-    return {"outcome": "success", "report": report, "rounds": rounds,
-            "flagged": False, "signature": None, "corrections": corrections}
+    trajectory.record(
+        "CORRECT", f"recovered to green in {rounds} attempt(s)", rounds=rounds, flagged=False
+    )
+    return {
+        "outcome": "success",
+        "report": report,
+        "rounds": rounds,
+        "flagged": False,
+        "signature": None,
+        "corrections": corrections,
+    }

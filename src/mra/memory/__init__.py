@@ -54,8 +54,7 @@ def progress_facts(state: dict[str, Any]) -> dict[str, Any]:
         "batches_total": len(batches),
         "batches_done": min(current, len(batches)),
         "files_total": sum(len(batch) for batch in batches),
-        "files_migrated": sum(1 for value in status.values()
-                              if value in ("migrated", "verified")),
+        "files_migrated": sum(1 for value in status.values() if value in ("migrated", "verified")),
         "files_failed": sum(1 for value in status.values() if value == "failed"),
         "tests_total": report.get("total", 0),
         "tests_failed": report.get("failed", 0) + report.get("errors", 0),
@@ -134,26 +133,31 @@ def edit_context(
     at ``HINT_BUDGET_CHARS`` by the store.
     """
     sites = [(site["line"], site["symbol"]) for site in located["sites"][:MAX_NEIGHBOURS]]
-    return "\n".join([
-        f"# migration contract: {contract.get('source_api')} -> {contract.get('target_api')}",
-        f"# failure class: {klass}",
-        f"# failing test: {failure.get('nodeid')}",
-        f"# exception: {failure.get('exc_type')}: {failure.get('message')}",
-        "",
-        "# progress so far",
-        f"# {summary[:SUMMARY_MAX_CHARS]}" if summary else "# (first correction of this run)",
-        "",
-        *(["# past fixes for similar failures (hints; apply only if they fit)",
-           *hints, ""] if hints else []),
-        "# trace",
-        str(failure.get("trace", ""))[:TRACE_MAX_CHARS],
-        "",
-        "# dependency-graph slice",
-        graph_slice(located),
-        f"# unmigrated call sites still in this file: {sites}",
-        "",
-        f"# file to rewrite: {located['file']}",
-        "```python",
-        located["source"],
-        "```",
-    ])
+    return "\n".join(
+        [
+            f"# migration contract: {contract.get('source_api')} -> {contract.get('target_api')}",
+            f"# failure class: {klass}",
+            f"# failing test: {failure.get('nodeid')}",
+            f"# exception: {failure.get('exc_type')}: {failure.get('message')}",
+            "",
+            "# progress so far",
+            f"# {summary[:SUMMARY_MAX_CHARS]}" if summary else "# (first correction of this run)",
+            "",
+            *(
+                ["# past fixes for similar failures (hints; apply only if they fit)", *hints, ""]
+                if hints
+                else []
+            ),
+            "# trace",
+            str(failure.get("trace", ""))[:TRACE_MAX_CHARS],
+            "",
+            "# dependency-graph slice",
+            graph_slice(located),
+            f"# unmigrated call sites still in this file: {sites}",
+            "",
+            f"# file to rewrite: {located['file']}",
+            "```python",
+            located["source"],
+            "```",
+        ]
+    )

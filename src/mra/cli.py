@@ -42,7 +42,8 @@ def providers_check(path: str | None) -> int:
             continue
         try:
             result = endpoint.provider.complete(
-                [{"role": "user", "content": "Reply with: ok"}], endpoint.model, 0.0, 5)
+                [{"role": "user", "content": "Reply with: ok"}], endpoint.model, 0.0, 5
+            )
         except Exception as exc:  # any failure here is the answer, not a crash
             reason = str(exc).splitlines()[0][:80] if str(exc) else type(exc).__name__
             print(f"WARN unreach {where}  ({reason})")
@@ -65,8 +66,11 @@ def run(task_dir: str, run_id: str | None, runs_dir: str, llm: bool) -> int:
         from mra.state import new_state
 
         truth = json.loads((Path(task_dir) / "ground_truth.json").read_text())
-        contract = {"task_id": Path(task_dir).name, "source_api": truth["source_api"],
-                    "target_api": truth["target_api"]}
+        contract = {
+            "task_id": Path(task_dir).name,
+            "source_api": truth["source_api"],
+            "target_api": truth["target_api"],
+        }
         state = new_state(run_id, "", contract)
         router = Router(state["tokens"])
         if not router.available:
@@ -74,8 +78,9 @@ def run(task_dir: str, run_id: str | None, runs_dir: str, llm: bool) -> int:
             return 2
         corrector = LLMCorrector(router, TARGET, contract, experience)
         run_kwargs["state"] = state
-    result = run_with_report(task_dir, run_id=run_id, runs_dir=runs_dir, router=router,
-                             corrector=corrector, **run_kwargs)
+    result = run_with_report(
+        task_dir, run_id=run_id, runs_dir=runs_dir, router=router, corrector=corrector, **run_kwargs
+    )
     print(terminal_summary(result["model"], result["pdf"]))
     return EXIT[result["model"]["verdict"]["status"]]
 
@@ -113,8 +118,11 @@ def main(argv: list[str] | None = None) -> int:
     run_cmd.add_argument("--task-dir", required=True)
     run_cmd.add_argument("--run-id")
     run_cmd.add_argument("--runs-dir", default="runs")
-    run_cmd.add_argument("--llm", action="store_true",
-                         help="recover with the LLM corrector (mra.toml) instead of the codemod")
+    run_cmd.add_argument(
+        "--llm",
+        action="store_true",
+        help="recover with the LLM corrector (mra.toml) instead of the codemod",
+    )
     report_cmd = commands.add_parser("report", help="rebuild a run's report from its artifacts")
     report_cmd.add_argument("run_id")
     report_cmd.add_argument("--runs-dir", default="runs")

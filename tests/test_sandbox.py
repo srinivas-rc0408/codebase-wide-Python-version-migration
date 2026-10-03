@@ -67,8 +67,7 @@ def _break_copy(source: Path, destination: Path) -> Path:
     """Copy a task tree and inject one failing assertion into its suite."""
     shutil.copytree(source, destination)
     (destination / "tests" / "test_core.py").open("a").write(
-        "\n\ndef test_injected_failure() -> None:\n"
-        "    assert make_timestamp().year == 1999\n"
+        "\n\ndef test_injected_failure() -> None:\n    assert make_timestamp().year == 1999\n"
     )
     return destination
 
@@ -201,7 +200,8 @@ def test_unparseable_repo_is_not_reported_as_green(
 
 @needs_docker
 def test_timeout_after_a_green_run_is_not_read_as_green(
-    runner: SandboxRunner, tmp_path: Path,
+    runner: SandboxRunner,
+    tmp_path: Path,
 ) -> None:
     """A killed suite writes no report: the previous run's green one must not stand in.
 
@@ -209,13 +209,16 @@ def test_timeout_after_a_green_run_is_not_read_as_green(
     run_id directory, so the post-migration hang was reported as 1/1 passed.
     """
     sandbox = SandboxRunner(runs_dir=runner.runs_dir, timeout_s=5)
-    green = sandbox.run(TASK01_OLD, task_id="task01_datetime", phase="pre",
-                        run_id="stale-check", lint=False)
+    green = sandbox.run(
+        TASK01_OLD, task_id="task01_datetime", phase="pre", run_id="stale-check", lint=False
+    )
     assert green["failed"] == 0 and green["errors"] == 0
     slow = tmp_path / "slow"
     shutil.copytree(TASK01_OLD, slow)
     (slow / "tests" / "test_core.py").open("a").write(
-        "\n\ndef test_hangs() -> None:\n    import time\n    time.sleep(120)\n")
-    hung = sandbox.run(slow, task_id="task01_datetime", phase="post", run_id="stale-check",
-                       lint=False)
+        "\n\ndef test_hangs() -> None:\n    import time\n    time.sleep(120)\n"
+    )
+    hung = sandbox.run(
+        slow, task_id="task01_datetime", phase="post", run_id="stale-check", lint=False
+    )
     assert hung["errors"] == 1 and hung["failures"][0]["exc_type"] == "Timeout"

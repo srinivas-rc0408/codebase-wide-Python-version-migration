@@ -45,15 +45,25 @@ def llm_server() -> Iterator[SimpleNamespace]:
     class Handler(BaseHTTPRequestHandler):
         def do_POST(self) -> None:  # noqa: N802 - http.server's naming
             body = json.loads(self.rfile.read(int(self.headers["Content-Length"])))
-            seen.append({"path": self.path, "body": body,
-                         "auth": self.headers.get("Authorization")})
-            reply = json.dumps({
-                "id": "chatcmpl-fake", "object": "chat.completion", "created": 0,
-                "model": body["model"],
-                "choices": [{"index": 0, "finish_reason": "stop",
-                             "message": {"role": "assistant", "content": "pong"}}],
-                "usage": {"prompt_tokens": 7, "completion_tokens": 1, "total_tokens": 8},
-            }).encode()
+            seen.append(
+                {"path": self.path, "body": body, "auth": self.headers.get("Authorization")}
+            )
+            reply = json.dumps(
+                {
+                    "id": "chatcmpl-fake",
+                    "object": "chat.completion",
+                    "created": 0,
+                    "model": body["model"],
+                    "choices": [
+                        {
+                            "index": 0,
+                            "finish_reason": "stop",
+                            "message": {"role": "assistant", "content": "pong"},
+                        }
+                    ],
+                    "usage": {"prompt_tokens": 7, "completion_tokens": 1, "total_tokens": 8},
+                }
+            ).encode()
             self.send_response(200)
             self.send_header("Content-Type", "application/json")
             self.send_header("Content-Length", str(len(reply)))
@@ -99,15 +109,23 @@ def test_openai_compatible_provider_talks_to_a_local_server(llm_server) -> None:
 
 def test_router_through_local_server_logs_provider_model_tokens(llm_server) -> None:
     """Every call is recorded with who served it, the model, and the tokens."""
-    router = _router(OpenAICompatibleProvider(name="ollama", base_url=llm_server.base_url),
-                     model="qwen-local")
+    router = _router(
+        OpenAICompatibleProvider(name="ollama", base_url=llm_server.base_url), model="qwen-local"
+    )
     assert router.complete("classify", "sys", "user") == "pong"
 
-    assert router.calls == [{
-        "task": "classify", "model": "qwen-local", "tokens_in": 7, "tokens_out": 1,
-        "provider": "ollama", "latency_s": router.calls[0]["latency_s"],
-        "redactions": 0, "fallback_from": None,
-    }]
+    assert router.calls == [
+        {
+            "task": "classify",
+            "model": "qwen-local",
+            "tokens_in": 7,
+            "tokens_out": 1,
+            "provider": "ollama",
+            "latency_s": router.calls[0]["latency_s"],
+            "redactions": 0,
+            "fallback_from": None,
+        }
+    ]
     assert router.tokens["flash_in"] == 7 and router.tokens["tool_calls"] == 1
     assert router.egress == {}, "a localhost call is not egress"
 
@@ -115,18 +133,21 @@ def test_router_through_local_server_logs_provider_model_tokens(llm_server) -> N
 # -- privacy: local-only ---------------------------------------------------
 
 
-@pytest.mark.parametrize(("url", "local"), [
-    ("http://localhost:11434/v1", True),
-    ("http://127.0.0.1:8000/v1", True),
-    ("http://[::1]:8000/v1", True),
-    ("http://10.0.0.5:8000/v1", True),
-    ("http://192.168.1.20/v1", True),
-    ("http://172.16.3.4/v1", True),
-    ("https://api.deepseek.com", False),
-    ("http://localhost.evil.example/v1", False),
-    ("http://8.8.8.8/v1", False),
-    (None, True),  # no network at all (FakeProvider)
-])
+@pytest.mark.parametrize(
+    ("url", "local"),
+    [
+        ("http://localhost:11434/v1", True),
+        ("http://127.0.0.1:8000/v1", True),
+        ("http://[::1]:8000/v1", True),
+        ("http://10.0.0.5:8000/v1", True),
+        ("http://192.168.1.20/v1", True),
+        ("http://172.16.3.4/v1", True),
+        ("https://api.deepseek.com", False),
+        ("http://localhost.evil.example/v1", False),
+        ("http://8.8.8.8/v1", False),
+        (None, True),  # no network at all (FakeProvider)
+    ],
+)
 def test_is_local(url: str | None, local: bool) -> None:
     assert is_local(url) is local
 
@@ -140,8 +161,9 @@ def test_local_only_blocks_remote_before_any_socket_opens(monkeypatch) -> None:
         return real_connect(self, address)
 
     monkeypatch.setattr(socket.socket, "connect", spy)
-    monkeypatch.setattr(socket, "getaddrinfo",
-                        lambda *a, **k: attempts.append(a) or pytest.fail("DNS lookup"))
+    monkeypatch.setattr(
+        socket, "getaddrinfo", lambda *a, **k: attempts.append(a) or pytest.fail("DNS lookup")
+    )
     monkeypatch.setenv("MRA_PRIVACY", "local-only")
     remote = OpenAICompatibleProvider(name="deepseek", base_url="https://api.deepseek.com")
 
@@ -194,8 +216,9 @@ def test_fallback_is_not_used_when_the_primary_succeeds() -> None:
 
 
 def test_last_error_surfaces_when_every_link_fails() -> None:
-    router = _router(FakeProvider("a", error=TimeoutError("a")),
-                     FakeProvider("b", error=ConnectionError("b")))
+    router = _router(
+        FakeProvider("a", error=TimeoutError("a")), FakeProvider("b", error=ConnectionError("b"))
+    )
     with pytest.raises(ProviderError, match="a at None: TimeoutError.*b at None") as caught:
         router.complete("classify", "s", "u")
     assert isinstance(caught.value.__cause__, ConnectionError), "the last error is chained"
@@ -203,8 +226,9 @@ def test_last_error_surfaces_when_every_link_fails() -> None:
 
 def test_local_only_blocks_the_local_to_remote_fallback(monkeypatch) -> None:
     monkeypatch.setenv("MRA_PRIVACY", "local-only")
-    local = FakeProvider("ollama", base_url="http://127.0.0.1:11434/v1",
-                         error=ConnectionError("ollama down"))
+    local = FakeProvider(
+        "ollama", base_url="http://127.0.0.1:11434/v1", error=ConnectionError("ollama down")
+    )
     remote = FakeProvider("deepseek", base_url="https://api.deepseek.com")
     router = _router(local, remote)
 
@@ -221,10 +245,12 @@ def test_local_only_blocks_the_local_to_remote_fallback(monkeypatch) -> None:
 def test_redaction_removes_a_planted_key_from_the_outgoing_payload() -> None:
     remote = FakeProvider("deepseek", base_url="https://api.deepseek.com")
     router = _router(remote)
-    code = (f'OPENAI_KEY = "{FAKE_KEY}"\n'
-            'aws = "AKIAABCDEFGHIJKLMNOP"\n'
-            'password = "hunter2hunter2"\n'
-            "x = datetime.utcnow()\n")
+    code = (
+        f'OPENAI_KEY = "{FAKE_KEY}"\n'
+        'aws = "AKIAABCDEFGHIJKLMNOP"\n'
+        'password = "hunter2hunter2"\n'
+        "x = datetime.utcnow()\n"
+    )
     router.complete("classify", "system", code)
 
     sent = json.dumps(remote.sent)
@@ -241,7 +267,8 @@ def test_local_calls_are_not_redacted_unless_configured() -> None:
 
     forced = FakeProvider("ollama", base_url="http://localhost:11434/v1")
     Router(roles={"classify": [Endpoint(forced, "m", redact=True)]}).complete(
-        "classify", "s", FAKE_KEY)
+        "classify", "s", FAKE_KEY
+    )
     assert FAKE_KEY not in json.dumps(forced.sent)
 
 
@@ -251,10 +278,12 @@ def test_redact_secrets_counts_each_secret_once() -> None:
 
 
 def test_egress_counts_calls_and_bytes_per_remote_host() -> None:
-    router = Router(roles={
-        "classify": [Endpoint(FakeProvider("ds", base_url="https://api.deepseek.com"), "m")],
-        "summarize": [Endpoint(FakeProvider("ol", base_url="http://localhost:1/v1"), "m")],
-    })
+    router = Router(
+        roles={
+            "classify": [Endpoint(FakeProvider("ds", base_url="https://api.deepseek.com"), "m")],
+            "summarize": [Endpoint(FakeProvider("ol", base_url="http://localhost:1/v1"), "m")],
+        }
+    )
     router.complete("classify", "ab", "cdé")
     router.complete("classify", "ab", "cd")
     router.complete("summarize", "local", "not counted")
@@ -285,19 +314,33 @@ def test_anthropic_provider_lifts_the_system_prompt() -> None:
 
     def create(**kwargs: Any) -> Any:
         calls.append(kwargs)
-        return SimpleNamespace(content=[SimpleNamespace(text="ok")],
-                               usage=SimpleNamespace(input_tokens=11, output_tokens=2))
+        return SimpleNamespace(
+            content=[SimpleNamespace(text="ok")],
+            usage=SimpleNamespace(input_tokens=11, output_tokens=2),
+        )
 
     provider._client = SimpleNamespace(messages=SimpleNamespace(create=create))
-    result = provider.complete([{"role": "system", "content": "be terse"},
-                                {"role": "user", "content": "hi"}], "some-model", 0.1, 9)
+    result = provider.complete(
+        [{"role": "system", "content": "be terse"}, {"role": "user", "content": "hi"}],
+        "some-model",
+        0.1,
+        9,
+    )
     assert result["text"] == "ok" and (result["tokens_in"], result["tokens_out"]) == (11, 2)
-    assert calls == [{"model": "some-model", "max_tokens": 9, "system": "be terse",
-                      "messages": [{"role": "user", "content": "hi"}]}]
+    assert calls == [
+        {
+            "model": "some-model",
+            "max_tokens": 9,
+            "system": "be terse",
+            "messages": [{"role": "user", "content": "hi"}],
+        }
+    ]
 
 
 def test_providers_check_reports_reachable_and_warns_on_unreachable(
-    tmp_path, llm_server, capsys,
+    tmp_path,
+    llm_server,
+    capsys,
 ) -> None:
     with socket.socket() as probe:  # a port nothing listens on
         probe.bind(("127.0.0.1", 0))
@@ -318,8 +361,11 @@ def test_providers_check_reports_reachable_and_warns_on_unreachable(
 # -- LIVE: one ping per real provider, skipped without its key ----------------
 
 
-LIVE = {name: entry for name, entry in load_config(EXAMPLE)["providers"].items()
-        if entry.get("api_key_env")}
+LIVE = {
+    name: entry
+    for name, entry in load_config(EXAMPLE)["providers"].items()
+    if entry.get("api_key_env")
+}
 
 
 @pytest.mark.parametrize("name", sorted(LIVE))

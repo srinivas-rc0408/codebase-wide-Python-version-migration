@@ -29,8 +29,11 @@ def analyze(repo: Path | str, target: str | Collection[str]) -> dict[str, Any]:
     repo = Path(repo)
     # The work list never includes the test oracle (NB-4): a deprecated call in a
     # test is the tests' business, and the run report lists it as a residual.
-    files = [path for path in dep_graph_module.python_files(repo)
-             if not call_sites_module.is_test_path(path.relative_to(repo).as_posix())]
+    files = [
+        path
+        for path in dep_graph_module.python_files(repo)
+        if not call_sites_module.is_test_path(path.relative_to(repo).as_posix())
+    ]
     return {
         "call_sites": call_sites_module.find_in_repo(repo, target, files=files),
         "dep_graph": dep_graph_module.to_state_adjacency(dep_graph_module.build(repo)),

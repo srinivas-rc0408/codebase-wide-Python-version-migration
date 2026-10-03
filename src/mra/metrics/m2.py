@@ -9,5 +9,4 @@ from __future__ import annotations
 
 
 def m2(t_total: int, t_post_pass: int):
-    return {"pass_rate": 100 * t_post_pass / max(t_total, 1),
-            "regressions": t_total - t_post_pass}
+    return {"pass_rate": 100 * t_post_pass / max(t_total, 1), "regressions": t_total - t_post_pass}
