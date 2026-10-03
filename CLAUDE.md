@@ -77,7 +77,7 @@ python -m mra.run --task-dir corpus/tierA/task01_datetime
 mra run --task-dir corpus/tierA/task04_multimodule
 ```
 
-Before proposing a change as done: `pytest tests/` passes, `ruff check .` is clean, and no schema in `docs/03_SRS.md §4` was changed without updating the doc.
+Before proposing a change as done: `pytest tests/` passes, `ruff check .` and `ruff format --check .` are clean, and no schema in `docs/03_SRS.md §4` was changed without updating the doc.
 
 ## Commit conventions
 
