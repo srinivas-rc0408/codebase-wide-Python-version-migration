@@ -265,6 +265,50 @@ a dead branch to the production path (§6).
 
 <!-- SOURCE: docs/04 §2.3 route_after_test, §2.5 recovery internals; src/mra/benchmark/runner.py module docstring. -->
 
+## 3.6 Verdict, providers and memory
+
+**The verdict engine.** Every run ends in one verdict that answers a single
+question — can a human merge this patch? — computed only from the artefacts
+the run left behind. **RED** means it must not be merged as is: the
+pre-migration suite was not green, the run crashed or gave up, the final suite
+is red, the test oracle was touched, the patch does not apply to a fresh
+checkout, or a budget was exceeded. **YELLOW** means the suite is green but the
+evidence is weaker than it looks: sites remain, the agent over-edited, a
+semantic check failed, lint got worse, a file could not be parsed, or an edited
+line never ran under any test. **GREEN** means none of these holds. Precedence
+is RED over YELLOW over GREEN, and every reason that applies is reported, not
+only the first.
+
+<!-- SOURCE: src/mra/verdict.py module docstring; the rule lists in _red() and _yellow(). -->
+
+**Providers and local-only privacy.** Model calls go through a router that maps
+each role — edit, recover, summarize, classify — to an ordered chain of
+providers named in `mra.toml`: any OpenAI-compatible server, including a local
+Ollama or vLLM endpoint, or the Anthropic SDK. No model name or URL is written
+in code. Under `MRA_PRIVACY=local-only` the router admits only loopback and
+private-network hosts and raises `PrivacyError` before a socket opens or a DNS
+lookup happens. The rule covers fallbacks too, so a failed local provider never
+hands the prompt to a remote one, and a role whose chain is entirely remote is
+refused when the router is constructed, before any I/O. Remote calls have
+secret-shaped strings redacted before sending. None of this is on the offline
+path that produced §7.
+
+<!-- SOURCE: CONFIGURATION.md §3 (per-role provider chains) and §5 (Privacy); src/mra/models/router.py
+     ROLES; src/mra/models/privacy.py. -->
+
+**The experience store.** An opt-in local SQLite store records, after each
+corrective edit whose re-test is green, the failure class, the error message
+with paths stripped and secrets redacted, the migration contract, and the
+changed lines of the fix. On a later failure with the same class and contract,
+the most similar stored fixes are offered to CORRECT as hints, capped at 1200
+characters. The store is **off by default**: `mra run` enables it only through
+`[experience] enabled = true` or `MRA_EXPERIENCE=on`, and `MRA_EXPERIENCE=off`
+always wins. The benchmark and edge runners never read that switch, so every
+result in §7 except ablation E ran without memory. Ablation E (§7.8) builds its
+own throwaway store, warmed on the edge corpus and never on Tier A.
+
+<!-- SOURCE: src/mra/memory/experience.py module docstring and HINT_BUDGET_CHARS = 1200;
+     src/mra/benchmark/runner.py TRAIN_CORPUS = corpus/edge, and warm_store's refusal of Tier-A tasks. -->
 ---
 
 # 4. Corpus & Ground Truth
@@ -358,6 +402,25 @@ it reserves `signature` for argument-shaped messages (§8).
 
 <!-- SOURCE: corpus/tierA/task05_signature_break/README.md; runs/benchmark/RESULTS_SUMMARY.md "Scope and honesty notes". -->
 
+## 4.4 The edge-case suite
+
+Tier A measures the migration; a second corpus measures the verdict.
+`corpus/edge/` holds **39** small repositories, each with hand-written ground
+truth located by the literal call text, never by the analyzer, and a
+`case.json` naming the expected verdict, the reason that must produce it and,
+for byte-level cases, `gold/` files the result must match exactly. The cases
+fall into four categories: **common (10)**; **rare (15)**; **twisted (7)**,
+inputs built to mislead the analyzer or the judge, such as star imports, bare
+references and already-migrated code; and **failure (7)**, where RED is the
+correct answer. The expected verdicts are 28 GREEN, 4 YELLOW and 7 RED. A judge
+checks the verdict, the reason code and its evidence, byte-exact gold, M1 recall
+of 100 for every non-RED case so no GREEN can be silent about a missed site,
+and an empty patch for every refusal. Results are in `corpus/edge/RESULTS.md`
+and §7.7.
+
+<!-- SOURCE: corpus/edge/results.json — total 39; cases[].category: common 10, rare 15, twisted 7,
+     failure 7; cases[].expected: GREEN 28, YELLOW 4, RED 7. Judge criteria: src/mra/benchmark/edge.py
+     run_case and commit ab9e267. -->
 ---
 
 # 5. Metrics
@@ -795,6 +858,64 @@ arm will be an upper bound, not a quote.
 <!-- SOURCE: runs/benchmark/results.md §2C "Edit model — V4-Pro vs V4-Flash" (the "Requires a key — not run"
      block and its billing caveat); results.json "skipped" list = 10 entries. -->
 
+## 7.7 Edge-case suite — verdict accuracy
+
+Unlike §7.1–§7.6, this subsection and the next draw on
+`corpus/edge/results.json` and `runs/benchmark/ablation-e/results.json`, not on
+the P5 matrix.
+
+The current agent, version 0.2.0, gives the expected verdict for the expected
+reason on **39 of 39** edge cases (generated 2026-10-01T15:09:35Z). On the
+suite's first run, before the fixes described in §8.1, it passed **24 of 39**.
+That earlier figure is recorded in the commit that introduced the suite; its
+per-case results were not kept as an artefact, and the pre-fix code cannot be
+run under the final harness, so it is a historical record rather than a
+reproducible measurement.
+
+<!-- SOURCE: corpus/edge/results.json — agent_version "0.2.0", generated_at
+     2026-10-01T15:09:35+00:00, passed 39, total 39 (also corpus/edge/RESULTS.md line 3).
+     Pre-fix figure: commit ab9e267 message, "39/39 (before the [fix] commit: 24/39)". -->
+
+## 7.8 Ablation E — experience store
+
+Ablation E holds the agent at its baseline configuration and varies only
+memory. `memory-off` has no store. `memory-warm` uses a store warmed by running
+the agent, learning on, over 27 edge-corpus tasks (the training split; no
+Tier-A task), then frozen read-only so that no evaluation run learns from
+another; warm-up stored 1 fix, of class `behaviour`. Both deterministic arms use
+a corrector that can only replay recalled fixes, so the contrast measures
+whether the store learns, retrieves and transfers a fix — not how much a model
+gains from hints.
+
+<!-- SOURCE: runs/benchmark/ablation-e/results.json experience_warmup — 27 train_tasks, fixes 1,
+     by_class {"behaviour": 1}; runs/benchmark/ablation-e/results.md §2E prose. -->
+
+| task | config | outcome | corrections | tokens | hints served | hint chars |
+|---|---|---|---|---|---|---|
+| task01_datetime | `memory-off` | 3× success | 0.0 | 0 | 0.0 | 0 |
+| task01_datetime | `memory-warm` | 3× success | 0.0 | 0 | 0.0 | 0 |
+| task02_datetime_aliased | `memory-off` | 3× gave_up | 3.0 | 0 | 0.0 | 0 |
+| task02_datetime_aliased | `memory-warm` | 3× gave_up | 4.0 | 0 | 1.0 | 285 |
+| task03_half_migration | `memory-off` | 3× gave_up | 3.0 | 0 | 0.0 | 0 |
+| task03_half_migration | `memory-warm` | 3× success | 1.0 | 0 | 1.0 | 285 |
+| task04_multimodule | `memory-off` | 3× gave_up | 9.0 | 0 | 0.0 | 0 |
+| task04_multimodule | `memory-warm` | 3× success | 2.0 | 0 | 2.0 | 570 |
+| task05_signature_break | `memory-off` | 3× success | 0.0 | 0 | 0.0 | 0 |
+| task05_signature_break | `memory-warm` | 3× success | 0.0 | 0 | 0.0 | 0 |
+
+<!-- SOURCE: runs/benchmark/ablation-e/results.md §2E "Experience store OFF vs pre-warmed", spliced
+     verbatim (generated 2026-10-02T02:01:37Z, 3 repeats per task and config). -->
+
+With nothing to replay, the control gives up on the three tasks that need a
+corrective edit: `task02`, `task03` and `task04`. The warm store turns two of
+them green — `task03` with 1 corrective edit and `task04` with 2, each run
+served hints. On `task02` the store serves a hint, but the run still gives up
+after 4 corrective edits. `task01` and `task05` need no correction in either
+arm. The live pair, which would measure what hints are worth to a model, needs
+a key and was not run: its 10 (task, config) pairs are recorded as skipped.
+
+<!-- SOURCE: the table above — outcome, corrections and hints served per row;
+     runs/benchmark/ablation-e/results.json "skipped" = 10 entries, reason "requires DEEPSEEK_API_KEY". -->
 ---
 
 # 8. Failure Analysis
@@ -878,11 +999,61 @@ only the outcome column carries the ordering verdict.
      (M1 33.3) vs / order-alphabetical-b1-norecovery and / order-fr3-violating-b1-norecovery (M1 66.7);
      task04_multimodule / order-fr3-violating-b1-norecovery (M1 33.3) vs the other two (M1 66.7). -->
 
+## 8.1 Verdict-accuracy defects found by the edge suite
+
+The failures above are migration failures. The edge suite (§4.4) tested
+something else — whether the verdict can be trusted — and its first run found
+defects in the verdict path itself. The fix commit records thirteen; the most
+serious was in the test oracle.
+
+**The oracle defect.** The pre- and post-migration suites of one run share an
+output directory. When the post-migration suite hung and the sandbox killed it
+at the timeout, pytest wrote no new report, and the runner read the report
+still in the directory in its place: the green pre-migration one. A hung suite
+was reported as passing. The fix deletes stale outputs before every sandbox
+run, and the regression test
+`test_timeout_after_a_green_run_is_not_read_as_green` hangs a suite after a
+green run and asserts that the timeout is what gets reported.
+
+<!-- SOURCE: commit bb1dd07, "sandbox" bullet; src/mra/sandbox/runner.py, the stale pytest_raw.json /
+     ruff.json / coverage.json unlink before each run; tests/test_sandbox.py
+     test_timeout_after_a_green_run_is_not_read_as_green (found by edge case edit_causes_infinite_loop). -->
+
+**The remaining defects, by class.**
+
+- *Preconditions and run state.* A red or empty pre-migration suite now stops
+  the run with a precondition error before any edit, naming the network when
+  the sandbox's lack of one is the cause; re-running a run ID no longer appends
+  to the old checkpoint database, and run directories start clean.
+- *Analysis.* Test files are never on MAP's work list (NB-4); unparseable and
+  non-UTF-8 files no longer crash the scan; relative imports and re-exports
+  through in-repo modules resolve.
+- *Codemod.* Rewrites are confined to the analyzer's positions (a shadowed
+  `datetime` had been edited); `utcfromtimestamp` joins the migrated family;
+  CRLF line endings survive a byte round-trip; aliased imports get their own
+  timezone import, placed where isort puts it.
+- *Verdict and report.* The lint delta is keyed on (code, file), because
+  messages quote the edited code; precision is not judged when nothing was
+  edited; refusals and unreachable providers get precise RED reasons; suite-red
+  evidence names the failure type; a CRLF file rewritten as LF fails a new
+  line-endings check.
+- *Router.* Under local-only, an all-remote role is refused at construction,
+  before any I/O, and a failure of every provider names each one.
+
+**The published P5 results did not depend on any of them.** After the fixes,
+the 165-row matrix was re-run and its scientific payload matched
+`results.json` exactly, 165 of 165 rows. Some fixes changed the edit path, but
+none changed a Tier-A outcome or metric; every figure in §7.1–§7.6 stands as
+published.
+
+<!-- SOURCE: commit bb1dd07 — title "thirteen verdict-accuracy bugs found by the edge-case suite";
+     body bullets sandbox / graph / analyzer / codemod / verdict/report / router; "Benchmark matrix
+     re-run: results.json scientific payload identical (165/165)". -->
 ---
 
 # 9. Limitations
 
-Five limitations bound what these results support. They are stated here in
+Six limitations bound what these results support. They are stated here in
 full rather than distributed through the paper.
 
 1. **One migration family.** All five tasks migrate the same contract,
@@ -913,8 +1084,9 @@ full rather than distributed through the paper.
    is specified in `docs/05` §1.3 but not yet executed. Until it is, nothing
    here is evidence about repositories the authors did not write.
 
-4. **The live-model arms have not been run.** Ablation C requires an API key
-   and is reported as *requires key*, not estimated (§7.6). Every number in
+4. **The live-model arms have not been run.** Ablation C and the live pair of
+   ablation E require an API key and are reported as *requires key*, not
+   estimated (§7.6, §7.8). Every number in
    this paper comes from the deterministic corrector, which shares the loop's
    mechanics with the LLM corrector but not its patch generator. The claim
    this supports is about the *loop*, not about a model's ability to write a
@@ -931,9 +1103,25 @@ full rather than distributed through the paper.
    c-iii), and on `task04` an arbitrary order was measurably *cheaper* than
    the dependency order.
 
-A sixth, smaller caveat: suites of 5–14 tests make M2 coarse. A single
+6. **Three known YELLOW gaps.** The agent leaves three patterns unmigrated and
+   says so rather than guessing: a bare reference to `datetime.utcnow` that is
+   stored or passed without being called; a deprecated call reached through a
+   star import; and a deprecated call inside a test file, which the agent may
+   not edit because the tests are the oracle (NB-4). The residual check finds
+   each site and the verdict is YELLOW, never GREEN; the edge suite asserts
+   exactly that in `bare_reference`, `star_import` and
+   `deprecated_call_in_test_file`. The gaps are reported, not silent, but a
+   reviewer has to finish those sites by hand.
+   <!-- SOURCE: corpus/edge/results.json — cases bare_reference, star_import and
+        deprecated_call_in_test_file: expected YELLOW, actual YELLOW, reason code "residual";
+        corpus/edge/<case>/case.json "note" fields. -->
+
+A seventh, smaller caveat: suites of 5–14 tests make M2 coarse. A single
 collection error takes out an entire module, which is why regressions are
 reported as a count alongside the percentage (§5.2).
+
+<!-- SOURCE: runs/benchmark/results.md §3, "suite after fix" column of the ruff (DTZ) rows:
+     5/5 (task01, task02) to 14/14 (task05). -->
 
 ---
 

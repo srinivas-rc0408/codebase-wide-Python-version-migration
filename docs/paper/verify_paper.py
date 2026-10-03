@@ -2,9 +2,14 @@
 
 The paper's provenance rule (see its header comment) is that a `<!-- SOURCE: -->`
 comment covers every line above it back to the previous SOURCE or the nearest
-heading. This script enforces that rule mechanically for §7 and the Abstract, re-diffs the §7.1
-grid against results.md, and re-derives the §8 counts from failure-analysis.md
-and results.json. It exists because the §7.1 grid has silently gone stale once.
+heading. This script enforces that rule mechanically for the Abstract and
+§3-§4, §7-§9, re-diffs the §7.1 and §7.8 tables against their results.md, and
+re-derives the §8 counts from failure-analysis.md and results.json. It exists
+because the §7.1 grid has silently gone stale once.
+
+The post-P5 sections (§3.6, §4.4, §7.7, §7.8, §8.1, §9 item 6) are checked
+phrase by phrase against corpus/edge/results.json, the ablation-E results, and,
+for the two figures no artefact kept, the messages of commits ab9e267 and bb1dd07.
 
 RESULTS_SUMMARY.md gets the same treatment for a different reason: the paper's
 SOURCE pointers cite it, but unlike results.md nothing regenerates it, so a
@@ -19,6 +24,7 @@ from __future__ import annotations
 
 import json
 import re
+import subprocess
 import sys
 from pathlib import Path
 from typing import Any
@@ -29,13 +35,22 @@ RESULTS_MD = ROOT / "runs/benchmark/results.md"
 RESULTS_JSON = ROOT / "runs/benchmark/results.json"
 FAILURES_MD = ROOT / "runs/benchmark/failure-analysis.md"
 SUMMARY_MD = ROOT / "runs/benchmark/RESULTS_SUMMARY.md"
+EDGE_JSON = ROOT / "corpus/edge/results.json"
+ABLATION_E_MD = ROOT / "runs/benchmark/ablation-e/results.md"
+ABLATION_E_JSON = ROOT / "runs/benchmark/ablation-e/results.json"
+EXPERIENCE_PY = ROOT / "src/mra/memory/experience.py"
+# Commits whose messages are the only record of a figure (no artefact was kept).
+EDGE_COMMIT, FIX_COMMIT = "ab9e267", "bb1dd07"
 
 GRID_HEADER = (
     "| task / config | outcome | M1 recall | M1 prec | M1 F1 | M2 % "
     "| regr | corr | steps | tokens | cost $ | wall s |"
 )
 # `task05` is an identifier, not a figure; don't treat its digits as a claim.
-IDENTIFIER_DIGITS = re.compile(r"task0\d|V4-|c-i{1,3}\b|§\d|FR-\d|NB-\d|NFR-\d|M[123]\b")
+# A leading "2. " is a list marker, not a figure.
+IDENTIFIER_DIGITS = re.compile(
+    r"^\s*\d+\.\s|task0\d|V4-|c-i{1,3}\b|§\d|FR-\d|NB-\d|NFR-\d|M[123]\b"
+)
 # Padding words cut from §1 by hand; a later pass must not reintroduce them.
 INTENSIFIERS = r"\b(?:completely|absolutely|merely|significantly)\b"
 # The Abstract spells its figures as words ("three of the five"), so a digit-only
@@ -44,6 +59,7 @@ NUMBER_WORDS = re.compile(r"\b(?:one|two|three|four|five|six|seven|eight|nine|te
 
 LOOP_HEADER = "| task | loop on | loop off |"
 ORDER_HEADER = "| task | dependency | file-name | dependents-first |"
+E_HEADER = "| task | config | outcome | corrections | tokens | hints served | hint chars |"
 BASELINE_HEADER = (
     "| task | \\|A\\| | ruff detected | ruff fixed | M1 after fix "
     "| suite after fix | pyupgrade detected |"
@@ -143,6 +159,89 @@ def figures(text: str) -> list[float]:
     return [float(n) for n in re.findall(r"\d+(?:\.\d+)?", text)]
 
 
+def commit_message(sha: str) -> str:
+    return subprocess.run(
+        ["git", "-C", str(ROOT), "show", "-s", "--format=%B", sha],
+        capture_output=True,
+        text=True,
+        check=True,
+    ).stdout
+
+
+def post_p5_claims(matrix: dict[str, Any]) -> dict[str, list[str]]:
+    """The exact phrases the post-P5 sections must contain, built from their sources."""
+    edge = json.loads(EDGE_JSON.read_text())
+    cases = {c["case"]: c for c in edge["cases"]}
+    by = lambda key, value: sum(1 for c in edge["cases"] if c[key] == value)  # noqa: E731
+    hint_budget = re.search(r"HINT_BUDGET_CHARS = (\d+)", EXPERIENCE_PY.read_text()).group(1)
+
+    abl = json.loads(ABLATION_E_JSON.read_text())
+    agg = {(a["config"], a["task_id"][:6]): a for a in abl["aggregates"]}
+    corr = lambda config, task: round(agg[(config, task)]["corrections_mean"])  # noqa: E731
+    gave_up = [
+        f"`{a['task_id'][:6]}`"
+        for a in abl["aggregates"]
+        if a["config"] == "memory-off" and list(a["outcomes"]) == ["gave_up"]
+    ]
+    warm = abl["experience_warmup"]
+    (fix_class,) = warm["by_class"]
+
+    before = re.search(r"before the \[fix\] commit: (\d+)/(\d+)", commit_message(EDGE_COMMIT))
+    fix_msg = commit_message(FIX_COMMIT)
+    bug_count = re.search(r"fix\(agent\): (\w+) verdict-accuracy bugs", fix_msg).group(1)
+    rerun = re.search(r"identical\s+\((\d+)/(\d+)\)", fix_msg)
+
+    suites = [
+        int(t["suite_after_fix"].split("/")[1].split()[0])
+        for b in matrix["baselines"]
+        for t in b["tools"]
+        if t["tool"] == "ruff (DTZ)"
+    ]
+    gaps = ("bare_reference", "star_import", "deprecated_call_in_test_file")
+    return {
+        "§3.6 experience store": [f"capped at {hint_budget} characters"],
+        "§4.4 edge suite": [
+            f"holds **{edge['total']}** small repositories",
+            f"**common ({by('category', 'common')})**",
+            f"**rare ({by('category', 'rare')})**",
+            f"**twisted ({by('category', 'twisted')})**",
+            f"**failure ({by('category', 'failure')})**",
+            f"{by('expected', 'GREEN')} GREEN, {by('expected', 'YELLOW')} YELLOW "
+            f"and {by('expected', 'RED')} RED",
+        ],
+        "§7.7 edge accuracy": [
+            f"version {edge['agent_version']}",
+            f"**{edge['passed']} of {edge['total']}** edge cases",
+            f"(generated {edge['generated_at'][:19]}Z)",
+            f"it passed **{before.group(1)} of {before.group(2)}**",
+        ],
+        "§7.8 ablation E": [
+            f"over {len(warm['train_tasks'])} edge-corpus tasks",
+            f"stored {warm['fixes']} fix, of class `{fix_class}`",
+            f"(generated {abl['generated_at'][:19]}Z, {abl['repeats']} repeats",
+            f"need a corrective edit: {', '.join(gave_up[:-1])} and {gave_up[-1]}",
+            f"`task03` with {corr('memory-warm', 'task03')} corrective edit",
+            f"`task04` with {corr('memory-warm', 'task04')}, each run",
+            f"gives up after {corr('memory-warm', 'task02')} corrective edits",
+            f"its {len(abl['skipped'])} (task, config) pairs",
+        ],
+        "§8.1 edge-suite defects": [
+            f"The fix commit records {bug_count};",
+            f"the {rerun.group(2)}-row matrix was re-run",
+            f"{rerun.group(1)} of {rerun.group(2)} rows",
+        ],
+        "§9 limitations": [
+            *(
+                f"`{case}`"
+                if cases[case]["expected"] == cases[case]["actual"] == "YELLOW"
+                else f"<{case} is no longer a YELLOW gap: {cases[case]['actual']}>"
+                for case in gaps
+            ),
+            f"suites of {min(suites)}–{max(suites)} tests",
+        ],
+    }
+
+
 def main() -> int:
     paper = PAPER.read_text()
     lines = paper.split("\n")
@@ -155,10 +254,15 @@ def main() -> int:
         f"§7.1 grid is byte-identical to results.md §1 ({len(src_grid) - 2} data rows)",
     )
 
-    # 2. Provenance: no numeric span in §7 may close without a SOURCE pointer.
+    # 2. Provenance: no numeric span in a fact-assembled section may close
+    #    without a SOURCE pointer.
     for name, start, end, is_claim in (
-        ("§7", "# 7. Results", "# 8. Failure", carries_a_figure),
         ("Abstract", "# Abstract", "# 1. Introduction", states_a_count),
+        ("§3", "# 3. System", "# 4. Corpus", carries_a_figure),
+        ("§4", "# 4. Corpus", "# 5. Metrics", carries_a_figure),
+        ("§7", "# 7. Results", "# 8. Failure", carries_a_figure),
+        ("§8", "# 8. Failure", "# 9. Limitations", carries_a_figure),
+        ("§9", "# 9. Limitations", "# 10. Conclusion", carries_a_figure),
     ):
         pointers, gaps = uncovered_spans(lines, *section(lines, start, end), is_claim)
         check(
@@ -375,6 +479,20 @@ def main() -> int:
     check(not drift, f"RESULTS_SUMMARY.md: {claims} figures re-derived from results.json")
     for item in drift:
         print(f"    drift -> {item}")
+
+    # 7. Post-P5 additions (§3.6, §4.4, §7.7, §7.8, §8.1, §9.6), each figure
+    #    re-derived from the file or commit its SOURCE pointer names.
+    flat = " ".join(paper.split())
+    e_paper = table_after(lines, E_HEADER)
+    check(
+        e_paper == table_after(ABLATION_E_MD.read_text().split("\n"), E_HEADER),
+        f"§7.8 ablation E table byte-identical to its results.md ({len(e_paper) - 2} rows)",
+    )
+    for label, claims_ in post_p5_claims(data).items():
+        missing = [c for c in claims_ if c not in flat]
+        check(not missing, f"{label}: {len(claims_)} figures re-derived")
+        for c in missing:
+            print(f"    expected in paper -> {c!r}")
 
     width = max(len(m) for _, m in results)
     for passed, message in results:
