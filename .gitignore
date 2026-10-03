@@ -60,3 +60,6 @@ corpus/**/*.tmp
 
 # ---- Local LLM provider config (copy of mra.example.toml) ----
 mra.toml
+
+# ---- Graded submissions (contain the student SRN; kept local, never public) ----
+docs/submissions/
