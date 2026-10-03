@@ -2,7 +2,7 @@
 
 The paper's provenance rule (see its header comment) is that a `<!-- SOURCE: -->`
 comment covers every line above it back to the previous SOURCE or the nearest
-heading. This script enforces that rule mechanically for §7, re-diffs the §7.1
+heading. This script enforces that rule mechanically for §7 and the Abstract, re-diffs the §7.1
 grid against results.md, and re-derives the §8 counts from failure-analysis.md
 and results.json. It exists because the §7.1 grid has silently gone stale once.
 
@@ -38,6 +38,9 @@ GRID_HEADER = (
 IDENTIFIER_DIGITS = re.compile(r"task0\d|V4-|c-i{1,3}\b|§\d|FR-\d|NB-\d|NFR-\d|M[123]\b")
 # Padding words cut from §1 by hand; a later pass must not reintroduce them.
 INTENSIFIERS = r"\b(?:completely|absolutely|merely|significantly)\b"
+# The Abstract spells its figures as words ("three of the five"), so a digit-only
+# test would pass it with no pointer at all.
+NUMBER_WORDS = re.compile(r"\b(?:one|two|three|four|five|six|seven|eight|nine|ten)\b", re.I)
 
 LOOP_HEADER = "| task | loop on | loop off |"
 ORDER_HEADER = "| task | dependency | file-name | dependents-first |"
@@ -87,6 +90,40 @@ def carries_a_figure(line: str) -> bool:
     return bool(re.search(r"\d", IDENTIFIER_DIGITS.sub("", line)))
 
 
+def states_a_count(line: str) -> bool:
+    return carries_a_figure(line) or bool(NUMBER_WORDS.search(line))
+
+
+def uncovered_spans(
+    lines: list[str], s: int, e: int, is_claim=carries_a_figure
+) -> tuple[int, list[str]]:
+    """Claim lines in lines[s+1:e] whose span reaches a heading or `e` without a SOURCE comment."""
+    pending: int | None = None
+    pointers = 0
+    gaps: list[str] = []
+    in_comment = False
+    for k in range(s + 1, e):
+        line = lines[k]
+        if in_comment:
+            in_comment = "-->" not in line
+            continue
+        if line.lstrip().startswith("<!--"):
+            in_comment = "-->" not in line
+            pointers += 1
+            pending = None
+            continue
+        if line.startswith("#"):
+            if pending is not None:
+                gaps.append(f"line {pending + 1}: {lines[pending][:60]!r}")
+            pending = None
+            continue
+        if not line.startswith(">") and is_claim(line) and pending is None:
+            pending = k
+    if pending is not None:
+        gaps.append(f"line {pending + 1}: {lines[pending][:60]!r}")
+    return pointers, gaps
+
+
 def section(lines: list[str], start: str, end: str) -> tuple[int, int]:
     s = next(i for i, line in enumerate(lines) if line.startswith(start))
     e = next(i for i, line in enumerate(lines) if line.startswith(end))
@@ -119,33 +156,16 @@ def main() -> int:
     )
 
     # 2. Provenance: no numeric span in §7 may close without a SOURCE pointer.
-    s, e = section(lines, "# 7. Results", "# 8. Failure")
-    pending: int | None = None
-    pointers = 0
-    gaps: list[str] = []
-    in_comment = False
-    for k in range(s + 1, e):
-        line = lines[k]
-        if in_comment:
-            in_comment = "-->" not in line
-            continue
-        if line.lstrip().startswith("<!--"):
-            in_comment = "-->" not in line
-            pointers += 1
-            pending = None
-            continue
-        if line.startswith("#"):
-            if pending is not None:
-                gaps.append(f"line {pending + 1}: {lines[pending][:60]!r}")
-            pending = None
-            continue
-        if not line.startswith(">") and carries_a_figure(line) and pending is None:
-            pending = k
-    if pending is not None:
-        gaps.append(f"line {pending + 1}: {lines[pending][:60]!r}")
-    check(not gaps, f"§7: every numeric span closed by a SOURCE pointer ({pointers} pointers)")
-    for gap in gaps:
-        print(f"    uncovered -> {gap}")
+    for name, start, end, is_claim in (
+        ("§7", "# 7. Results", "# 8. Failure", carries_a_figure),
+        ("Abstract", "# Abstract", "# 1. Introduction", states_a_count),
+    ):
+        pointers, gaps = uncovered_spans(lines, *section(lines, start, end), is_claim)
+        check(
+            not gaps, f"{name}: every numeric span closed by a SOURCE pointer ({pointers} pointers)"
+        )
+        for gap in gaps:
+            print(f"    uncovered -> {gap}")
 
     # 3. §8 counts are re-derived, never typed.
     failures = FAILURES_MD.read_text()
@@ -183,25 +203,24 @@ def main() -> int:
     )
 
     # 5. The prose sections stay stubs, and §2 invents no citation.
-    # §1 is written, so it is checked for what it must NOT contain instead.
+    # The Abstract and §1 are written, so they are checked for what they must NOT contain.
     for heading in (
-        "# Abstract",
         "# 2. Related Work",
         "# 10. Conclusion",
         "# References",
     ):
         body = "\n".join(lines[lines.index(heading) : lines.index(heading) + 6])
         check("STUB" in body, f"stub preserved: {heading.lstrip('# ')}")
-    intro_start, intro_end = section(lines, "# 1. Introduction", "# 2. Related Work")
-    intro = "\n".join(lines[intro_start:intro_end])
-    check("STUB" not in intro, "§1: written — the stub outline is gone")
-    padding = sorted(set(re.findall(INTENSIFIERS, intro, re.IGNORECASE)))
-    check(
-        not padding,
-        f"§1: no intensifier padding{' — found ' + ', '.join(padding)}"
-        if padding
-        else "§1: no intensifier padding",
-    )
+    for name, start, end in (
+        ("Abstract", "# Abstract", "# 1. Introduction"),
+        ("§1", "# 1. Introduction", "# 2. Related Work"),
+    ):
+        a, b = section(lines, start, end)
+        body = "\n".join(lines[a:b])
+        check("STUB" not in body, f"{name}: written — the stub outline is gone")
+        padding = sorted(set(re.findall(INTENSIFIERS, body, re.IGNORECASE)))
+        found = f" — found {', '.join(padding)}" if padding else ""
+        check(not padding, f"{name}: no intensifier padding{found}")
     lit_start, lit_end = section(lines, "# 2. Related Work", "# 3. System")
     related = "\n".join(lines[lit_start:lit_end])
     check(

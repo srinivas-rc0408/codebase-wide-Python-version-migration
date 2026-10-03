@@ -18,7 +18,7 @@ date: "TODO"
     - runs/benchmark/RESULTS_SUMMARY.md  (same source results.json)
   Regenerate with `python -m mra.benchmark` and re-check §7 if either moves.
 
-  STATUS: §1 and §3-§9 are written. Abstract, §2, §10 and References are the
+  STATUS: Abstract, §1 and §3-§9 are written. §2, §10 and References are the
   deliberate stubs — bullet outlines only, to be written by hand. Do not
   auto-fill them.
   §2 carries [CITE: ...] placeholders; fill from docs/02_LITERATURE_REVIEW.md
@@ -27,20 +27,33 @@ date: "TODO"
 
 # Abstract
 
-> **STUB — outline only. Do not ghost-write.**
+When a software library releases a breaking change, the update can break
+callers across many files, and some of these breaks are invisible to static
+analysis — the code still imports, and the failure appears only when the tests
+run. This project presents a headless autonomous agent, built as a five-node
+LangGraph state machine, that maps every affected call site, plans
+dependency-ordered edit batches, applies them, runs the test suite in an
+isolated sandbox, and repairs its own edits by reading the resulting stack
+traces. On a five-task benchmark, a deterministic linter (Ruff) detects every
+breaking change but repairs none, while the agent completes all five tasks;
+ablating the recovery loop causes three of the five to fail. These results show
+that for cross-file version migration, a verification-driven repair loop
+succeeds where single-pass code generation does not.
 
-- One-sentence framing: codebase-wide API migration is a cross-file contract
-  problem, not a find-and-replace problem.
-- What we built: a 5-node LangGraph agent (MAP/PLAN/EDIT/TEST/CORRECT) that
-  orders its edits by the import dependency graph and repairs its own
-  regressions from test traces.
-- What we evaluated: 5 controlled Tier-A tasks, 11 offline configurations,
-  3 repeats, 165 deterministic runs.
-- The three results, in one clause each: recovery loop is load-bearing;
-  static tools detect everything and fix nothing; dependency ordering is a
-  cost reduction in general and a correctness condition in one designed case.
-- The honest limit: one migration family, one fixed codemod, no real-world
-  repo yet.
+<!-- SOURCE (Ruff detects every breaking change, repairs none): runs/benchmark/results.md
+     §3 "Deterministic baselines — ruff (DTZ) and pyupgrade", the `ruff (DTZ)` row of
+     every task: detect recall 100%, `fixed` 0, `M1 recall after fix` 0%. Equivalently
+     results.json baselines[<task>].tools["ruff (DTZ)"]: detect_recall 100.0,
+     fixed_files 0, m1_recall_after_fix 0.0. Expanded in §7.3. -->
+<!-- SOURCE (agent completes all five tasks): runs/benchmark/results.md §2A, the
+     `baseline` row of each per-task table reads `3× success` on all five tasks. Equivalently
+     results.json aggregates[config="baseline"].outcomes == {"success": 3} for every
+     task. Expanded in §7.2. -->
+<!-- SOURCE (three of five fail without the loop): runs/benchmark/results.md §2A, the
+     `no-recovery` row reads `3× gave_up` on task02_datetime_aliased,
+     task03_half_migration and task04_multimodule, `3× success` on task01 and task05.
+     Equivalently results.json aggregates[config="no-recovery"].outcomes. Cross-checked
+     against runs/benchmark/RESULTS_SUMMARY.md claim (a). Expanded in §7.2. -->
 
 ---
 
