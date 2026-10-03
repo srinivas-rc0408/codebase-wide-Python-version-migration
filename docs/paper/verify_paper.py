@@ -8,8 +8,9 @@ re-derives the §8 counts from failure-analysis.md and results.json. It exists
 because the §7.1 grid has silently gone stale once.
 
 The post-P5 sections (§3.6, §4.4, §7.7, §7.8, §8.1, §9 item 6) are checked
-phrase by phrase against corpus/edge/results.json, the ablation-E results, and,
-for the two figures no artefact kept, the messages of commits ab9e267 and bb1dd07.
+phrase by phrase against corpus/edge/results.json, the ablation-E results and
+the bb1dd07 commit message. The §8.1 defect count is the number of rows in its
+fix table, and every regression test that table names must exist in tests/.
 
 RESULTS_SUMMARY.md gets the same treatment for a different reason: the paper's
 SOURCE pointers cite it, but unlike results.md nothing regenerates it, so a
@@ -39,8 +40,9 @@ EDGE_JSON = ROOT / "corpus/edge/results.json"
 ABLATION_E_MD = ROOT / "runs/benchmark/ablation-e/results.md"
 ABLATION_E_JSON = ROOT / "runs/benchmark/ablation-e/results.json"
 EXPERIENCE_PY = ROOT / "src/mra/memory/experience.py"
-# Commits whose messages are the only record of a figure (no artefact was kept).
-EDGE_COMMIT, FIX_COMMIT = "ab9e267", "bb1dd07"
+TESTS = ROOT / "tests"
+# The fix commit; its message is the only record of the post-fix matrix re-run.
+FIX_COMMIT = "bb1dd07"
 
 GRID_HEADER = (
     "| task / config | outcome | M1 recall | M1 prec | M1 F1 | M2 % "
@@ -60,6 +62,7 @@ NUMBER_WORDS = re.compile(r"\b(?:one|two|three|four|five|six|seven|eight|nine|te
 LOOP_HEADER = "| task | loop on | loop off |"
 ORDER_HEADER = "| task | dependency | file-name | dependents-first |"
 E_HEADER = "| task | config | outcome | corrections | tokens | hints served | hint chars |"
+FIX_HEADER = "| class | defect fixed | regression test |"
 BASELINE_HEADER = (
     "| task | \\|A\\| | ruff detected | ruff fixed | M1 after fix "
     "| suite after fix | pyupgrade detected |"
@@ -168,7 +171,20 @@ def commit_message(sha: str) -> str:
     ).stdout
 
 
-def post_p5_claims(matrix: dict[str, Any]) -> dict[str, list[str]]:
+def pinned_defects(lines: list[str]) -> tuple[int, list[str]]:
+    """Rows of the §8.1 fix table, and every regression test it names that tests/ lacks."""
+    rows = table_after(lines, FIX_HEADER)[2:]
+    missing = []
+    for row in rows:
+        for path, name in re.findall(r"`(test_\w+\.py)::(test_\w+)`", cells(row)[2]):
+            if not re.search(rf"^def {name}\(", (TESTS / path).read_text(), re.M):
+                missing.append(f"{path}::{name}")
+        if not re.search(r"`test_\w+\.py::test_\w+`", row):
+            missing.append(f"(no test named) {cells(row)[1]}")
+    return len(rows), missing
+
+
+def post_p5_claims(matrix: dict[str, Any], defects: int) -> dict[str, list[str]]:
     """The exact phrases the post-P5 sections must contain, built from their sources."""
     edge = json.loads(EDGE_JSON.read_text())
     cases = {c["case"]: c for c in edge["cases"]}
@@ -186,10 +202,7 @@ def post_p5_claims(matrix: dict[str, Any]) -> dict[str, list[str]]:
     warm = abl["experience_warmup"]
     (fix_class,) = warm["by_class"]
 
-    before = re.search(r"before the \[fix\] commit: (\d+)/(\d+)", commit_message(EDGE_COMMIT))
-    fix_msg = commit_message(FIX_COMMIT)
-    bug_count = re.search(r"fix\(agent\): (\w+) verdict-accuracy bugs", fix_msg).group(1)
-    rerun = re.search(r"identical\s+\((\d+)/(\d+)\)", fix_msg)
+    rerun = re.search(r"identical\s+\((\d+)/(\d+)\)", commit_message(FIX_COMMIT))
 
     suites = [
         int(t["suite_after_fix"].split("/")[1].split()[0])
@@ -213,7 +226,7 @@ def post_p5_claims(matrix: dict[str, Any]) -> dict[str, list[str]]:
             f"version {edge['agent_version']}",
             f"**{edge['passed']} of {edge['total']}** edge cases",
             f"(generated {edge['generated_at'][:19]}Z)",
-            f"it passed **{before.group(1)} of {before.group(2)}**",
+            f"surfaced {defects} defects in the verdict path, each now pinned",
         ],
         "§7.8 ablation E": [
             f"over {len(warm['train_tasks'])} edge-corpus tasks",
@@ -226,7 +239,7 @@ def post_p5_claims(matrix: dict[str, Any]) -> dict[str, list[str]]:
             f"its {len(abl['skipped'])} (task, config) pairs",
         ],
         "§8.1 edge-suite defects": [
-            f"The fix commit records {bug_count};",
+            f"building it surfaced {defects} defects in the verdict path itself",
             f"the {rerun.group(2)}-row matrix was re-run",
             f"{rerun.group(1)} of {rerun.group(2)} rows",
         ],
@@ -488,7 +501,11 @@ def main() -> int:
         e_paper == table_after(ABLATION_E_MD.read_text().split("\n"), E_HEADER),
         f"§7.8 ablation E table byte-identical to its results.md ({len(e_paper) - 2} rows)",
     )
-    for label, claims_ in post_p5_claims(data).items():
+    defects, unpinned = pinned_defects(lines)
+    check(not unpinned, f"§8.1: {defects} defects, each row names a regression test in tests/")
+    for item in unpinned:
+        print(f"    no such test -> {item}")
+    for label, claims_ in post_p5_claims(data, defects).items():
         missing = [c for c in claims_ if c not in flat]
         check(not missing, f"{label}: {len(claims_)} figures re-derived")
         for c in missing:

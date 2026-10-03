@@ -865,16 +865,14 @@ Unlike §7.1–§7.6, this subsection and the next draw on
 the P5 matrix.
 
 The current agent, version 0.2.0, gives the expected verdict for the expected
-reason on **39 of 39** edge cases (generated 2026-10-01T15:09:35Z). On the
-suite's first run, before the fixes described in §8.1, it passed **24 of 39**.
-That earlier figure is recorded in the commit that introduced the suite; its
-per-case results were not kept as an artefact, and the pre-fix code cannot be
-run under the final harness, so it is a historical record rather than a
-reproducible measurement.
+reason on **39 of 39** edge cases (generated 2026-10-01T15:09:35Z). Building
+the suite surfaced 17 defects in the verdict path, each now pinned by a
+regression test that fails on the pre-fix code and passes on the current agent
+(§8.1).
 
 <!-- SOURCE: corpus/edge/results.json — agent_version "0.2.0", generated_at
      2026-10-01T15:09:35+00:00, passed 39, total 39 (also corpus/edge/RESULTS.md line 3).
-     Pre-fix figure: commit ab9e267 message, "39/39 (before the [fix] commit: 24/39)". -->
+     Defect count: the rows of the §8.1 fix table. -->
 
 ## 7.8 Ablation E — experience store
 
@@ -1002,43 +1000,56 @@ only the outcome column carries the ordering verdict.
 ## 8.1 Verdict-accuracy defects found by the edge suite
 
 The failures above are migration failures. The edge suite (§4.4) tested
-something else — whether the verdict can be trusted — and its first run found
-defects in the verdict path itself. The fix commit records thirteen; the most
-serious was in the test oracle.
+something else — whether the verdict can be trusted — and building it surfaced
+17 defects in the verdict path itself. A defect is counted only if a regression
+test pins it: the test, as committed with the fix, fails on the code before
+the fix and passes on the current agent. The most serious was in the test
+oracle.
+
+<!-- SOURCE: the fix table below (one row per defect). Method: tests/ as of commit bb1dd07 run
+     against src/ as of bb1dd07^ (every listed test fails; ProviderError stubbed so
+     tests/test_providers.py imports), and the same tests at HEAD (all pass). -->
 
 **The oracle defect.** The pre- and post-migration suites of one run share an
 output directory. When the post-migration suite hung and the sandbox killed it
 at the timeout, pytest wrote no new report, and the runner read the report
 still in the directory in its place: the green pre-migration one. A hung suite
 was reported as passing. The fix deletes stale outputs before every sandbox
-run, and the regression test
-`test_timeout_after_a_green_run_is_not_read_as_green` hangs a suite after a
-green run and asserts that the timeout is what gets reported.
+run, and its regression test hangs a suite after a green run and asserts that
+the timeout is what gets reported.
 
 <!-- SOURCE: commit bb1dd07, "sandbox" bullet; src/mra/sandbox/runner.py, the stale pytest_raw.json /
-     ruff.json / coverage.json unlink before each run; tests/test_sandbox.py
-     test_timeout_after_a_green_run_is_not_read_as_green (found by edge case edit_causes_infinite_loop). -->
+     ruff.json / coverage.json unlink before each run; found by edge case edit_causes_infinite_loop. -->
 
-**The remaining defects, by class.**
+| class | defect fixed | regression test |
+|---|---|---|
+| test oracle | a suite killed by the timeout was read from the stale pre-migration report | `test_sandbox.py::test_timeout_after_a_green_run_is_not_read_as_green` |
+| preconditions | a red pre-migration suite did not name the missing network when that was the cause | `test_report.py::test_precondition_names_the_network_when_that_is_the_cause` |
+| analysis | test files could enter MAP's work list (NB-4) | `test_analyzer.py::test_map_never_puts_a_test_file_on_the_work_list` |
+| analysis | unparseable and non-UTF-8 files crashed the scan | `test_analyzer.py::test_unparseable_and_latin1_files_do_not_crash_the_scan` |
+| analysis | relative imports did not resolve against the file's package | `test_analyzer.py::test_relative_import_resolves_against_the_files_package` |
+| analysis | re-exports through a package `__init__` did not resolve | `test_analyzer.py::test_reexport_through_package_init_resolves` |
+| codemod | rewrites were not confined to the analyzer's positions (a shadowed `datetime` was edited) | `test_report.py::test_given_sites_only_those_calls_change` |
+| codemod | `utcfromtimestamp(t)` was neither found nor rewritten to `fromtimestamp(t, timezone.utc)` | `test_analyzer.py::test_utcfromtimestamp_is_part_of_the_family`, `test_report.py::test_utcfromtimestamp_gains_the_timezone_argument` |
+| codemod | CRLF line endings were lost in the rewrite | `test_report.py::test_crlf_survives_a_bytes_round_trip` |
+| codemod | an aliased import got no `timezone` import of its own | `test_report.py::test_aliased_import_gets_its_own_timezone_line` |
+| codemod | a new import was not placed where isort puts it (a new I001) | `test_report.py::test_new_timezone_import_lands_where_isort_puts_it` |
+| verdict | the lint delta was keyed on message text, which quotes the edited code | `test_report.py::test_lint_message_text_is_not_part_of_the_key` |
+| verdict | precision was judged when nothing was edited | `test_report.py::test_precision_is_not_judged_when_nothing_was_edited` |
+| verdict | an unreachable provider and a privacy refusal had no RED reason of their own | `test_report.py::test_unreachable_provider_and_refusals_have_their_own_reasons` |
+| verdict | a CRLF file rewritten as LF passed unnoticed (no line-endings check) | `test_report.py::test_semantic_check_catches_unimported_tz_and_new_naive_now` |
+| router | under local-only, an all-remote role was not refused at construction | `test_providers.py::test_local_only_refuses_an_all_remote_role_at_construction` |
+| router | when every provider failed, the error did not name each one | `test_providers.py::test_last_error_surfaces_when_every_link_fails` |
 
-- *Preconditions and run state.* A red or empty pre-migration suite now stops
-  the run with a precondition error before any edit, naming the network when
-  the sandbox's lack of one is the cause; re-running a run ID no longer appends
-  to the old checkpoint database, and run directories start clean.
-- *Analysis.* Test files are never on MAP's work list (NB-4); unparseable and
-  non-UTF-8 files no longer crash the scan; relative imports and re-exports
-  through in-repo modules resolve.
-- *Codemod.* Rewrites are confined to the analyzer's positions (a shadowed
-  `datetime` had been edited); `utcfromtimestamp` joins the migrated family;
-  CRLF line endings survive a byte round-trip; aliased imports get their own
-  timezone import, placed where isort puts it.
-- *Verdict and report.* The lint delta is keyed on (code, file), because
-  messages quote the edited code; precision is not judged when nothing was
-  edited; refusals and unreachable providers get precise RED reasons; suite-red
-  evidence names the failure type; a CRLF file rewritten as LF fails a new
-  line-endings check.
-- *Router.* Under local-only, an all-remote role is refused at construction,
-  before any I/O, and a failure of every provider names each one.
+<!-- SOURCE: commit bb1dd07 (fix bullets) and its tests/ diff; the line-endings (verdict) and
+     every-provider (router) rows use existing tests the commit extended, the rest are new. Each
+     test fails on bb1dd07^ and passes at HEAD. I001 is ruff's import-order rule. -->
+
+The same commit made four further changes that no regression test pins: a
+red or empty pre-migration suite now stops the run before any edit, re-running
+a run ID no longer appends to the old checkpoint database, run directories
+start clean, and suite-red evidence names the failure type. They are not
+counted.
 
 **The published P5 results did not depend on any of them.** After the fixes,
 the 165-row matrix was re-run and its scientific payload matched
@@ -1046,9 +1057,9 @@ the 165-row matrix was re-run and its scientific payload matched
 none changed a Tier-A outcome or metric; every figure in §7.1–§7.6 stands as
 published.
 
-<!-- SOURCE: commit bb1dd07 — title "thirteen verdict-accuracy bugs found by the edge-case suite";
-     body bullets sandbox / graph / analyzer / codemod / verdict/report / router; "Benchmark matrix
-     re-run: results.json scientific payload identical (165/165)". -->
+<!-- SOURCE: commit bb1dd07 body, "Benchmark matrix re-run: results.json scientific payload
+     identical (165/165)". -->
+
 ---
 
 # 9. Limitations
