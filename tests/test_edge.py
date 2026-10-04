@@ -14,7 +14,7 @@ from typing import Any
 
 import pytest
 
-from mra.benchmark.edge import cases, run_suite
+from mra.benchmark.edge import cases, held_out, run_suite
 
 
 def _docker_ok() -> bool:
@@ -56,3 +56,13 @@ def test_case_gives_the_expected_verdict(
 ) -> None:
     row = edge_results[case]
     assert row["pass"], f"{case}: {'; '.join(row['problems'])} (reasons: {row['reasons']})"
+
+
+def test_held_out_never_includes_a_training_case() -> None:
+    from mra.benchmark.runner import train_tasks
+
+    train = {t.name for t in train_tasks()}
+    names = {c.name for c in held_out()}
+    assert train and names
+    assert not names & train
+    assert len(names) + len(train) == len(cases())

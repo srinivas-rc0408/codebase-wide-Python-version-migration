@@ -592,8 +592,9 @@ def run_matrix(
     out_dir: Path | str = DEFAULT_OUT,
     baselines: bool = True,
     train_corpus: Path | str = TRAIN_CORPUS,
+    stem: str = "results",
 ) -> dict[str, Any]:
-    """Run every (task, config, repeat) and write results.json / .md / failure-analysis.md."""
+    """Run every (task, config, repeat) and write <stem>.json / .md / failure-analysis.md."""
     from mra.benchmark.baselines import baseline_table
 
     corpus, out_dir = Path(corpus), Path(out_dir)
@@ -651,8 +652,8 @@ def run_matrix(
         "experience_warmup": warmup,
         "baselines": baseline_table(tasks, corpus=corpus) if baselines else [],
     }
-    (out_dir / "results.json").write_text(json.dumps(results, indent=2) + "\n")
-    (out_dir / "results.md").write_text(render_markdown(results))
+    (out_dir / f"{stem}.json").write_text(json.dumps(results, indent=2) + "\n")
+    (out_dir / f"{stem}.md").write_text(render_markdown(results))
     (out_dir / "failure-analysis.md").write_text(failure_analysis(results))
     return results
 
@@ -1102,6 +1103,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument(
         "--configs", nargs="*", default=None, help="config names to run (default: all)"
     )
+    parser.add_argument("--stem", default="results", help="write <stem>.json and <stem>.md")
     args = parser.parse_args(argv)
 
     chosen = (
@@ -1110,14 +1112,19 @@ def main(argv: list[str] | None = None) -> int:
         else tuple(c for c in CONFIGS if c.name in set(args.configs))
     )
     results = run_matrix(
-        args.tasks, chosen, repeats=args.repeats, corpus=args.corpus, out_dir=args.out_dir
+        args.tasks,
+        chosen,
+        repeats=args.repeats,
+        corpus=args.corpus,
+        out_dir=args.out_dir,
+        stem=args.stem,
     )
     failed = sum(1 for r in results["rows"] if r["outcome"] != "success")
     print(
         f"{len(results['rows'])} run(s), {failed} not green "
         f"({len(results['skipped'])} skipped without a key)"
     )
-    print(f"  -> {Path(args.out_dir) / 'results.md'}")
+    print(f"  -> {Path(args.out_dir) / f'{args.stem}.md'}")
     return 0
 
 

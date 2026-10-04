@@ -20,7 +20,9 @@ import argparse
 import json
 import os
 import re
+import shutil
 import socket
+import tempfile
 from concurrent.futures import ProcessPoolExecutor
 from datetime import UTC, datetime
 from multiprocessing import get_context
@@ -106,6 +108,42 @@ def _llm_setup(mode: str, task_dir: Path) -> Any:
     return setup
 
 
+def _live_setup(task_dir: Path, store: str | None) -> Any:
+    """The real router from ``mra.toml`` as corrector; ``store`` = a frozen experience db."""
+
+    def setup(run_id: str) -> dict[str, Any]:
+        from mra.codemods.datetime_utcnow import TARGET
+        from mra.memory.experience import ExperienceStore
+        from mra.models import Router, load_roles
+        from mra.nodes.correct_node import LLMCorrector
+        from mra.state import new_state
+
+        truth = json.loads((task_dir / "ground_truth.json").read_text())
+        contract = {
+            "task_id": task_dir.name,
+            "source_api": truth["source_api"],
+            "target_api": truth["target_api"],
+        }
+        state = new_state(run_id, "", contract)
+        router = Router(state["tokens"], roles=load_roles())
+        memory = None if store is None else ExperienceStore(store, readonly=True)
+        return {
+            "router": router,
+            "state": state,
+            "corrector": LLMCorrector(router, TARGET, contract, memory),
+        }
+
+    return setup
+
+
+def held_out(edge: Path = DEFAULT_EDGE) -> list[Path]:
+    """Cases outside ablation E's training split: the only ones a warmed store may score."""
+    from mra.benchmark.runner import train_tasks
+
+    train = {t.name for t in train_tasks(edge)}
+    return [c for c in cases(edge) if c.name not in train]
+
+
 # -- one case ---------------------------------------------------------------
 
 
@@ -114,17 +152,32 @@ def _relative(path: Path) -> str:
     return path.relative_to(ROOT).as_posix() if path.is_relative_to(ROOT) else path.name
 
 
-def run_case(task_dir: Path | str, runs_dir: Path | str) -> dict[str, Any]:
-    """Run one case and judge it. Runs in a fresh process (see the module docstring)."""
-    from mra.benchmark.runner import codemod_corrector
+def run_case(
+    task_dir: Path | str,
+    runs_dir: Path | str,
+    live: bool = False,
+    store: str | None = None,
+    repeat: int = 0,
+) -> dict[str, Any]:
+    """Run one case and judge it. Runs in a fresh process (see the module docstring).
+
+    ``live`` swaps the codemod corrector for the real model on deterministic
+    cases; the ``llm-*`` cases keep their provider set-up, since the provider
+    failure is what they test.
+    """
+    from mra.benchmark.runner import _failures, codemod_corrector
     from mra.report import run_with_report
 
     task_dir = Path(task_dir)
     spec = json.loads((task_dir / "case.json").read_text())
     os.environ.update(spec["env"])
-    setup = None if spec["mode"] == "deterministic" else _llm_setup(spec["mode"], task_dir)
+    if spec["mode"] != "deterministic":
+        setup = _llm_setup(spec["mode"], task_dir)
+    else:
+        setup = _live_setup(task_dir, store) if live else None
+    run_id = task_dir.name if not repeat else f"{task_dir.name}-r{repeat}"
     result = run_with_report(
-        task_dir, run_id=task_dir.name, runs_dir=runs_dir, corrector=codemod_corrector, setup=setup
+        task_dir, run_id=run_id, runs_dir=runs_dir, corrector=codemod_corrector, setup=setup
     )
     model = result["model"]
     actual = model["verdict"]["status"]
@@ -152,9 +205,13 @@ def run_case(task_dir: Path | str, runs_dir: Path | str) -> dict[str, Any]:
         expected = (task_dir / "gold" / rel).read_bytes()
         if not produced.is_file() or produced.read_bytes() != expected:
             problems.append(f"{rel} is not byte-identical to gold/")
+    metrics = model["metrics"] or {}
+    out = result["out_dir"]
+    trajectory = _json_or(out / "trajectory.json", [])
     return {
         "case": task_dir.name,
         "category": spec["category"],
+        "repeat": repeat,
         "expected": spec["expect"],
         "actual": actual,
         "pass": not problems,
@@ -163,18 +220,33 @@ def run_case(task_dir: Path | str, runs_dir: Path | str) -> dict[str, Any]:
         # Relative: results.json is committed, and an absolute path names the machine.
         "note": spec["note"],
         "pdf": _relative(result["pdf"]),
+        "m1_recall": metrics.get("m1_recall"),
+        "m2_pass_rate": metrics.get("m2_pass_rate"),
+        "corrections": sum(1 for e in trajectory if e.get("node") == "CORRECT"),
+        "tokens": metrics.get("m3_tokens", 0),
+        "cost_usd": metrics.get("m3_cost_usd", 0.0),
+        "failure_classes": sorted(
+            {f["failure_class"] for f in _failures(_json_or(out / "test_report.json", {}))}
+        ),
     }
 
 
-def _judge(task_dir: Path, runs_dir: Path) -> dict[str, Any]:
+def _json_or(path: Path, default: Any) -> Any:
+    return json.loads(path.read_text()) if path.is_file() else default
+
+
+def _judge(
+    task_dir: Path, runs_dir: Path, live: bool = False, store: str | None = None, repeat: int = 0
+) -> dict[str, Any]:
     """``run_case``, but an exception escaping the agent *and* its report is a failed row."""
     try:
-        return run_case(task_dir, runs_dir)
+        return run_case(task_dir, runs_dir, live, store, repeat)
     except Exception as exc:
         spec = json.loads((task_dir / "case.json").read_text())
         return {
             "case": task_dir.name,
             "category": spec["category"],
+            "repeat": repeat,
             "expected": spec["expect"],
             "actual": "NO REPORT",
             "pass": False,
@@ -190,16 +262,54 @@ def run_suite(
     runs_dir: Path = DEFAULT_RUNS,
     only: list[str] | None = None,
     workers: int = 6,
+    live: bool = False,
+    memory: bool = False,
+    repeats: int = 1,
 ) -> dict[str, Any]:
+    """Judge every case ``repeats`` times.
+
+    ``memory`` (live only) warms an experience store on the training split
+    (:func:`mra.benchmark.runner.train_tasks`), freezes it, and evaluates only
+    the cases *outside* that split: scoring a case the store learnt from is leakage.
+    """
     selected = [c for c in cases(edge) if not only or c.name in only]
-    # One process per case (max_tasks_per_child=1): no env var leaks between cases.
-    with ProcessPoolExecutor(
-        max_workers=workers, mp_context=get_context("spawn"), max_tasks_per_child=1
-    ) as pool:
-        rows = list(pool.map(_judge, selected, [runs_dir] * len(selected)))
+    store = None
+    warmup: dict[str, Any] = {}
+    scratch = None
+    if memory:
+        from mra.benchmark.runner import train_tasks, warm_store
+        from mra.memory.experience import ExperienceStore
+
+        train = train_tasks(edge)
+        scratch = Path(tempfile.mkdtemp(prefix="mra-edge-memory-"))
+        warmup = warm_store(ExperienceStore(scratch / "experience.db"), train, scratch / "runs")
+        store = str(scratch / "experience.db")
+        selected = [c for c in selected if c in held_out(edge)]
+    jobs = [(case, r) for case in selected for r in range(repeats)]
+    try:
+        # One process per case (max_tasks_per_child=1): no env var leaks between cases.
+        with ProcessPoolExecutor(
+            max_workers=workers, mp_context=get_context("spawn"), max_tasks_per_child=1
+        ) as pool:
+            rows = list(
+                pool.map(
+                    _judge,
+                    [case for case, _ in jobs],
+                    [runs_dir] * len(jobs),
+                    [live] * len(jobs),
+                    [store] * len(jobs),
+                    [r for _, r in jobs],
+                )
+            )
+    finally:
+        if scratch is not None:
+            shutil.rmtree(scratch, ignore_errors=True)
     return {
         "agent_version": __version__,
         "generated_at": datetime.now(UTC).isoformat(timespec="seconds"),
+        "live": live,
+        "repeats": repeats,
+        "experience_warmup": warmup,
         "passed": sum(r["pass"] for r in rows),
         "total": len(rows),
         "cases": rows,
@@ -220,13 +330,29 @@ def render(results: dict[str, Any]) -> str:
         "| case | category | expected verdict | actual | pass | reason / note |",
         "|---|---|---|---|---|---|",
     ]
+    live = results.get("live", False)
+    if live:
+        lines[-2:] = [
+            "Live: the corrector is the real model from `mra.toml` "
+            f"({results['repeats']} repeat(s) per case).",
+            "",
+            "| case | rep | expected | actual | pass | M1 | M2 | corr | tokens | cost $ "
+            "| failure class | reason / note |",
+            "|---|---|---|---|---|---|---|---|---|---|---|---|",
+        ]
     for row in results["cases"]:
         detail = "; ".join(row["problems"]) or "; ".join(row["reasons"]) or row["note"] or "—"
         detail = re.sub(r"\s+", " ", detail).replace("|", "\\|")
-        lines.append(
-            f"| `{row['case']}` | {row['category']} | {row['expected']} | "
-            f"{row['actual']} | {'yes' if row['pass'] else '**NO**'} | {detail} |"
-        )
+        verdict = f"{row['expected']} | {row['actual']} | {'yes' if row['pass'] else '**NO**'}"
+        if live:
+            lines.append(
+                f"| `{row['case']}` | {row['repeat']} | {verdict} | {row.get('m1_recall')} | "
+                f"{row.get('m2_pass_rate')} | {row.get('corrections', 0)} | "
+                f"{row.get('tokens', 0)} | {row.get('cost_usd', 0.0):.4f} | "
+                f"{', '.join(row.get('failure_classes', [])) or '—'} | {detail} |"
+            )
+        else:
+            lines.append(f"| `{row['case']}` | {row['category']} | {verdict} | {detail} |")
     return "\n".join(lines) + "\n"
 
 
@@ -239,15 +365,39 @@ def main(argv: list[str] | None = None) -> int:
     )
     parser.add_argument("--cases", nargs="*", default=None)
     parser.add_argument("--workers", type=int, default=6)
+    parser.add_argument("--live", action="store_true", help="real model as corrector (mra.toml)")
+    parser.add_argument(
+        "--memory", action="store_true", help="with --live: warmed store, held-out cases only"
+    )
+    parser.add_argument("--repeats", type=int, default=1)
+    parser.add_argument(
+        "--stem",
+        default=None,
+        help="write <stem>.json/<stem>.md instead of results.json/RESULTS.md",
+    )
     args = parser.parse_args(argv)
-    results = run_suite(Path(args.edge), Path(args.runs_dir), args.cases, args.workers)
+    if args.memory and not args.live:
+        parser.error("--memory needs --live")
+    results = run_suite(
+        Path(args.edge),
+        Path(args.runs_dir),
+        args.cases,
+        args.workers,
+        live=args.live,
+        memory=args.memory,
+        repeats=args.repeats,
+    )
     out = Path(args.out or args.edge)
     out.mkdir(parents=True, exist_ok=True)
-    (out / "results.json").write_text(json.dumps(results, indent=2) + "\n")
-    (out / "RESULTS.md").write_text(render(results))
+    json_name, md_name = (
+        ("results.json", "RESULTS.md")
+        if args.stem is None
+        else (f"{args.stem}.json", f"{args.stem}.md")
+    )
+    (out / json_name).write_text(json.dumps(results, indent=2) + "\n")
+    (out / md_name).write_text(render(results))
     print(
-        f"{results['passed']}/{results['total']} cases give the expected verdict "
-        f"-> {out / 'RESULTS.md'}"
+        f"{results['passed']}/{results['total']} cases give the expected verdict -> {out / md_name}"
     )
     for row in results["cases"]:
         if not row["pass"]:
