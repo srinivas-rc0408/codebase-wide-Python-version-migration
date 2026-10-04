@@ -24,6 +24,13 @@ classify  = ["deepseek-flash"]   # failure classification (cheap tier)
 # [experience]
 # enabled = true
 # path = "~/.mra/experience.db"
+# ttl_days = 90                   # older evidence is ignored
+
+# ---- Promoted skills (opt-in) --------------------------------------------
+# Rules a human approved with `mra skills approve <id>` (CONFIGURATION.md §5),
+# tried in CORRECT before any model call. Off unless enabled.
+# [skills]
+# enabled = true
 
 # ---- Providers ----------------------------------------------------------
 # provider = "openai-compatible" | "anthropic"

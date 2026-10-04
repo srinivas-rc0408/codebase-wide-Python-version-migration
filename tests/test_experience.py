@@ -16,7 +16,6 @@ import pytest
 
 from mra.benchmark.runner import CONFIGS, TASKS, codemod_corrector, replay, run_one, warm_store
 from mra.cli import main as cli
-from mra.graph import run_migration
 from mra.memory.experience import ExperienceStore, format_hint, from_config
 from mra.nodes.correct_node import patch_prompt
 
@@ -151,17 +150,20 @@ def test_training_split_refuses_evaluation_tasks(tmp_path: Path) -> None:
 
 @needs_docker
 def test_learns_a_green_correction_and_stores_no_repo_path(db: Path, tmp_path: Path) -> None:
+    from mra.report import run_with_report
+
     store = ExperienceStore(db)
-    result = run_migration(
+    result = run_with_report(
         TASK03,
         run_id="learn",
         runs_dir=tmp_path / "runs",
         corrector=codemod_corrector,
         experience=store,
     )
-    assert result["metrics"]["outcome"] == "success" and result["experience_learned"] >= 1
+    assert result["model"]["verdict"]["status"] == "GREEN" and result["experience_learned"] >= 1
     rows = store.rows()
-    files = [p.relative_to(result["repo"]).as_posix() for p in Path(result["repo"]).rglob("*.py")]
+    repo = result["out_dir"] / "repo"
+    files = [p.relative_to(repo).as_posix() for p in repo.rglob("*.py")]
     for row in rows:
         text = repr(row)
         assert str(tmp_path) not in text and "/home/" not in text

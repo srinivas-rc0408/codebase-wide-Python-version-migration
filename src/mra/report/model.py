@@ -382,6 +382,12 @@ def build_model(a: dict[str, Any]) -> dict[str, Any]:
         "graph": _graph(state, set(patch)),
         "plan": _plan(a["trajectory"], state),
         "timeline": _timeline(a["trajectory"], pre),
+        # Which promoted skill (mra.skills) repaired which step instead of the corrector.
+        "skills_fired": [
+            {"step": e["seq"], "rule": e["detail"]["rule"], "files": e["detail"].get("changed", [])}
+            for e in a["trajectory"]
+            if e["node"] == "CORRECT" and e["detail"].get("rule")
+        ],
         "changes": _changes(patch, state),
         "verification": {
             "pre": {k: (pre or {}).get(k) for k in ("total", "passed", "failed", "errors")},

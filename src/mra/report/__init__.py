@@ -62,9 +62,13 @@ def run_with_report(
     runs_dir: Path | str = "runs",
     router: Any = None,
     setup: Callable[[str], dict[str, Any]] | None = None,
+    experience: Any = None,
     **run_kwargs: Any,
 ) -> dict[str, Any]:
     """Run the migration, then always gather evidence and write the report.
+
+    ``experience`` (the opt-in store) learns only here, after the verdict: a
+    fix is stored only when the report is fully GREEN (anti-poisoning).
 
     ``setup(run_id)`` returns extra ``run_migration`` kwargs (router, corrector,
     state). It runs inside the reported region, so a provider set-up that
@@ -125,12 +129,22 @@ def run_with_report(
         (out_dir / "run_meta.json").write_text(json.dumps(meta, indent=2) + "\n")
         evidence.collect(out_dir, meta["target"], task_dir.name, run_id)
         pdf, model = build_report(out_dir)
+    learned = 0
+    trajectory_file = out_dir / "trajectory.json"
+    if experience is not None and trajectory_file.is_file():
+        learned = experience.learn(
+            out_dir / "repo",
+            json.loads(trajectory_file.read_text()),
+            {"source_api": truth.get("source_api"), "target_api": truth.get("target_api")},
+            model,
+        )
     return {
         "run_id": run_id,
         "out_dir": out_dir,
         "pdf": pdf,
         "model": model,
         "crashed": crash is not None,
+        "experience_learned": learned,
     }
 
 
@@ -153,6 +167,8 @@ def terminal_summary(model: dict[str, Any], pdf: Path, *, color: bool | None = N
             f"M3 {m['m3_tokens']:,} tokens, {m['m3_steps']} steps"
         )
     lines.append(f"  Data egress: {model['llm']['egress_line']}")
+    for fired in model.get("skills_fired") or []:
+        lines.append(f"  Promoted rule {fired['rule']} fired at step {fired['step']}")
     for reason in model["verdict"]["reasons"]:
         lines.append(f"  - {reason['level']}: {reason['text']} [{reason['evidence']}]")
     lines.append(f"  Report: {Path(pdf).resolve()}")

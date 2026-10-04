@@ -20,6 +20,11 @@ runs/benchmark/*
 runs/benchmark/ablation-e/*
 !runs/benchmark/ablation-e/results.json
 !runs/benchmark/ablation-e/results.md
+# Ablation F (promoted rules), likewise kept apart.
+!runs/benchmark/ablation-f/
+runs/benchmark/ablation-f/*
+!runs/benchmark/ablation-f/results.json
+!runs/benchmark/ablation-f/results.md
 # Live-model runs (DEEPSEEK_API_KEY), kept apart from the deterministic results.
 !runs/benchmark/live/
 runs/benchmark/live/*

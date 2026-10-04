@@ -158,6 +158,7 @@ def run_case(
     live: bool = False,
     store: str | None = None,
     repeat: int = 0,
+    rules: list[dict[str, Any]] | tuple = (),
 ) -> dict[str, Any]:
     """Run one case and judge it. Runs in a fresh process (see the module docstring).
 
@@ -177,7 +178,12 @@ def run_case(
         setup = _live_setup(task_dir, store) if live else None
     run_id = task_dir.name if not repeat else f"{task_dir.name}-r{repeat}"
     result = run_with_report(
-        task_dir, run_id=run_id, runs_dir=runs_dir, corrector=codemod_corrector, setup=setup
+        task_dir,
+        run_id=run_id,
+        runs_dir=runs_dir,
+        corrector=codemod_corrector,
+        setup=setup,
+        rules=rules,
     )
     model = result["model"]
     actual = model["verdict"]["status"]
@@ -236,11 +242,16 @@ def _json_or(path: Path, default: Any) -> Any:
 
 
 def _judge(
-    task_dir: Path, runs_dir: Path, live: bool = False, store: str | None = None, repeat: int = 0
+    task_dir: Path,
+    runs_dir: Path,
+    live: bool = False,
+    store: str | None = None,
+    repeat: int = 0,
+    rules: list[dict[str, Any]] | tuple = (),
 ) -> dict[str, Any]:
     """``run_case``, but an exception escaping the agent *and* its report is a failed row."""
     try:
-        return run_case(task_dir, runs_dir, live, store, repeat)
+        return run_case(task_dir, runs_dir, live, store, repeat, rules)
     except Exception as exc:
         spec = json.loads((task_dir / "case.json").read_text())
         return {
@@ -265,6 +276,7 @@ def run_suite(
     live: bool = False,
     memory: bool = False,
     repeats: int = 1,
+    rules: list[dict[str, Any]] | tuple = (),
 ) -> dict[str, Any]:
     """Judge every case ``repeats`` times.
 
@@ -299,6 +311,7 @@ def run_suite(
                     [live] * len(jobs),
                     [store] * len(jobs),
                     [r for _, r in jobs],
+                    [rules] * len(jobs),
                 )
             )
     finally:

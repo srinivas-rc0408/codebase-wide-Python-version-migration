@@ -46,6 +46,7 @@ Do not swap frameworks or add new heavy dependencies without updating `docs/` an
 | Recovery loop (CORRECT/TEST until green or capped) | `src/mra/recovery/` |
 | Rolling summary + LLM context budget | `src/mra/memory/__init__.py` |
 | Opt-in experience store (off by default) | `src/mra/memory/experience.py` |
+| Verified skill promotion (opt-in, human-approved) | `src/mra/skills.py` |
 | Corpus | `corpus/tierA/`, `corpus/tierB/` |
 | Run outputs | `runs/<run_id>/` — gitignored, except the four paper-cited artefacts under `runs/benchmark/`: `results.json`, `results.md`, `failure-analysis.md`, `RESULTS_SUMMARY.md` |
 

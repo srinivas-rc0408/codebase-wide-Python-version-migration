@@ -1,0 +1,2279 @@
+{
+  "schema": "mra:benchmark_results/1",
+  "generated_at": "2026-10-04T02:58:53.075506+00:00",
+  "out_dir": "runs/benchmark/ablation-f",
+  "repeats": 3,
+  "tasks": [
+    "task01_datetime",
+    "task02_datetime_aliased",
+    "task03_half_migration",
+    "task04_multimodule",
+    "task05_signature_break"
+  ],
+  "configs": [
+    {
+      "name": "rules-off",
+      "recovery": true,
+      "order": "dependency",
+      "batch_size": 3,
+      "model": "deterministic",
+      "memory": "",
+      "rules": "off",
+      "ablation": "F",
+      "note": "no-op corrector, no promoted rules (control)"
+    },
+    {
+      "name": "rules-on",
+      "recovery": true,
+      "order": "dependency",
+      "batch_size": 3,
+      "model": "deterministic",
+      "memory": "",
+      "rules": "on",
+      "ablation": "F",
+      "note": "no-op corrector, rules from the training split's candidates"
+    },
+    {
+      "name": "rules-off-llm",
+      "recovery": true,
+      "order": "dependency",
+      "batch_size": 3,
+      "model": "v4-pro",
+      "memory": "",
+      "rules": "off",
+      "ablation": "F",
+      "note": "live corrective edits, no promoted rules"
+    },
+    {
+      "name": "rules-on-llm",
+      "recovery": true,
+      "order": "dependency",
+      "batch_size": 3,
+      "model": "v4-pro",
+      "memory": "",
+      "rules": "on",
+      "ablation": "F",
+      "note": "live corrective edits, rules tried first"
+    }
+  ],
+  "live_llm_available": false,
+  "rows": [
+    {
+      "config": "rules-off",
+      "ablation": "F",
+      "task_id": "task01_datetime",
+      "repeat": 0,
+      "run_id": "rules-off-task01_datetime-r0-f00d79",
+      "outcome": "success",
+      "m1_recall": 100.0,
+      "m1_precision": 100.0,
+      "m1_f1": 100.0,
+      "m2_pass_rate": 100.0,
+      "m2_regressions": 0,
+      "m3_tokens": 0,
+      "pro_in": 0,
+      "pro_out": 0,
+      "flash_in": 0,
+      "flash_out": 0,
+      "m3_steps": 5,
+      "cost_usd": 0.0,
+      "recovery_used": false,
+      "corrections": 0,
+      "wall_clock_s": 1.53,
+      "batches": [
+        [
+          "src/pkg/core.py"
+        ]
+      ],
+      "changed_files": [
+        "src/pkg/core.py"
+      ],
+      "fix_attempts": {},
+      "failures": [],
+      "stopped_at_batch": "success after batch 1/1",
+      "rules_fired": 0
+    },
+    {
+      "config": "rules-off",
+      "ablation": "F",
+      "task_id": "task01_datetime",
+      "repeat": 1,
+      "run_id": "rules-off-task01_datetime-r1-485ac4",
+      "outcome": "success",
+      "m1_recall": 100.0,
+      "m1_precision": 100.0,
+      "m1_f1": 100.0,
+      "m2_pass_rate": 100.0,
+      "m2_regressions": 0,
+      "m3_tokens": 0,
+      "pro_in": 0,
+      "pro_out": 0,
+      "flash_in": 0,
+      "flash_out": 0,
+      "m3_steps": 5,
+      "cost_usd": 0.0,
+      "recovery_used": false,
+      "corrections": 0,
+      "wall_clock_s": 1.54,
+      "batches": [
+        [
+          "src/pkg/core.py"
+        ]
+      ],
+      "changed_files": [
+        "src/pkg/core.py"
+      ],
+      "fix_attempts": {},
+      "failures": [],
+      "stopped_at_batch": "success after batch 1/1",
+      "rules_fired": 0
+    },
+    {
+      "config": "rules-off",
+      "ablation": "F",
+      "task_id": "task01_datetime",
+      "repeat": 2,
+      "run_id": "rules-off-task01_datetime-r2-0a2472",
+      "outcome": "success",
+      "m1_recall": 100.0,
+      "m1_precision": 100.0,
+      "m1_f1": 100.0,
+      "m2_pass_rate": 100.0,
+      "m2_regressions": 0,
+      "m3_tokens": 0,
+      "pro_in": 0,
+      "pro_out": 0,
+      "flash_in": 0,
+      "flash_out": 0,
+      "m3_steps": 5,
+      "cost_usd": 0.0,
+      "recovery_used": false,
+      "corrections": 0,
+      "wall_clock_s": 1.49,
+      "batches": [
+        [
+          "src/pkg/core.py"
+        ]
+      ],
+      "changed_files": [
+        "src/pkg/core.py"
+      ],
+      "fix_attempts": {},
+      "failures": [],
+      "stopped_at_batch": "success after batch 1/1",
+      "rules_fired": 0
+    },
+    {
+      "config": "rules-off",
+      "ablation": "F",
+      "task_id": "task02_datetime_aliased",
+      "repeat": 0,
+      "run_id": "rules-off-task02_datetime_aliased-r0-8ca109",
+      "outcome": "gave_up",
+      "m1_recall": 50.0,
+      "m1_precision": 100.0,
+      "m1_f1": 66.66666666666667,
+      "m2_pass_rate": 80.0,
+      "m2_regressions": 1,
+      "m3_tokens": 0,
+      "pro_in": 0,
+      "pro_out": 0,
+      "flash_in": 0,
+      "flash_out": 0,
+      "m3_steps": 11,
+      "cost_usd": 0.0,
+      "recovery_used": true,
+      "corrections": 3,
+      "wall_clock_s": 3.66,
+      "batches": [
+        [
+          "src/pkg/core.py"
+        ],
+        [
+          "src/pkg/report.py"
+        ]
+      ],
+      "changed_files": [
+        "src/pkg/core.py"
+      ],
+      "fix_attempts": {
+        "7769f4e867263e8d": 3
+      },
+      "failures": [
+        {
+          "nodeid": "tests/test_report.py::test_stamp_age_is_non_negative",
+          "signature": "7769f4e867263e8d",
+          "exc_type": "TypeError",
+          "message": "TypeError: can't subtract offset-naive and offset-aware datetimes",
+          "file": "src/pkg/report.py",
+          "failure_class": "behaviour"
+        }
+      ],
+      "stopped_at_batch": "gave_up after batch 1/2",
+      "rules_fired": 0
+    },
+    {
+      "config": "rules-off",
+      "ablation": "F",
+      "task_id": "task02_datetime_aliased",
+      "repeat": 1,
+      "run_id": "rules-off-task02_datetime_aliased-r1-026c46",
+      "outcome": "gave_up",
+      "m1_recall": 50.0,
+      "m1_precision": 100.0,
+      "m1_f1": 66.66666666666667,
+      "m2_pass_rate": 80.0,
+      "m2_regressions": 1,
+      "m3_tokens": 0,
+      "pro_in": 0,
+      "pro_out": 0,
+      "flash_in": 0,
+      "flash_out": 0,
+      "m3_steps": 11,
+      "cost_usd": 0.0,
+      "recovery_used": true,
+      "corrections": 3,
+      "wall_clock_s": 3.8,
+      "batches": [
+        [
+          "src/pkg/core.py"
+        ],
+        [
+          "src/pkg/report.py"
+        ]
+      ],
+      "changed_files": [
+        "src/pkg/core.py"
+      ],
+      "fix_attempts": {
+        "7769f4e867263e8d": 3
+      },
+      "failures": [
+        {
+          "nodeid": "tests/test_report.py::test_stamp_age_is_non_negative",
+          "signature": "7769f4e867263e8d",
+          "exc_type": "TypeError",
+          "message": "TypeError: can't subtract offset-naive and offset-aware datetimes",
+          "file": "src/pkg/report.py",
+          "failure_class": "behaviour"
+        }
+      ],
+      "stopped_at_batch": "gave_up after batch 1/2",
+      "rules_fired": 0
+    },
+    {
+      "config": "rules-off",
+      "ablation": "F",
+      "task_id": "task02_datetime_aliased",
+      "repeat": 2,
+      "run_id": "rules-off-task02_datetime_aliased-r2-67e3e6",
+      "outcome": "gave_up",
+      "m1_recall": 50.0,
+      "m1_precision": 100.0,
+      "m1_f1": 66.66666666666667,
+      "m2_pass_rate": 80.0,
+      "m2_regressions": 1,
+      "m3_tokens": 0,
+      "pro_in": 0,
+      "pro_out": 0,
+      "flash_in": 0,
+      "flash_out": 0,
+      "m3_steps": 11,
+      "cost_usd": 0.0,
+      "recovery_used": true,
+      "corrections": 3,
+      "wall_clock_s": 3.58,
+      "batches": [
+        [
+          "src/pkg/core.py"
+        ],
+        [
+          "src/pkg/report.py"
+        ]
+      ],
+      "changed_files": [
+        "src/pkg/core.py"
+      ],
+      "fix_attempts": {
+        "7769f4e867263e8d": 3
+      },
+      "failures": [
+        {
+          "nodeid": "tests/test_report.py::test_stamp_age_is_non_negative",
+          "signature": "7769f4e867263e8d",
+          "exc_type": "TypeError",
+          "message": "TypeError: can't subtract offset-naive and offset-aware datetimes",
+          "file": "src/pkg/report.py",
+          "failure_class": "behaviour"
+        }
+      ],
+      "stopped_at_batch": "gave_up after batch 1/2",
+      "rules_fired": 0
+    },
+    {
+      "config": "rules-off",
+      "ablation": "F",
+      "task_id": "task03_half_migration",
+      "repeat": 0,
+      "run_id": "rules-off-task03_half_migration-r0-c6fadb",
+      "outcome": "gave_up",
+      "m1_recall": 33.333333333333336,
+      "m1_precision": 100.0,
+      "m1_f1": 50.0,
+      "m2_pass_rate": 85.71428571428571,
+      "m2_regressions": 1,
+      "m3_tokens": 0,
+      "pro_in": 0,
+      "pro_out": 0,
+      "flash_in": 0,
+      "flash_out": 0,
+      "m3_steps": 11,
+      "cost_usd": 0.0,
+      "recovery_used": true,
+      "corrections": 3,
+      "wall_clock_s": 3.62,
+      "batches": [
+        [
+          "src/pkg/core.py"
+        ],
+        [
+          "src/pkg/audit.py",
+          "src/pkg/report.py"
+        ]
+      ],
+      "changed_files": [
+        "src/pkg/core.py"
+      ],
+      "fix_attempts": {
+        "7769f4e867263e8d": 3
+      },
+      "failures": [
+        {
+          "nodeid": "tests/test_report.py::test_stamp_age_is_non_negative",
+          "signature": "7769f4e867263e8d",
+          "exc_type": "TypeError",
+          "message": "TypeError: can't subtract offset-naive and offset-aware datetimes",
+          "file": "src/pkg/report.py",
+          "failure_class": "behaviour"
+        }
+      ],
+      "stopped_at_batch": "gave_up after batch 1/2",
+      "rules_fired": 0
+    },
+    {
+      "config": "rules-off",
+      "ablation": "F",
+      "task_id": "task03_half_migration",
+      "repeat": 1,
+      "run_id": "rules-off-task03_half_migration-r1-444660",
+      "outcome": "gave_up",
+      "m1_recall": 33.333333333333336,
+      "m1_precision": 100.0,
+      "m1_f1": 50.0,
+      "m2_pass_rate": 85.71428571428571,
+      "m2_regressions": 1,
+      "m3_tokens": 0,
+      "pro_in": 0,
+      "pro_out": 0,
+      "flash_in": 0,
+      "flash_out": 0,
+      "m3_steps": 11,
+      "cost_usd": 0.0,
+      "recovery_used": true,
+      "corrections": 3,
+      "wall_clock_s": 3.46,
+      "batches": [
+        [
+          "src/pkg/core.py"
+        ],
+        [
+          "src/pkg/audit.py",
+          "src/pkg/report.py"
+        ]
+      ],
+      "changed_files": [
+        "src/pkg/core.py"
+      ],
+      "fix_attempts": {
+        "7769f4e867263e8d": 3
+      },
+      "failures": [
+        {
+          "nodeid": "tests/test_report.py::test_stamp_age_is_non_negative",
+          "signature": "7769f4e867263e8d",
+          "exc_type": "TypeError",
+          "message": "TypeError: can't subtract offset-naive and offset-aware datetimes",
+          "file": "src/pkg/report.py",
+          "failure_class": "behaviour"
+        }
+      ],
+      "stopped_at_batch": "gave_up after batch 1/2",
+      "rules_fired": 0
+    },
+    {
+      "config": "rules-off",
+      "ablation": "F",
+      "task_id": "task03_half_migration",
+      "repeat": 2,
+      "run_id": "rules-off-task03_half_migration-r2-9fc8d9",
+      "outcome": "gave_up",
+      "m1_recall": 33.333333333333336,
+      "m1_precision": 100.0,
+      "m1_f1": 50.0,
+      "m2_pass_rate": 85.71428571428571,
+      "m2_regressions": 1,
+      "m3_tokens": 0,
+      "pro_in": 0,
+      "pro_out": 0,
+      "flash_in": 0,
+      "flash_out": 0,
+      "m3_steps": 11,
+      "cost_usd": 0.0,
+      "recovery_used": true,
+      "corrections": 3,
+      "wall_clock_s": 3.84,
+      "batches": [
+        [
+          "src/pkg/core.py"
+        ],
+        [
+          "src/pkg/audit.py",
+          "src/pkg/report.py"
+        ]
+      ],
+      "changed_files": [
+        "src/pkg/core.py"
+      ],
+      "fix_attempts": {
+        "7769f4e867263e8d": 3
+      },
+      "failures": [
+        {
+          "nodeid": "tests/test_report.py::test_stamp_age_is_non_negative",
+          "signature": "7769f4e867263e8d",
+          "exc_type": "TypeError",
+          "message": "TypeError: can't subtract offset-naive and offset-aware datetimes",
+          "file": "src/pkg/report.py",
+          "failure_class": "behaviour"
+        }
+      ],
+      "stopped_at_batch": "gave_up after batch 1/2",
+      "rules_fired": 0
+    },
+    {
+      "config": "rules-off",
+      "ablation": "F",
+      "task_id": "task04_multimodule",
+      "repeat": 0,
+      "run_id": "rules-off-task04_multimodule-r0-135e9b",
+      "outcome": "gave_up",
+      "m1_recall": 66.66666666666667,
+      "m1_precision": 100.0,
+      "m1_f1": 80.0,
+      "m2_pass_rate": 72.72727272727273,
+      "m2_regressions": 3,
+      "m3_tokens": 0,
+      "pro_in": 0,
+      "pro_out": 0,
+      "flash_in": 0,
+      "flash_out": 0,
+      "m3_steps": 27,
+      "cost_usd": 0.0,
+      "recovery_used": true,
+      "corrections": 9,
+      "wall_clock_s": 9.77,
+      "batches": [
+        [
+          "src/pkg/clock.py"
+        ],
+        [
+          "src/pkg/audit.py",
+          "src/pkg/ledger.py"
+        ],
+        [
+          "src/pkg/invoice.py"
+        ],
+        [
+          "src/pkg/report.py"
+        ],
+        [
+          "src/pkg/api.py"
+        ]
+      ],
+      "changed_files": [
+        "src/pkg/audit.py",
+        "src/pkg/clock.py",
+        "src/pkg/invoice.py",
+        "src/pkg/ledger.py"
+      ],
+      "fix_attempts": {
+        "2773f89c64a8ae65": 3,
+        "06db386a6ac883bc": 3,
+        "910006be8e460f47": 3
+      },
+      "failures": [
+        {
+          "nodeid": "tests/test_api.py::test_handle_serves_a_complete_response",
+          "signature": "2773f89c64a8ae65",
+          "exc_type": "TypeError",
+          "message": "TypeError: can't subtract offset-naive and offset-aware datetimes",
+          "file": "src/pkg/report.py",
+          "failure_class": "behaviour"
+        },
+        {
+          "nodeid": "tests/test_report.py::test_invoice_age_is_non_negative",
+          "signature": "06db386a6ac883bc",
+          "exc_type": "TypeError",
+          "message": "TypeError: can't subtract offset-naive and offset-aware datetimes",
+          "file": "src/pkg/report.py",
+          "failure_class": "behaviour"
+        },
+        {
+          "nodeid": "tests/test_report.py::test_summary_reports_the_invoice_and_its_age",
+          "signature": "910006be8e460f47",
+          "exc_type": "TypeError",
+          "message": "TypeError: can't subtract offset-naive and offset-aware datetimes",
+          "file": "src/pkg/report.py",
+          "failure_class": "behaviour"
+        }
+      ],
+      "stopped_at_batch": "gave_up after batch 3/5",
+      "rules_fired": 0
+    },
+    {
+      "config": "rules-off",
+      "ablation": "F",
+      "task_id": "task04_multimodule",
+      "repeat": 1,
+      "run_id": "rules-off-task04_multimodule-r1-06f184",
+      "outcome": "gave_up",
+      "m1_recall": 66.66666666666667,
+      "m1_precision": 100.0,
+      "m1_f1": 80.0,
+      "m2_pass_rate": 72.72727272727273,
+      "m2_regressions": 3,
+      "m3_tokens": 0,
+      "pro_in": 0,
+      "pro_out": 0,
+      "flash_in": 0,
+      "flash_out": 0,
+      "m3_steps": 27,
+      "cost_usd": 0.0,
+      "recovery_used": true,
+      "corrections": 9,
+      "wall_clock_s": 10.36,
+      "batches": [
+        [
+          "src/pkg/clock.py"
+        ],
+        [
+          "src/pkg/audit.py",
+          "src/pkg/ledger.py"
+        ],
+        [
+          "src/pkg/invoice.py"
+        ],
+        [
+          "src/pkg/report.py"
+        ],
+        [
+          "src/pkg/api.py"
+        ]
+      ],
+      "changed_files": [
+        "src/pkg/audit.py",
+        "src/pkg/clock.py",
+        "src/pkg/invoice.py",
+        "src/pkg/ledger.py"
+      ],
+      "fix_attempts": {
+        "2773f89c64a8ae65": 3,
+        "06db386a6ac883bc": 3,
+        "910006be8e460f47": 3
+      },
+      "failures": [
+        {
+          "nodeid": "tests/test_api.py::test_handle_serves_a_complete_response",
+          "signature": "2773f89c64a8ae65",
+          "exc_type": "TypeError",
+          "message": "TypeError: can't subtract offset-naive and offset-aware datetimes",
+          "file": "src/pkg/report.py",
+          "failure_class": "behaviour"
+        },
+        {
+          "nodeid": "tests/test_report.py::test_invoice_age_is_non_negative",
+          "signature": "06db386a6ac883bc",
+          "exc_type": "TypeError",
+          "message": "TypeError: can't subtract offset-naive and offset-aware datetimes",
+          "file": "src/pkg/report.py",
+          "failure_class": "behaviour"
+        },
+        {
+          "nodeid": "tests/test_report.py::test_summary_reports_the_invoice_and_its_age",
+          "signature": "910006be8e460f47",
+          "exc_type": "TypeError",
+          "message": "TypeError: can't subtract offset-naive and offset-aware datetimes",
+          "file": "src/pkg/report.py",
+          "failure_class": "behaviour"
+        }
+      ],
+      "stopped_at_batch": "gave_up after batch 3/5",
+      "rules_fired": 0
+    },
+    {
+      "config": "rules-off",
+      "ablation": "F",
+      "task_id": "task04_multimodule",
+      "repeat": 2,
+      "run_id": "rules-off-task04_multimodule-r2-49280b",
+      "outcome": "gave_up",
+      "m1_recall": 66.66666666666667,
+      "m1_precision": 100.0,
+      "m1_f1": 80.0,
+      "m2_pass_rate": 72.72727272727273,
+      "m2_regressions": 3,
+      "m3_tokens": 0,
+      "pro_in": 0,
+      "pro_out": 0,
+      "flash_in": 0,
+      "flash_out": 0,
+      "m3_steps": 27,
+      "cost_usd": 0.0,
+      "recovery_used": true,
+      "corrections": 9,
+      "wall_clock_s": 10.28,
+      "batches": [
+        [
+          "src/pkg/clock.py"
+        ],
+        [
+          "src/pkg/audit.py",
+          "src/pkg/ledger.py"
+        ],
+        [
+          "src/pkg/invoice.py"
+        ],
+        [
+          "src/pkg/report.py"
+        ],
+        [
+          "src/pkg/api.py"
+        ]
+      ],
+      "changed_files": [
+        "src/pkg/audit.py",
+        "src/pkg/clock.py",
+        "src/pkg/invoice.py",
+        "src/pkg/ledger.py"
+      ],
+      "fix_attempts": {
+        "2773f89c64a8ae65": 3,
+        "06db386a6ac883bc": 3,
+        "910006be8e460f47": 3
+      },
+      "failures": [
+        {
+          "nodeid": "tests/test_api.py::test_handle_serves_a_complete_response",
+          "signature": "2773f89c64a8ae65",
+          "exc_type": "TypeError",
+          "message": "TypeError: can't subtract offset-naive and offset-aware datetimes",
+          "file": "src/pkg/report.py",
+          "failure_class": "behaviour"
+        },
+        {
+          "nodeid": "tests/test_report.py::test_invoice_age_is_non_negative",
+          "signature": "06db386a6ac883bc",
+          "exc_type": "TypeError",
+          "message": "TypeError: can't subtract offset-naive and offset-aware datetimes",
+          "file": "src/pkg/report.py",
+          "failure_class": "behaviour"
+        },
+        {
+          "nodeid": "tests/test_report.py::test_summary_reports_the_invoice_and_its_age",
+          "signature": "910006be8e460f47",
+          "exc_type": "TypeError",
+          "message": "TypeError: can't subtract offset-naive and offset-aware datetimes",
+          "file": "src/pkg/report.py",
+          "failure_class": "behaviour"
+        }
+      ],
+      "stopped_at_batch": "gave_up after batch 3/5",
+      "rules_fired": 0
+    },
+    {
+      "config": "rules-off",
+      "ablation": "F",
+      "task_id": "task05_signature_break",
+      "repeat": 0,
+      "run_id": "rules-off-task05_signature_break-r0-304e59",
+      "outcome": "success",
+      "m1_recall": 100.0,
+      "m1_precision": 100.0,
+      "m1_f1": 100.0,
+      "m2_pass_rate": 100.0,
+      "m2_regressions": 0,
+      "m3_tokens": 0,
+      "pro_in": 0,
+      "pro_out": 0,
+      "flash_in": 0,
+      "flash_out": 0,
+      "m3_steps": 11,
+      "cost_usd": 0.0,
+      "recovery_used": false,
+      "corrections": 0,
+      "wall_clock_s": 4.07,
+      "batches": [
+        [
+          "src/pkg/timebase.py"
+        ],
+        [
+          "src/pkg/boot.py",
+          "src/pkg/ledger.py"
+        ],
+        [
+          "src/pkg/handler.py",
+          "src/pkg/metrics.py"
+        ],
+        [
+          "src/pkg/api.py"
+        ]
+      ],
+      "changed_files": [
+        "src/pkg/api.py",
+        "src/pkg/boot.py",
+        "src/pkg/handler.py",
+        "src/pkg/ledger.py",
+        "src/pkg/metrics.py",
+        "src/pkg/timebase.py"
+      ],
+      "fix_attempts": {},
+      "failures": [],
+      "stopped_at_batch": "success after batch 4/4",
+      "rules_fired": 0
+    },
+    {
+      "config": "rules-off",
+      "ablation": "F",
+      "task_id": "task05_signature_break",
+      "repeat": 1,
+      "run_id": "rules-off-task05_signature_break-r1-4db725",
+      "outcome": "success",
+      "m1_recall": 100.0,
+      "m1_precision": 100.0,
+      "m1_f1": 100.0,
+      "m2_pass_rate": 100.0,
+      "m2_regressions": 0,
+      "m3_tokens": 0,
+      "pro_in": 0,
+      "pro_out": 0,
+      "flash_in": 0,
+      "flash_out": 0,
+      "m3_steps": 11,
+      "cost_usd": 0.0,
+      "recovery_used": false,
+      "corrections": 0,
+      "wall_clock_s": 3.97,
+      "batches": [
+        [
+          "src/pkg/timebase.py"
+        ],
+        [
+          "src/pkg/boot.py",
+          "src/pkg/ledger.py"
+        ],
+        [
+          "src/pkg/handler.py",
+          "src/pkg/metrics.py"
+        ],
+        [
+          "src/pkg/api.py"
+        ]
+      ],
+      "changed_files": [
+        "src/pkg/api.py",
+        "src/pkg/boot.py",
+        "src/pkg/handler.py",
+        "src/pkg/ledger.py",
+        "src/pkg/metrics.py",
+        "src/pkg/timebase.py"
+      ],
+      "fix_attempts": {},
+      "failures": [],
+      "stopped_at_batch": "success after batch 4/4",
+      "rules_fired": 0
+    },
+    {
+      "config": "rules-off",
+      "ablation": "F",
+      "task_id": "task05_signature_break",
+      "repeat": 2,
+      "run_id": "rules-off-task05_signature_break-r2-188a19",
+      "outcome": "success",
+      "m1_recall": 100.0,
+      "m1_precision": 100.0,
+      "m1_f1": 100.0,
+      "m2_pass_rate": 100.0,
+      "m2_regressions": 0,
+      "m3_tokens": 0,
+      "pro_in": 0,
+      "pro_out": 0,
+      "flash_in": 0,
+      "flash_out": 0,
+      "m3_steps": 11,
+      "cost_usd": 0.0,
+      "recovery_used": false,
+      "corrections": 0,
+      "wall_clock_s": 4.0,
+      "batches": [
+        [
+          "src/pkg/timebase.py"
+        ],
+        [
+          "src/pkg/boot.py",
+          "src/pkg/ledger.py"
+        ],
+        [
+          "src/pkg/handler.py",
+          "src/pkg/metrics.py"
+        ],
+        [
+          "src/pkg/api.py"
+        ]
+      ],
+      "changed_files": [
+        "src/pkg/api.py",
+        "src/pkg/boot.py",
+        "src/pkg/handler.py",
+        "src/pkg/ledger.py",
+        "src/pkg/metrics.py",
+        "src/pkg/timebase.py"
+      ],
+      "fix_attempts": {},
+      "failures": [],
+      "stopped_at_batch": "success after batch 4/4",
+      "rules_fired": 0
+    },
+    {
+      "config": "rules-on",
+      "ablation": "F",
+      "task_id": "task01_datetime",
+      "repeat": 0,
+      "run_id": "rules-on-task01_datetime-r0-d30f28",
+      "outcome": "success",
+      "m1_recall": 100.0,
+      "m1_precision": 100.0,
+      "m1_f1": 100.0,
+      "m2_pass_rate": 100.0,
+      "m2_regressions": 0,
+      "m3_tokens": 0,
+      "pro_in": 0,
+      "pro_out": 0,
+      "flash_in": 0,
+      "flash_out": 0,
+      "m3_steps": 5,
+      "cost_usd": 0.0,
+      "recovery_used": false,
+      "corrections": 0,
+      "wall_clock_s": 1.56,
+      "batches": [
+        [
+          "src/pkg/core.py"
+        ]
+      ],
+      "changed_files": [
+        "src/pkg/core.py"
+      ],
+      "fix_attempts": {},
+      "failures": [],
+      "stopped_at_batch": "success after batch 1/1",
+      "rules_fired": 0
+    },
+    {
+      "config": "rules-on",
+      "ablation": "F",
+      "task_id": "task01_datetime",
+      "repeat": 1,
+      "run_id": "rules-on-task01_datetime-r1-0358d1",
+      "outcome": "success",
+      "m1_recall": 100.0,
+      "m1_precision": 100.0,
+      "m1_f1": 100.0,
+      "m2_pass_rate": 100.0,
+      "m2_regressions": 0,
+      "m3_tokens": 0,
+      "pro_in": 0,
+      "pro_out": 0,
+      "flash_in": 0,
+      "flash_out": 0,
+      "m3_steps": 5,
+      "cost_usd": 0.0,
+      "recovery_used": false,
+      "corrections": 0,
+      "wall_clock_s": 1.47,
+      "batches": [
+        [
+          "src/pkg/core.py"
+        ]
+      ],
+      "changed_files": [
+        "src/pkg/core.py"
+      ],
+      "fix_attempts": {},
+      "failures": [],
+      "stopped_at_batch": "success after batch 1/1",
+      "rules_fired": 0
+    },
+    {
+      "config": "rules-on",
+      "ablation": "F",
+      "task_id": "task01_datetime",
+      "repeat": 2,
+      "run_id": "rules-on-task01_datetime-r2-4edbe7",
+      "outcome": "success",
+      "m1_recall": 100.0,
+      "m1_precision": 100.0,
+      "m1_f1": 100.0,
+      "m2_pass_rate": 100.0,
+      "m2_regressions": 0,
+      "m3_tokens": 0,
+      "pro_in": 0,
+      "pro_out": 0,
+      "flash_in": 0,
+      "flash_out": 0,
+      "m3_steps": 5,
+      "cost_usd": 0.0,
+      "recovery_used": false,
+      "corrections": 0,
+      "wall_clock_s": 1.45,
+      "batches": [
+        [
+          "src/pkg/core.py"
+        ]
+      ],
+      "changed_files": [
+        "src/pkg/core.py"
+      ],
+      "fix_attempts": {},
+      "failures": [],
+      "stopped_at_batch": "success after batch 1/1",
+      "rules_fired": 0
+    },
+    {
+      "config": "rules-on",
+      "ablation": "F",
+      "task_id": "task02_datetime_aliased",
+      "repeat": 0,
+      "run_id": "rules-on-task02_datetime_aliased-r0-dc5371",
+      "outcome": "gave_up",
+      "m1_recall": 50.0,
+      "m1_precision": 100.0,
+      "m1_f1": 66.66666666666667,
+      "m2_pass_rate": 80.0,
+      "m2_regressions": 1,
+      "m3_tokens": 0,
+      "pro_in": 0,
+      "pro_out": 0,
+      "flash_in": 0,
+      "flash_out": 0,
+      "m3_steps": 11,
+      "cost_usd": 0.0,
+      "recovery_used": true,
+      "corrections": 3,
+      "wall_clock_s": 3.7,
+      "batches": [
+        [
+          "src/pkg/core.py"
+        ],
+        [
+          "src/pkg/report.py"
+        ]
+      ],
+      "changed_files": [
+        "src/pkg/core.py"
+      ],
+      "fix_attempts": {
+        "7769f4e867263e8d": 3
+      },
+      "failures": [
+        {
+          "nodeid": "tests/test_report.py::test_stamp_age_is_non_negative",
+          "signature": "7769f4e867263e8d",
+          "exc_type": "TypeError",
+          "message": "TypeError: can't subtract offset-naive and offset-aware datetimes",
+          "file": "src/pkg/report.py",
+          "failure_class": "behaviour"
+        }
+      ],
+      "stopped_at_batch": "gave_up after batch 1/2",
+      "rules_fired": 0
+    },
+    {
+      "config": "rules-on",
+      "ablation": "F",
+      "task_id": "task02_datetime_aliased",
+      "repeat": 1,
+      "run_id": "rules-on-task02_datetime_aliased-r1-8d3b96",
+      "outcome": "gave_up",
+      "m1_recall": 50.0,
+      "m1_precision": 100.0,
+      "m1_f1": 66.66666666666667,
+      "m2_pass_rate": 80.0,
+      "m2_regressions": 1,
+      "m3_tokens": 0,
+      "pro_in": 0,
+      "pro_out": 0,
+      "flash_in": 0,
+      "flash_out": 0,
+      "m3_steps": 11,
+      "cost_usd": 0.0,
+      "recovery_used": true,
+      "corrections": 3,
+      "wall_clock_s": 3.89,
+      "batches": [
+        [
+          "src/pkg/core.py"
+        ],
+        [
+          "src/pkg/report.py"
+        ]
+      ],
+      "changed_files": [
+        "src/pkg/core.py"
+      ],
+      "fix_attempts": {
+        "7769f4e867263e8d": 3
+      },
+      "failures": [
+        {
+          "nodeid": "tests/test_report.py::test_stamp_age_is_non_negative",
+          "signature": "7769f4e867263e8d",
+          "exc_type": "TypeError",
+          "message": "TypeError: can't subtract offset-naive and offset-aware datetimes",
+          "file": "src/pkg/report.py",
+          "failure_class": "behaviour"
+        }
+      ],
+      "stopped_at_batch": "gave_up after batch 1/2",
+      "rules_fired": 0
+    },
+    {
+      "config": "rules-on",
+      "ablation": "F",
+      "task_id": "task02_datetime_aliased",
+      "repeat": 2,
+      "run_id": "rules-on-task02_datetime_aliased-r2-d1ceba",
+      "outcome": "gave_up",
+      "m1_recall": 50.0,
+      "m1_precision": 100.0,
+      "m1_f1": 66.66666666666667,
+      "m2_pass_rate": 80.0,
+      "m2_regressions": 1,
+      "m3_tokens": 0,
+      "pro_in": 0,
+      "pro_out": 0,
+      "flash_in": 0,
+      "flash_out": 0,
+      "m3_steps": 11,
+      "cost_usd": 0.0,
+      "recovery_used": true,
+      "corrections": 3,
+      "wall_clock_s": 3.65,
+      "batches": [
+        [
+          "src/pkg/core.py"
+        ],
+        [
+          "src/pkg/report.py"
+        ]
+      ],
+      "changed_files": [
+        "src/pkg/core.py"
+      ],
+      "fix_attempts": {
+        "7769f4e867263e8d": 3
+      },
+      "failures": [
+        {
+          "nodeid": "tests/test_report.py::test_stamp_age_is_non_negative",
+          "signature": "7769f4e867263e8d",
+          "exc_type": "TypeError",
+          "message": "TypeError: can't subtract offset-naive and offset-aware datetimes",
+          "file": "src/pkg/report.py",
+          "failure_class": "behaviour"
+        }
+      ],
+      "stopped_at_batch": "gave_up after batch 1/2",
+      "rules_fired": 0
+    },
+    {
+      "config": "rules-on",
+      "ablation": "F",
+      "task_id": "task03_half_migration",
+      "repeat": 0,
+      "run_id": "rules-on-task03_half_migration-r0-cc5bf3",
+      "outcome": "gave_up",
+      "m1_recall": 33.333333333333336,
+      "m1_precision": 100.0,
+      "m1_f1": 50.0,
+      "m2_pass_rate": 85.71428571428571,
+      "m2_regressions": 1,
+      "m3_tokens": 0,
+      "pro_in": 0,
+      "pro_out": 0,
+      "flash_in": 0,
+      "flash_out": 0,
+      "m3_steps": 11,
+      "cost_usd": 0.0,
+      "recovery_used": true,
+      "corrections": 3,
+      "wall_clock_s": 3.83,
+      "batches": [
+        [
+          "src/pkg/core.py"
+        ],
+        [
+          "src/pkg/audit.py",
+          "src/pkg/report.py"
+        ]
+      ],
+      "changed_files": [
+        "src/pkg/core.py"
+      ],
+      "fix_attempts": {
+        "7769f4e867263e8d": 3
+      },
+      "failures": [
+        {
+          "nodeid": "tests/test_report.py::test_stamp_age_is_non_negative",
+          "signature": "7769f4e867263e8d",
+          "exc_type": "TypeError",
+          "message": "TypeError: can't subtract offset-naive and offset-aware datetimes",
+          "file": "src/pkg/report.py",
+          "failure_class": "behaviour"
+        }
+      ],
+      "stopped_at_batch": "gave_up after batch 1/2",
+      "rules_fired": 0
+    },
+    {
+      "config": "rules-on",
+      "ablation": "F",
+      "task_id": "task03_half_migration",
+      "repeat": 1,
+      "run_id": "rules-on-task03_half_migration-r1-84ff98",
+      "outcome": "gave_up",
+      "m1_recall": 33.333333333333336,
+      "m1_precision": 100.0,
+      "m1_f1": 50.0,
+      "m2_pass_rate": 85.71428571428571,
+      "m2_regressions": 1,
+      "m3_tokens": 0,
+      "pro_in": 0,
+      "pro_out": 0,
+      "flash_in": 0,
+      "flash_out": 0,
+      "m3_steps": 11,
+      "cost_usd": 0.0,
+      "recovery_used": true,
+      "corrections": 3,
+      "wall_clock_s": 3.88,
+      "batches": [
+        [
+          "src/pkg/core.py"
+        ],
+        [
+          "src/pkg/audit.py",
+          "src/pkg/report.py"
+        ]
+      ],
+      "changed_files": [
+        "src/pkg/core.py"
+      ],
+      "fix_attempts": {
+        "7769f4e867263e8d": 3
+      },
+      "failures": [
+        {
+          "nodeid": "tests/test_report.py::test_stamp_age_is_non_negative",
+          "signature": "7769f4e867263e8d",
+          "exc_type": "TypeError",
+          "message": "TypeError: can't subtract offset-naive and offset-aware datetimes",
+          "file": "src/pkg/report.py",
+          "failure_class": "behaviour"
+        }
+      ],
+      "stopped_at_batch": "gave_up after batch 1/2",
+      "rules_fired": 0
+    },
+    {
+      "config": "rules-on",
+      "ablation": "F",
+      "task_id": "task03_half_migration",
+      "repeat": 2,
+      "run_id": "rules-on-task03_half_migration-r2-3a3293",
+      "outcome": "gave_up",
+      "m1_recall": 33.333333333333336,
+      "m1_precision": 100.0,
+      "m1_f1": 50.0,
+      "m2_pass_rate": 85.71428571428571,
+      "m2_regressions": 1,
+      "m3_tokens": 0,
+      "pro_in": 0,
+      "pro_out": 0,
+      "flash_in": 0,
+      "flash_out": 0,
+      "m3_steps": 11,
+      "cost_usd": 0.0,
+      "recovery_used": true,
+      "corrections": 3,
+      "wall_clock_s": 3.71,
+      "batches": [
+        [
+          "src/pkg/core.py"
+        ],
+        [
+          "src/pkg/audit.py",
+          "src/pkg/report.py"
+        ]
+      ],
+      "changed_files": [
+        "src/pkg/core.py"
+      ],
+      "fix_attempts": {
+        "7769f4e867263e8d": 3
+      },
+      "failures": [
+        {
+          "nodeid": "tests/test_report.py::test_stamp_age_is_non_negative",
+          "signature": "7769f4e867263e8d",
+          "exc_type": "TypeError",
+          "message": "TypeError: can't subtract offset-naive and offset-aware datetimes",
+          "file": "src/pkg/report.py",
+          "failure_class": "behaviour"
+        }
+      ],
+      "stopped_at_batch": "gave_up after batch 1/2",
+      "rules_fired": 0
+    },
+    {
+      "config": "rules-on",
+      "ablation": "F",
+      "task_id": "task04_multimodule",
+      "repeat": 0,
+      "run_id": "rules-on-task04_multimodule-r0-fad86d",
+      "outcome": "gave_up",
+      "m1_recall": 66.66666666666667,
+      "m1_precision": 100.0,
+      "m1_f1": 80.0,
+      "m2_pass_rate": 72.72727272727273,
+      "m2_regressions": 3,
+      "m3_tokens": 0,
+      "pro_in": 0,
+      "pro_out": 0,
+      "flash_in": 0,
+      "flash_out": 0,
+      "m3_steps": 27,
+      "cost_usd": 0.0,
+      "recovery_used": true,
+      "corrections": 9,
+      "wall_clock_s": 10.17,
+      "batches": [
+        [
+          "src/pkg/clock.py"
+        ],
+        [
+          "src/pkg/audit.py",
+          "src/pkg/ledger.py"
+        ],
+        [
+          "src/pkg/invoice.py"
+        ],
+        [
+          "src/pkg/report.py"
+        ],
+        [
+          "src/pkg/api.py"
+        ]
+      ],
+      "changed_files": [
+        "src/pkg/audit.py",
+        "src/pkg/clock.py",
+        "src/pkg/invoice.py",
+        "src/pkg/ledger.py"
+      ],
+      "fix_attempts": {
+        "2773f89c64a8ae65": 3,
+        "06db386a6ac883bc": 3,
+        "910006be8e460f47": 3
+      },
+      "failures": [
+        {
+          "nodeid": "tests/test_api.py::test_handle_serves_a_complete_response",
+          "signature": "2773f89c64a8ae65",
+          "exc_type": "TypeError",
+          "message": "TypeError: can't subtract offset-naive and offset-aware datetimes",
+          "file": "src/pkg/report.py",
+          "failure_class": "behaviour"
+        },
+        {
+          "nodeid": "tests/test_report.py::test_invoice_age_is_non_negative",
+          "signature": "06db386a6ac883bc",
+          "exc_type": "TypeError",
+          "message": "TypeError: can't subtract offset-naive and offset-aware datetimes",
+          "file": "src/pkg/report.py",
+          "failure_class": "behaviour"
+        },
+        {
+          "nodeid": "tests/test_report.py::test_summary_reports_the_invoice_and_its_age",
+          "signature": "910006be8e460f47",
+          "exc_type": "TypeError",
+          "message": "TypeError: can't subtract offset-naive and offset-aware datetimes",
+          "file": "src/pkg/report.py",
+          "failure_class": "behaviour"
+        }
+      ],
+      "stopped_at_batch": "gave_up after batch 3/5",
+      "rules_fired": 0
+    },
+    {
+      "config": "rules-on",
+      "ablation": "F",
+      "task_id": "task04_multimodule",
+      "repeat": 1,
+      "run_id": "rules-on-task04_multimodule-r1-c83b10",
+      "outcome": "gave_up",
+      "m1_recall": 66.66666666666667,
+      "m1_precision": 100.0,
+      "m1_f1": 80.0,
+      "m2_pass_rate": 72.72727272727273,
+      "m2_regressions": 3,
+      "m3_tokens": 0,
+      "pro_in": 0,
+      "pro_out": 0,
+      "flash_in": 0,
+      "flash_out": 0,
+      "m3_steps": 27,
+      "cost_usd": 0.0,
+      "recovery_used": true,
+      "corrections": 9,
+      "wall_clock_s": 10.34,
+      "batches": [
+        [
+          "src/pkg/clock.py"
+        ],
+        [
+          "src/pkg/audit.py",
+          "src/pkg/ledger.py"
+        ],
+        [
+          "src/pkg/invoice.py"
+        ],
+        [
+          "src/pkg/report.py"
+        ],
+        [
+          "src/pkg/api.py"
+        ]
+      ],
+      "changed_files": [
+        "src/pkg/audit.py",
+        "src/pkg/clock.py",
+        "src/pkg/invoice.py",
+        "src/pkg/ledger.py"
+      ],
+      "fix_attempts": {
+        "2773f89c64a8ae65": 3,
+        "06db386a6ac883bc": 3,
+        "910006be8e460f47": 3
+      },
+      "failures": [
+        {
+          "nodeid": "tests/test_api.py::test_handle_serves_a_complete_response",
+          "signature": "2773f89c64a8ae65",
+          "exc_type": "TypeError",
+          "message": "TypeError: can't subtract offset-naive and offset-aware datetimes",
+          "file": "src/pkg/report.py",
+          "failure_class": "behaviour"
+        },
+        {
+          "nodeid": "tests/test_report.py::test_invoice_age_is_non_negative",
+          "signature": "06db386a6ac883bc",
+          "exc_type": "TypeError",
+          "message": "TypeError: can't subtract offset-naive and offset-aware datetimes",
+          "file": "src/pkg/report.py",
+          "failure_class": "behaviour"
+        },
+        {
+          "nodeid": "tests/test_report.py::test_summary_reports_the_invoice_and_its_age",
+          "signature": "910006be8e460f47",
+          "exc_type": "TypeError",
+          "message": "TypeError: can't subtract offset-naive and offset-aware datetimes",
+          "file": "src/pkg/report.py",
+          "failure_class": "behaviour"
+        }
+      ],
+      "stopped_at_batch": "gave_up after batch 3/5",
+      "rules_fired": 0
+    },
+    {
+      "config": "rules-on",
+      "ablation": "F",
+      "task_id": "task04_multimodule",
+      "repeat": 2,
+      "run_id": "rules-on-task04_multimodule-r2-2fbd93",
+      "outcome": "gave_up",
+      "m1_recall": 66.66666666666667,
+      "m1_precision": 100.0,
+      "m1_f1": 80.0,
+      "m2_pass_rate": 72.72727272727273,
+      "m2_regressions": 3,
+      "m3_tokens": 0,
+      "pro_in": 0,
+      "pro_out": 0,
+      "flash_in": 0,
+      "flash_out": 0,
+      "m3_steps": 27,
+      "cost_usd": 0.0,
+      "recovery_used": true,
+      "corrections": 9,
+      "wall_clock_s": 10.18,
+      "batches": [
+        [
+          "src/pkg/clock.py"
+        ],
+        [
+          "src/pkg/audit.py",
+          "src/pkg/ledger.py"
+        ],
+        [
+          "src/pkg/invoice.py"
+        ],
+        [
+          "src/pkg/report.py"
+        ],
+        [
+          "src/pkg/api.py"
+        ]
+      ],
+      "changed_files": [
+        "src/pkg/audit.py",
+        "src/pkg/clock.py",
+        "src/pkg/invoice.py",
+        "src/pkg/ledger.py"
+      ],
+      "fix_attempts": {
+        "2773f89c64a8ae65": 3,
+        "06db386a6ac883bc": 3,
+        "910006be8e460f47": 3
+      },
+      "failures": [
+        {
+          "nodeid": "tests/test_api.py::test_handle_serves_a_complete_response",
+          "signature": "2773f89c64a8ae65",
+          "exc_type": "TypeError",
+          "message": "TypeError: can't subtract offset-naive and offset-aware datetimes",
+          "file": "src/pkg/report.py",
+          "failure_class": "behaviour"
+        },
+        {
+          "nodeid": "tests/test_report.py::test_invoice_age_is_non_negative",
+          "signature": "06db386a6ac883bc",
+          "exc_type": "TypeError",
+          "message": "TypeError: can't subtract offset-naive and offset-aware datetimes",
+          "file": "src/pkg/report.py",
+          "failure_class": "behaviour"
+        },
+        {
+          "nodeid": "tests/test_report.py::test_summary_reports_the_invoice_and_its_age",
+          "signature": "910006be8e460f47",
+          "exc_type": "TypeError",
+          "message": "TypeError: can't subtract offset-naive and offset-aware datetimes",
+          "file": "src/pkg/report.py",
+          "failure_class": "behaviour"
+        }
+      ],
+      "stopped_at_batch": "gave_up after batch 3/5",
+      "rules_fired": 0
+    },
+    {
+      "config": "rules-on",
+      "ablation": "F",
+      "task_id": "task05_signature_break",
+      "repeat": 0,
+      "run_id": "rules-on-task05_signature_break-r0-687340",
+      "outcome": "success",
+      "m1_recall": 100.0,
+      "m1_precision": 100.0,
+      "m1_f1": 100.0,
+      "m2_pass_rate": 100.0,
+      "m2_regressions": 0,
+      "m3_tokens": 0,
+      "pro_in": 0,
+      "pro_out": 0,
+      "flash_in": 0,
+      "flash_out": 0,
+      "m3_steps": 11,
+      "cost_usd": 0.0,
+      "recovery_used": false,
+      "corrections": 0,
+      "wall_clock_s": 4.15,
+      "batches": [
+        [
+          "src/pkg/timebase.py"
+        ],
+        [
+          "src/pkg/boot.py",
+          "src/pkg/ledger.py"
+        ],
+        [
+          "src/pkg/handler.py",
+          "src/pkg/metrics.py"
+        ],
+        [
+          "src/pkg/api.py"
+        ]
+      ],
+      "changed_files": [
+        "src/pkg/api.py",
+        "src/pkg/boot.py",
+        "src/pkg/handler.py",
+        "src/pkg/ledger.py",
+        "src/pkg/metrics.py",
+        "src/pkg/timebase.py"
+      ],
+      "fix_attempts": {},
+      "failures": [],
+      "stopped_at_batch": "success after batch 4/4",
+      "rules_fired": 0
+    },
+    {
+      "config": "rules-on",
+      "ablation": "F",
+      "task_id": "task05_signature_break",
+      "repeat": 1,
+      "run_id": "rules-on-task05_signature_break-r1-49d3da",
+      "outcome": "success",
+      "m1_recall": 100.0,
+      "m1_precision": 100.0,
+      "m1_f1": 100.0,
+      "m2_pass_rate": 100.0,
+      "m2_regressions": 0,
+      "m3_tokens": 0,
+      "pro_in": 0,
+      "pro_out": 0,
+      "flash_in": 0,
+      "flash_out": 0,
+      "m3_steps": 11,
+      "cost_usd": 0.0,
+      "recovery_used": false,
+      "corrections": 0,
+      "wall_clock_s": 3.96,
+      "batches": [
+        [
+          "src/pkg/timebase.py"
+        ],
+        [
+          "src/pkg/boot.py",
+          "src/pkg/ledger.py"
+        ],
+        [
+          "src/pkg/handler.py",
+          "src/pkg/metrics.py"
+        ],
+        [
+          "src/pkg/api.py"
+        ]
+      ],
+      "changed_files": [
+        "src/pkg/api.py",
+        "src/pkg/boot.py",
+        "src/pkg/handler.py",
+        "src/pkg/ledger.py",
+        "src/pkg/metrics.py",
+        "src/pkg/timebase.py"
+      ],
+      "fix_attempts": {},
+      "failures": [],
+      "stopped_at_batch": "success after batch 4/4",
+      "rules_fired": 0
+    },
+    {
+      "config": "rules-on",
+      "ablation": "F",
+      "task_id": "task05_signature_break",
+      "repeat": 2,
+      "run_id": "rules-on-task05_signature_break-r2-43054c",
+      "outcome": "success",
+      "m1_recall": 100.0,
+      "m1_precision": 100.0,
+      "m1_f1": 100.0,
+      "m2_pass_rate": 100.0,
+      "m2_regressions": 0,
+      "m3_tokens": 0,
+      "pro_in": 0,
+      "pro_out": 0,
+      "flash_in": 0,
+      "flash_out": 0,
+      "m3_steps": 11,
+      "cost_usd": 0.0,
+      "recovery_used": false,
+      "corrections": 0,
+      "wall_clock_s": 4.06,
+      "batches": [
+        [
+          "src/pkg/timebase.py"
+        ],
+        [
+          "src/pkg/boot.py",
+          "src/pkg/ledger.py"
+        ],
+        [
+          "src/pkg/handler.py",
+          "src/pkg/metrics.py"
+        ],
+        [
+          "src/pkg/api.py"
+        ]
+      ],
+      "changed_files": [
+        "src/pkg/api.py",
+        "src/pkg/boot.py",
+        "src/pkg/handler.py",
+        "src/pkg/ledger.py",
+        "src/pkg/metrics.py",
+        "src/pkg/timebase.py"
+      ],
+      "fix_attempts": {},
+      "failures": [],
+      "stopped_at_batch": "success after batch 4/4",
+      "rules_fired": 0
+    }
+  ],
+  "skipped": [
+    {
+      "config": "rules-off-llm",
+      "task_id": "task01_datetime",
+      "reason": "requires DEEPSEEK_API_KEY"
+    },
+    {
+      "config": "rules-off-llm",
+      "task_id": "task02_datetime_aliased",
+      "reason": "requires DEEPSEEK_API_KEY"
+    },
+    {
+      "config": "rules-off-llm",
+      "task_id": "task03_half_migration",
+      "reason": "requires DEEPSEEK_API_KEY"
+    },
+    {
+      "config": "rules-off-llm",
+      "task_id": "task04_multimodule",
+      "reason": "requires DEEPSEEK_API_KEY"
+    },
+    {
+      "config": "rules-off-llm",
+      "task_id": "task05_signature_break",
+      "reason": "requires DEEPSEEK_API_KEY"
+    },
+    {
+      "config": "rules-on-llm",
+      "task_id": "task01_datetime",
+      "reason": "requires DEEPSEEK_API_KEY"
+    },
+    {
+      "config": "rules-on-llm",
+      "task_id": "task02_datetime_aliased",
+      "reason": "requires DEEPSEEK_API_KEY"
+    },
+    {
+      "config": "rules-on-llm",
+      "task_id": "task03_half_migration",
+      "reason": "requires DEEPSEEK_API_KEY"
+    },
+    {
+      "config": "rules-on-llm",
+      "task_id": "task04_multimodule",
+      "reason": "requires DEEPSEEK_API_KEY"
+    },
+    {
+      "config": "rules-on-llm",
+      "task_id": "task05_signature_break",
+      "reason": "requires DEEPSEEK_API_KEY"
+    }
+  ],
+  "aggregates": [
+    {
+      "config": "rules-off",
+      "task_id": "task01_datetime",
+      "ablation": "F",
+      "n": 3,
+      "outcomes": {
+        "success": 3
+      },
+      "recovery_used": false,
+      "m1_recall_mean": 100.0,
+      "m1_recall_spread": 0.0,
+      "m1_precision_mean": 100.0,
+      "m1_precision_spread": 0.0,
+      "m1_f1_mean": 100.0,
+      "m1_f1_spread": 0.0,
+      "m2_pass_rate_mean": 100.0,
+      "m2_pass_rate_spread": 0.0,
+      "m2_regressions_mean": 0.0,
+      "m2_regressions_spread": 0,
+      "corrections_mean": 0.0,
+      "corrections_spread": 0,
+      "m3_tokens_mean": 0.0,
+      "m3_tokens_spread": 0,
+      "m3_steps_mean": 5.0,
+      "m3_steps_spread": 0,
+      "cost_usd_mean": 0.0,
+      "cost_usd_spread": 0.0,
+      "wall_clock_s_mean": 1.5200000000000002,
+      "wall_clock_s_spread": 0.050000000000000044
+    },
+    {
+      "config": "rules-off",
+      "task_id": "task02_datetime_aliased",
+      "ablation": "F",
+      "n": 3,
+      "outcomes": {
+        "gave_up": 3
+      },
+      "recovery_used": true,
+      "m1_recall_mean": 50.0,
+      "m1_recall_spread": 0.0,
+      "m1_precision_mean": 100.0,
+      "m1_precision_spread": 0.0,
+      "m1_f1_mean": 66.66666666666667,
+      "m1_f1_spread": 0.0,
+      "m2_pass_rate_mean": 80.0,
+      "m2_pass_rate_spread": 0.0,
+      "m2_regressions_mean": 1.0,
+      "m2_regressions_spread": 0,
+      "corrections_mean": 3.0,
+      "corrections_spread": 0,
+      "m3_tokens_mean": 0.0,
+      "m3_tokens_spread": 0,
+      "m3_steps_mean": 11.0,
+      "m3_steps_spread": 0,
+      "cost_usd_mean": 0.0,
+      "cost_usd_spread": 0.0,
+      "wall_clock_s_mean": 3.6799999999999997,
+      "wall_clock_s_spread": 0.21999999999999975
+    },
+    {
+      "config": "rules-off",
+      "task_id": "task03_half_migration",
+      "ablation": "F",
+      "n": 3,
+      "outcomes": {
+        "gave_up": 3
+      },
+      "recovery_used": true,
+      "m1_recall_mean": 33.333333333333336,
+      "m1_recall_spread": 0.0,
+      "m1_precision_mean": 100.0,
+      "m1_precision_spread": 0.0,
+      "m1_f1_mean": 50.0,
+      "m1_f1_spread": 0.0,
+      "m2_pass_rate_mean": 85.71428571428571,
+      "m2_pass_rate_spread": 0.0,
+      "m2_regressions_mean": 1.0,
+      "m2_regressions_spread": 0,
+      "corrections_mean": 3.0,
+      "corrections_spread": 0,
+      "m3_tokens_mean": 0.0,
+      "m3_tokens_spread": 0,
+      "m3_steps_mean": 11.0,
+      "m3_steps_spread": 0,
+      "cost_usd_mean": 0.0,
+      "cost_usd_spread": 0.0,
+      "wall_clock_s_mean": 3.64,
+      "wall_clock_s_spread": 0.3799999999999999
+    },
+    {
+      "config": "rules-off",
+      "task_id": "task04_multimodule",
+      "ablation": "F",
+      "n": 3,
+      "outcomes": {
+        "gave_up": 3
+      },
+      "recovery_used": true,
+      "m1_recall_mean": 66.66666666666667,
+      "m1_recall_spread": 0.0,
+      "m1_precision_mean": 100.0,
+      "m1_precision_spread": 0.0,
+      "m1_f1_mean": 80.0,
+      "m1_f1_spread": 0.0,
+      "m2_pass_rate_mean": 72.72727272727273,
+      "m2_pass_rate_spread": 0.0,
+      "m2_regressions_mean": 3.0,
+      "m2_regressions_spread": 0,
+      "corrections_mean": 9.0,
+      "corrections_spread": 0,
+      "m3_tokens_mean": 0.0,
+      "m3_tokens_spread": 0,
+      "m3_steps_mean": 27.0,
+      "m3_steps_spread": 0,
+      "cost_usd_mean": 0.0,
+      "cost_usd_spread": 0.0,
+      "wall_clock_s_mean": 10.136666666666665,
+      "wall_clock_s_spread": 0.5899999999999999
+    },
+    {
+      "config": "rules-off",
+      "task_id": "task05_signature_break",
+      "ablation": "F",
+      "n": 3,
+      "outcomes": {
+        "success": 3
+      },
+      "recovery_used": false,
+      "m1_recall_mean": 100.0,
+      "m1_recall_spread": 0.0,
+      "m1_precision_mean": 100.0,
+      "m1_precision_spread": 0.0,
+      "m1_f1_mean": 100.0,
+      "m1_f1_spread": 0.0,
+      "m2_pass_rate_mean": 100.0,
+      "m2_pass_rate_spread": 0.0,
+      "m2_regressions_mean": 0.0,
+      "m2_regressions_spread": 0,
+      "corrections_mean": 0.0,
+      "corrections_spread": 0,
+      "m3_tokens_mean": 0.0,
+      "m3_tokens_spread": 0,
+      "m3_steps_mean": 11.0,
+      "m3_steps_spread": 0,
+      "cost_usd_mean": 0.0,
+      "cost_usd_spread": 0.0,
+      "wall_clock_s_mean": 4.013333333333334,
+      "wall_clock_s_spread": 0.10000000000000009
+    },
+    {
+      "config": "rules-on",
+      "task_id": "task01_datetime",
+      "ablation": "F",
+      "n": 3,
+      "outcomes": {
+        "success": 3
+      },
+      "recovery_used": false,
+      "m1_recall_mean": 100.0,
+      "m1_recall_spread": 0.0,
+      "m1_precision_mean": 100.0,
+      "m1_precision_spread": 0.0,
+      "m1_f1_mean": 100.0,
+      "m1_f1_spread": 0.0,
+      "m2_pass_rate_mean": 100.0,
+      "m2_pass_rate_spread": 0.0,
+      "m2_regressions_mean": 0.0,
+      "m2_regressions_spread": 0,
+      "corrections_mean": 0.0,
+      "corrections_spread": 0,
+      "m3_tokens_mean": 0.0,
+      "m3_tokens_spread": 0,
+      "m3_steps_mean": 5.0,
+      "m3_steps_spread": 0,
+      "cost_usd_mean": 0.0,
+      "cost_usd_spread": 0.0,
+      "wall_clock_s_mean": 1.4933333333333334,
+      "wall_clock_s_spread": 0.1100000000000001
+    },
+    {
+      "config": "rules-on",
+      "task_id": "task02_datetime_aliased",
+      "ablation": "F",
+      "n": 3,
+      "outcomes": {
+        "gave_up": 3
+      },
+      "recovery_used": true,
+      "m1_recall_mean": 50.0,
+      "m1_recall_spread": 0.0,
+      "m1_precision_mean": 100.0,
+      "m1_precision_spread": 0.0,
+      "m1_f1_mean": 66.66666666666667,
+      "m1_f1_spread": 0.0,
+      "m2_pass_rate_mean": 80.0,
+      "m2_pass_rate_spread": 0.0,
+      "m2_regressions_mean": 1.0,
+      "m2_regressions_spread": 0,
+      "corrections_mean": 3.0,
+      "corrections_spread": 0,
+      "m3_tokens_mean": 0.0,
+      "m3_tokens_spread": 0,
+      "m3_steps_mean": 11.0,
+      "m3_steps_spread": 0,
+      "cost_usd_mean": 0.0,
+      "cost_usd_spread": 0.0,
+      "wall_clock_s_mean": 3.7466666666666666,
+      "wall_clock_s_spread": 0.2400000000000002
+    },
+    {
+      "config": "rules-on",
+      "task_id": "task03_half_migration",
+      "ablation": "F",
+      "n": 3,
+      "outcomes": {
+        "gave_up": 3
+      },
+      "recovery_used": true,
+      "m1_recall_mean": 33.333333333333336,
+      "m1_recall_spread": 0.0,
+      "m1_precision_mean": 100.0,
+      "m1_precision_spread": 0.0,
+      "m1_f1_mean": 50.0,
+      "m1_f1_spread": 0.0,
+      "m2_pass_rate_mean": 85.71428571428571,
+      "m2_pass_rate_spread": 0.0,
+      "m2_regressions_mean": 1.0,
+      "m2_regressions_spread": 0,
+      "corrections_mean": 3.0,
+      "corrections_spread": 0,
+      "m3_tokens_mean": 0.0,
+      "m3_tokens_spread": 0,
+      "m3_steps_mean": 11.0,
+      "m3_steps_spread": 0,
+      "cost_usd_mean": 0.0,
+      "cost_usd_spread": 0.0,
+      "wall_clock_s_mean": 3.8066666666666666,
+      "wall_clock_s_spread": 0.16999999999999993
+    },
+    {
+      "config": "rules-on",
+      "task_id": "task04_multimodule",
+      "ablation": "F",
+      "n": 3,
+      "outcomes": {
+        "gave_up": 3
+      },
+      "recovery_used": true,
+      "m1_recall_mean": 66.66666666666667,
+      "m1_recall_spread": 0.0,
+      "m1_precision_mean": 100.0,
+      "m1_precision_spread": 0.0,
+      "m1_f1_mean": 80.0,
+      "m1_f1_spread": 0.0,
+      "m2_pass_rate_mean": 72.72727272727273,
+      "m2_pass_rate_spread": 0.0,
+      "m2_regressions_mean": 3.0,
+      "m2_regressions_spread": 0,
+      "corrections_mean": 9.0,
+      "corrections_spread": 0,
+      "m3_tokens_mean": 0.0,
+      "m3_tokens_spread": 0,
+      "m3_steps_mean": 27.0,
+      "m3_steps_spread": 0,
+      "cost_usd_mean": 0.0,
+      "cost_usd_spread": 0.0,
+      "wall_clock_s_mean": 10.229999999999999,
+      "wall_clock_s_spread": 0.16999999999999993
+    },
+    {
+      "config": "rules-on",
+      "task_id": "task05_signature_break",
+      "ablation": "F",
+      "n": 3,
+      "outcomes": {
+        "success": 3
+      },
+      "recovery_used": false,
+      "m1_recall_mean": 100.0,
+      "m1_recall_spread": 0.0,
+      "m1_precision_mean": 100.0,
+      "m1_precision_spread": 0.0,
+      "m1_f1_mean": 100.0,
+      "m1_f1_spread": 0.0,
+      "m2_pass_rate_mean": 100.0,
+      "m2_pass_rate_spread": 0.0,
+      "m2_regressions_mean": 0.0,
+      "m2_regressions_spread": 0,
+      "corrections_mean": 0.0,
+      "corrections_spread": 0,
+      "m3_tokens_mean": 0.0,
+      "m3_tokens_spread": 0,
+      "m3_steps_mean": 11.0,
+      "m3_steps_spread": 0,
+      "cost_usd_mean": 0.0,
+      "cost_usd_spread": 0.0,
+      "wall_clock_s_mean": 4.056666666666667,
+      "wall_clock_s_spread": 0.1900000000000004
+    }
+  ],
+  "experience_warmup": {
+    "train_tasks": [
+      {
+        "task": "aliased_class",
+        "learned": 0
+      },
+      {
+        "task": "aliased_module",
+        "learned": 0
+      },
+      {
+        "task": "already_migrated",
+        "learned": 0
+      },
+      {
+        "task": "class_body_and_classmethod",
+        "learned": 0
+      },
+      {
+        "task": "conditional_import",
+        "learned": 0
+      },
+      {
+        "task": "crlf_line_endings",
+        "learned": 0
+      },
+      {
+        "task": "cross_file_recovery",
+        "learned": 1
+      },
+      {
+        "task": "default_argument",
+        "learned": 0
+      },
+      {
+        "task": "empty_and_comment_only_files",
+        "learned": 0
+      },
+      {
+        "task": "encoding_cookie_non_ascii",
+        "learned": 0
+      },
+      {
+        "task": "from_import",
+        "learned": 0
+      },
+      {
+        "task": "half_migrated",
+        "learned": 0
+      },
+      {
+        "task": "import_cycle",
+        "learned": 0
+      },
+      {
+        "task": "inside_decorator_argument",
+        "learned": 0
+      },
+      {
+        "task": "inside_fstring",
+        "learned": 0
+      },
+      {
+        "task": "inside_lambda",
+        "learned": 0
+      },
+      {
+        "task": "module_import",
+        "learned": 0
+      },
+      {
+        "task": "multi_site_one_file",
+        "learned": 0
+      },
+      {
+        "task": "other_object_with_utcnow",
+        "learned": 0
+      },
+      {
+        "task": "reexport_through_init",
+        "learned": 0
+      },
+      {
+        "task": "relative_imports",
+        "learned": 0
+      },
+      {
+        "task": "shadowed_local_name",
+        "learned": 0
+      },
+      {
+        "task": "sites_across_six_files",
+        "learned": 0
+      },
+      {
+        "task": "tab_indentation",
+        "learned": 0
+      },
+      {
+        "task": "utcfromtimestamp_alongside_utcnow",
+        "learned": 0
+      },
+      {
+        "task": "utcnow_in_strings_comments_docstrings",
+        "learned": 0
+      },
+      {
+        "task": "very_long_file",
+        "learned": 0
+      }
+    ],
+    "fixes": 1,
+    "by_class": {
+      "behaviour": 1
+    },
+    "contracts": [
+      "datetime.utcnow -> datetime.now(timezone.utc)"
+    ],
+    "bytes": 28672,
+    "candidates": []
+  },
+  "baselines": [
+    {
+      "task_id": "task01_datetime",
+      "ground_truth_sites": 1,
+      "tools": [
+        {
+          "tool": "ruff (DTZ)",
+          "detected": 1,
+          "detect_recall": 100.0,
+          "detect_precision": 100.0,
+          "fixed_files": 0,
+          "m1_recall_after_fix": 0.0,
+          "sites_remaining": 1,
+          "suite_after_fix": "5/5 passed",
+          "suite_green": true,
+          "can_repair_cross_file_break": false
+        },
+        {
+          "tool": "pyupgrade",
+          "detected": 0,
+          "detect_recall": 0.0,
+          "detect_precision": 0.0,
+          "fixed_files": 0,
+          "m1_recall_after_fix": 0.0,
+          "sites_remaining": 1,
+          "suite_after_fix": "5/5 passed",
+          "suite_green": true,
+          "can_repair_cross_file_break": false
+        }
+      ]
+    },
+    {
+      "task_id": "task02_datetime_aliased",
+      "ground_truth_sites": 2,
+      "tools": [
+        {
+          "tool": "ruff (DTZ)",
+          "detected": 2,
+          "detect_recall": 100.0,
+          "detect_precision": 100.0,
+          "fixed_files": 0,
+          "m1_recall_after_fix": 0.0,
+          "sites_remaining": 2,
+          "suite_after_fix": "5/5 passed",
+          "suite_green": true,
+          "can_repair_cross_file_break": false
+        },
+        {
+          "tool": "pyupgrade",
+          "detected": 0,
+          "detect_recall": 0.0,
+          "detect_precision": 0.0,
+          "fixed_files": 0,
+          "m1_recall_after_fix": 0.0,
+          "sites_remaining": 2,
+          "suite_after_fix": "5/5 passed",
+          "suite_green": true,
+          "can_repair_cross_file_break": false
+        }
+      ]
+    },
+    {
+      "task_id": "task03_half_migration",
+      "ground_truth_sites": 3,
+      "tools": [
+        {
+          "tool": "ruff (DTZ)",
+          "detected": 3,
+          "detect_recall": 100.0,
+          "detect_precision": 100.0,
+          "fixed_files": 0,
+          "m1_recall_after_fix": 0.0,
+          "sites_remaining": 3,
+          "suite_after_fix": "7/7 passed",
+          "suite_green": true,
+          "can_repair_cross_file_break": false
+        },
+        {
+          "tool": "pyupgrade",
+          "detected": 0,
+          "detect_recall": 0.0,
+          "detect_precision": 0.0,
+          "fixed_files": 0,
+          "m1_recall_after_fix": 0.0,
+          "sites_remaining": 3,
+          "suite_after_fix": "7/7 passed",
+          "suite_green": true,
+          "can_repair_cross_file_break": false
+        }
+      ]
+    },
+    {
+      "task_id": "task04_multimodule",
+      "ground_truth_sites": 6,
+      "tools": [
+        {
+          "tool": "ruff (DTZ)",
+          "detected": 6,
+          "detect_recall": 100.0,
+          "detect_precision": 100.0,
+          "fixed_files": 0,
+          "m1_recall_after_fix": 0.0,
+          "sites_remaining": 6,
+          "suite_after_fix": "11/11 passed",
+          "suite_green": true,
+          "can_repair_cross_file_break": false
+        },
+        {
+          "tool": "pyupgrade",
+          "detected": 0,
+          "detect_recall": 0.0,
+          "detect_precision": 0.0,
+          "fixed_files": 0,
+          "m1_recall_after_fix": 0.0,
+          "sites_remaining": 6,
+          "suite_after_fix": "11/11 passed",
+          "suite_green": true,
+          "can_repair_cross_file_break": false
+        }
+      ]
+    },
+    {
+      "task_id": "task05_signature_break",
+      "ground_truth_sites": 6,
+      "tools": [
+        {
+          "tool": "ruff (DTZ)",
+          "detected": 7,
+          "detect_recall": 100.0,
+          "detect_precision": 85.71428571428571,
+          "fixed_files": 0,
+          "m1_recall_after_fix": 0.0,
+          "sites_remaining": 6,
+          "suite_after_fix": "14/14 passed",
+          "suite_green": true,
+          "can_repair_cross_file_break": false
+        },
+        {
+          "tool": "pyupgrade",
+          "detected": 0,
+          "detect_recall": 0.0,
+          "detect_precision": 0.0,
+          "fixed_files": 0,
+          "m1_recall_after_fix": 0.0,
+          "sites_remaining": 6,
+          "suite_after_fix": "14/14 passed",
+          "suite_green": true,
+          "can_repair_cross_file_break": false
+        }
+      ]
+    }
+  ]
+}

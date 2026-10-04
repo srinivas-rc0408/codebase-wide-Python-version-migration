@@ -9,6 +9,7 @@ The agent itself is unchanged here — this module only *drives* it. A
 ``model``     which model writes the corrective edit (C, needs a key)
 ``batch_size`` files per EDIT before the suite runs again (D)
 ``memory``    experience store off, or pre-warmed on a training split (E)
+``rules``     promoted skills off, or on from the training split (F)
 ============  ===========================================================
 
 Two knobs are set through the environment rather than an argument, because
@@ -46,7 +47,7 @@ import libcst as cst
 
 from mra.analysis import dep_graph as dep_graph_module
 from mra.codemods.datetime_utcnow import TARGET
-from mra.graph import PreconditionError, run_migration
+from mra.graph import run_migration
 from mra.memory.experience import ExperienceStore, format_hint
 from mra.nodes.correct_node import apply_source, classify_offline, locate
 from mra.nodes.edit_node import apply_codemod
@@ -82,6 +83,7 @@ class Config:
     batch_size: int = DEFAULT_EDIT_BATCH_SIZE
     model: str = "deterministic"  # deterministic | v4-pro | v4-flash
     memory: str = ""  # "" (not ablation E) | off | warm
+    rules: str = ""  # "" (not ablation F) | off | on
     ablation: str = ""
     note: str = ""
 
@@ -208,6 +210,37 @@ CONFIGS: tuple[Config, ...] = (
         ablation="E",
         note="live corrective edits with hints from the pre-warmed store",
     ),
+    # Ablation F. Rules are the store's skill candidates after warming on the
+    # training split, used as if promoted (this throwaway store has no human to
+    # approve them). The deterministic pair's corrector does nothing, so any
+    # repair is the rule's; the live pair measures the attempts and tokens a
+    # rule saves the model.
+    Config(
+        "rules-off",
+        rules="off",
+        ablation="F",
+        note="no-op corrector, no promoted rules (control)",
+    ),
+    Config(
+        "rules-on",
+        rules="on",
+        ablation="F",
+        note="no-op corrector, rules from the training split's candidates",
+    ),
+    Config(
+        "rules-off-llm",
+        model="v4-pro",
+        rules="off",
+        ablation="F",
+        note="live corrective edits, no promoted rules",
+    ),
+    Config(
+        "rules-on-llm",
+        model="v4-pro",
+        rules="on",
+        ablation="F",
+        note="live corrective edits, rules tried first",
+    ),
 )
 
 
@@ -311,6 +344,11 @@ class ReplayCorrector:
         return apply_source(repo, located["file"], source)
 
 
+def null_corrector(repo: Path, failure: dict[str, Any], context: dict[str, Any]) -> list[str]:
+    """Ablation F's control: the loop runs, the corrector repairs nothing."""
+    return []
+
+
 def train_tasks(edge: Path | str = TRAIN_CORPUS) -> list[Path]:
     """The training split: edge cases that are plain deterministic GREEN migrations."""
     chosen = []
@@ -327,22 +365,25 @@ def train_tasks(edge: Path | str = TRAIN_CORPUS) -> list[Path]:
 def warm_store(
     store: ExperienceStore, tasks: Sequence[Path | str], runs_dir: Path | str
 ) -> dict[str, Any]:
-    """Run the baseline agent over the training split with learning on."""
+    """Run the baseline agent over the training split with learning on.
+
+    Through :func:`run_with_report`, because that is where the verdict is: a
+    task whose report is not fully GREEN teaches the store nothing.
+    """
+    from mra.report import run_with_report
+
     leaked = sorted({Path(t).name for t in tasks} & set(TASKS))
     if leaked:
         raise ValueError(f"leakage: evaluation task(s) {leaked} in the training split")
     used = []
     for task in tasks:
-        try:
-            result = run_migration(
-                task,
-                run_id=f"warm-{Path(task).name}",
-                runs_dir=runs_dir,
-                corrector=codemod_corrector,
-                experience=store,
-            )
-        except PreconditionError:
-            continue
+        result = run_with_report(
+            task,
+            run_id=f"warm-{Path(task).name}",
+            runs_dir=runs_dir,
+            corrector=codemod_corrector,
+            experience=store,
+        )
         used.append({"task": Path(task).name, "learned": result["experience_learned"]})
     return {"train_tasks": used, **{k: v for k, v in store.stats().items() if k != "path"}}
 
@@ -430,12 +471,15 @@ def run_one(
     runs_dir: Path | str = DEFAULT_OUT / "runs",
     target: str = TARGET,
     experience: ExperienceStore | None = None,
+    rules: list[dict[str, Any]] | tuple = (),
 ) -> dict[str, Any]:
     """Run one configuration on one task and return the benchmark row.
 
     ``experience`` is used only by ablation E's ``warm`` arms, and must be
     read-only so evaluation runs never teach each other. No other arm ever
     sees a store: the user's configured one is never consulted here.
+    ``rules`` are promoted skills — handed in only by ablation F's ``on`` arms
+    and by :func:`mra.skills.validate`; never read from the user's store.
     """
     task_dir = Path(task_dir)
     run_id = f"{config.name}-{task_dir.name}-r{repeat}-{uuid.uuid4().hex[:6]}"
@@ -451,6 +495,8 @@ def run_one(
         corrector = ReplayCorrector(
             {"source_api": truth["source_api"], "target_api": truth["target_api"]}, memory
         )
+    if config.rules and not config.requires_key:
+        corrector = null_corrector
     router = None
     state = None
     if config.recovery and config.requires_key:
@@ -491,6 +537,7 @@ def run_one(
             router=router,
             state=state,
             planner=make_planner(config.order),
+            rules=rules,
         )
     wall_clock = time.perf_counter() - started
 
@@ -527,6 +574,9 @@ def run_one(
         "fix_attempts": dict(result["state"].get("fix_attempts") or {}),
         "failures": _failures(result["test_report"]),
         "stopped_at_batch": (finish or {}).get("action", ""),
+        "rules_fired": sum(
+            1 for e in result["trajectory"] if e["node"] == "CORRECT" and e["detail"].get("rule")
+        ),
         **_memory_use(corrector),
     }
 
@@ -593,6 +643,7 @@ def run_matrix(
     baselines: bool = True,
     train_corpus: Path | str = TRAIN_CORPUS,
     stem: str = "results",
+    rules: list[dict[str, Any]] | tuple = (),
 ) -> dict[str, Any]:
     """Run every (task, config, repeat) and write <stem>.json / .md / failure-analysis.md."""
     from mra.benchmark.baselines import baseline_table
@@ -604,14 +655,20 @@ def run_matrix(
 
     # Ablation E: one throwaway store outside every repo, warmed once on the
     # training split, then frozen read-only for every evaluation run.
+    # Ablation F reuses that warm-up: its rules are the store's candidates.
     warmup: dict[str, Any] = {}
     scratch = None
     frozen = None
-    if any(c.memory == "warm" for c in runnable):
+    trained: list[dict[str, Any]] = []
+    if any(c.memory == "warm" or c.rules == "on" for c in runnable):
         scratch = Path(tempfile.mkdtemp(prefix="mra-ablation-e-"))
         store = ExperienceStore(scratch / "experience.db")
         warmup = warm_store(store, train_tasks(train_corpus), out_dir / "runs")
         frozen = ExperienceStore(store.path, readonly=True)
+        trained = store.candidates()
+        warmup["candidates"] = [
+            {k: c[k] for k in ("id", "failure_class", "rule", "tasks")} for c in trained
+        ]
 
     rows: list[dict[str, Any]] = []
     skipped: list[dict[str, str]] = []
@@ -632,6 +689,7 @@ def run_matrix(
                             repeat=repeat,
                             runs_dir=out_dir / "runs",
                             experience=frozen,
+                            rules=trained if config.rules == "on" else rules,
                         )
                     )
     finally:
@@ -737,6 +795,7 @@ def render_markdown(results: dict[str, Any]) -> str:
     lines += ["## 2. Ablations", ""]
     lines += _ablation_a(results) + _ablation_b(results)
     lines += _ablation_d(results) + _ablation_c(results) + _ablation_e(results)
+    lines += _ablation_f(results)
     lines += _baseline_section(results)
 
     lines += ["## 4. Configuration key", "", "| config | what it changes |", "|---|---|"]
@@ -965,6 +1024,54 @@ def _ablation_e(results: dict[str, Any]) -> list[str]:
                 f"| {mean['memory_hints']:.1f} | {mean['hint_chars']:.0f} |"
             )
     if not any(r["config"].endswith("-llm") for r in results["rows"]):
+        lines += ["", "**Live pair requires a key — not run.**"]
+    return lines + [""]
+
+
+def _ablation_f(results: dict[str, Any]) -> list[str]:
+    arms = ("rules-off", "rules-on", "rules-off-llm", "rules-on-llm")
+    if not any(r["config"] in arms for r in results["rows"]):
+        return []
+    warm = results.get("experience_warmup") or {}
+    candidates = warm.get("candidates", [])
+    lines = [
+        "### F. Promoted rules OFF vs ON (held-out Tier-A tasks)",
+        "",
+        f"Rules: the skill candidates of a store warmed on {len(warm.get('train_tasks', []))} "
+        f"training-split task(s) — a fix seen in fully GREEN runs on at least 3 distinct "
+        f"tasks, reduced to a LibCST rule — {len(candidates)} candidate(s)"
+        + (
+            ": " + ", ".join(f"`{c['id']}` ({c['tasks']} tasks)" for c in candidates)
+            if candidates
+            else ""
+        )
+        + ". No Tier-A task is in the training split.",
+        "",
+        "The deterministic pair's corrector repairs nothing, so every repair in `rules-on` "
+        "is a rule's. Accuracy is M1 recall; attempts are CORRECT visits.",
+        "",
+        "| task | config | outcome | M1 recall | corrections | rules fired | tokens |",
+        "|" + "---|" * 7,
+    ]
+    for task in results["tasks"]:
+        for arm in arms:
+            group = [r for r in results["rows"] if r["config"] == arm and r["task_id"] == task]
+            if not group:
+                continue
+            outcomes = {
+                o: sum(1 for r in group if r["outcome"] == o)
+                for o in sorted({r["outcome"] for r in group})
+            }
+            mean = {
+                f: statistics.fmean(r.get(f, 0) for r in group)
+                for f in ("m1_recall", "corrections", "rules_fired", "m3_tokens")
+            }
+            lines.append(
+                f"| {task} | `{arm}` | {', '.join(f'{n}× {o}' for o, n in outcomes.items())} "
+                f"| {mean['m1_recall']:.1f} | {mean['corrections']:.1f} "
+                f"| {mean['rules_fired']:.1f} | {mean['m3_tokens']:.0f} |"
+            )
+    if not any(r["config"] in ("rules-off-llm", "rules-on-llm") for r in results["rows"]):
         lines += ["", "**Live pair requires a key — not run.**"]
     return lines + [""]
 

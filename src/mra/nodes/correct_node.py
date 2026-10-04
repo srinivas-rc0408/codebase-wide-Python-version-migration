@@ -280,16 +280,29 @@ class LLMCorrector:
         return changed
 
 
-def make_correct_node(corrector: Any, router: Router | None = None):
+def make_correct_node(
+    corrector: Any,
+    router: Router | None = None,
+    rules: list[dict[str, Any]] | tuple = (),
+    target: str | None = None,
+):
     """Bind a corrector and return the node LangGraph calls.
 
     One visit repairs one failure. The node owns the two invariants the loop
     cannot delegate: the per-signature attempt counter (NFR-1), and the NB-4
     guard that reverts a patch which touched the test oracle before it can be
     tested against it.
+
+    ``rules`` are promoted skills (:mod:`mra.skills`), tried in order before the
+    corrector; the first that changes the located file is the repair, and its id
+    goes into the note. Empty — the default — means the corrector always runs.
     """
+    from mra.codemods.datetime_utcnow import TARGET
     from mra.memory import summarize
     from mra.sandbox import changed_paths, rollback, snapshot
+    from mra.skills import apply_rule, matching
+
+    target = target or TARGET
 
     def correct_node(state: dict[str, Any]) -> dict[str, Any]:
         report = state["last_test_report"]
@@ -304,19 +317,28 @@ def make_correct_node(corrector: Any, router: Router | None = None):
         signature = failure["signature"]
         attempts[signature] = attempts.get(signature, 0) + 1
         repo = Path(state["repo_path"])
-        summary = summarize(state, router)
+        # A rule repair makes no model call at all, the rolling summary included.
+        summary = state.get("summary", "")
 
         base_sha = snapshot(repo, f"pre-correction ({signature})")
-        changed = corrector(
-            repo,
-            failure,
-            {
-                "call_sites": state.get("call_sites") or {},
-                "dep_graph": state.get("dep_graph") or {},
-                "contract": state.get("contract") or {},
-                "summary": summary,
-            },
-        )
+        fired, changed = None, []
+        for rule in matching(list(rules), classify_offline(failure), state.get("contract") or {}):
+            located = locate(repo, failure, target)
+            if located and (changed := apply_rule(repo, located["file"], rule["rule"])):
+                fired = rule["id"]
+                break
+        if fired is None:
+            summary = summarize(state, router)
+            changed = corrector(
+                repo,
+                failure,
+                {
+                    "call_sites": state.get("call_sites") or {},
+                    "dep_graph": state.get("dep_graph") or {},
+                    "contract": state.get("contract") or {},
+                    "summary": summary,
+                },
+            )
 
         tampered = [p for p in changed_paths(repo, base_sha) if is_test_path(p)]
         if tampered:
@@ -345,8 +367,10 @@ def make_correct_node(corrector: Any, router: Router | None = None):
             "file_status": status,
             "summary": summary,
             "note": {
-                "action": f"attempt {attempts[signature]}/{cap} on {failure['nodeid']}",
+                "action": f"attempt {attempts[signature]}/{cap} on {failure['nodeid']}"
+                + (f" via promoted rule {fired}" if fired else ""),
                 "detail": {
+                    "rule": fired,
                     "signature": signature,
                     "attempt": attempts[signature],
                     "exc_type": failure.get("exc_type"),

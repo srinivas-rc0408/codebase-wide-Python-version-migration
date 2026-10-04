@@ -160,6 +160,7 @@ def build_graph(
     run_id: str | None = None,
     router: Router | None = None,
     planner: Any = plan_node,
+    rules: list[dict[str, Any]] | tuple = (),
 ) -> StateGraph:
     """The graph of docs/04 §2.4, with the sandbox and corrector bound in.
 
@@ -173,7 +174,7 @@ def build_graph(
         ("plan", planner),
         ("edit", make_edit_node()),
         ("test", make_test_node(runner, task_id, run_id)),
-        ("correct", make_correct_node(corrector, router)),
+        ("correct", make_correct_node(corrector, router, rules, target)),
         ("finish", finish_node),
     ):
         graph.add_node(name, node)
@@ -253,7 +254,7 @@ def run_migration(
     state: MigrationState | None = None,
     recursion_limit: int = DEFAULT_RECURSION_LIMIT,
     planner: Any = plan_node,
-    experience: Any = None,
+    rules: list[dict[str, Any]] | tuple = (),
 ) -> dict[str, Any]:
     """Migrate a Tier-A task by driving the graph, and score the result.
 
@@ -261,8 +262,9 @@ def run_migration(
     a green baseline a *precondition* for the run, not a step of it, and M2 is
     undefined without it. Everything after that is the state machine.
 
-    ``experience`` is the opt-in store (:mod:`mra.memory.experience`). None —
-    the default, and what every benchmark path passes — means nothing is learnt.
+    ``rules`` are promoted skills for the CORRECT node (:mod:`mra.skills`).
+    Learning is not done here: a fix may only be stored once the run's verdict
+    is known to be fully GREEN, which :func:`mra.report.run_with_report` decides.
     """
     task_dir = Path(task_dir)
     task_id = task_dir.name
@@ -308,6 +310,7 @@ def run_migration(
         run_id=run_id,
         router=router,
         planner=planner,
+        rules=rules,
     )
     config = {"configurable": {"thread_id": run_id}, "recursion_limit": recursion_limit}
     # Re-running a run_id starts a fresh audit log; appending to the old one
@@ -322,7 +325,6 @@ def run_migration(
     post = final["last_test_report"]
     outcome = outcome_of(final)
     changed = changed_files(trajectory)
-    learned = 0 if experience is None else experience.learn(work, trajectory, state["contract"])
 
     # Against the pre-migration snapshot: EDIT and CORRECT both commit, so a
     # HEAD-relative diff would report an empty migration.
@@ -371,5 +373,4 @@ def run_migration(
         "patch": patch,
         "metrics": metrics,
         "checkpoint_db": out_dir / "state.db",
-        "experience_learned": learned,
     }

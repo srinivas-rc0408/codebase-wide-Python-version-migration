@@ -102,6 +102,7 @@ These tune the agent and mirror the non-functional constraints in `docs/03_SRS.m
 | `NO_COLOR` | Any non-empty value turns off the coloured verdict banner in `mra run` / `mra report` | unset |
 | `MRA_EXPERIENCE` | `on` / `off` for the experience store (§5); `off` beats `mra.toml` | unset (= off) |
 | `MRA_EXPERIENCE_DB` | Experience store file | `~/.mra/experience.db` |
+| `MRA_SKILLS` | `on` / `off` for promoted skills in `mra run` (§5); `off` beats `mra.toml` | unset (= off) |
 
 `MRA_EDIT_MODEL`, `MRA_UTILITY_MODEL` and `DEEPSEEK_BASE_URL` were removed in
 0.2.0; set `model` / `base_url` in `mra.toml` instead.
@@ -127,15 +128,34 @@ The router enforces these before any byte reaches a provider (`src/mra/models/pr
   calls and bytes sent this run. Local hosts are not counted.
 - **Experience store (opt-in, off by default)** — `[experience] enabled = true`
   (optional `path = "..."`) in `mra.toml`, or `MRA_EXPERIENCE=on`, makes `mra run`
-  keep a local SQLite file of past fixes (`src/mra/memory/experience.py`). After
-  a CORRECT whose re-test is green it stores the failure class, the normalised
+  keep a local SQLite file of past fixes (`src/mra/memory/experience.py`). Only
+  from a run whose report is fully GREEN (verdict GREEN, no residual sites, the
+  whole suite green): a fix that passed the tests but left old-API sites behind
+  is never stored. Each storing run is kept as provenance (run id, and a hash of
+  the task name — never the name); entries none of whose runs is within
+  `ttl_days` (default 90) are expired and ignored. From such a run, for each
+  CORRECT whose re-test is green, it stores the failure class, the normalised
   message, the contract and the changed lines of the fix — never a file path,
   and secret-redacted. On a new failure the closest past fixes go into the
   CORRECT prompt as hints (capped at 1200 chars). The file is refused if it would
   sit inside the agent's repo or the repo being migrated, and nothing in it is
   ever sent anywhere except as those hints, to the provider your `recover` role
   already uses. The benchmark never reads or writes it. `mra memory stats`,
-  `mra memory export` (JSON), `mra memory purge` (deletes it, no prompt).
+  `mra memory export` (JSON), `mra memory purge` (deletes it — fixes,
+  provenance and promoted skills — no prompt).
+- **Promoted skills (opt-in, off by default)** — `src/mra/skills.py`. A fix the
+  store saw work in fully GREEN runs on at least 3 *distinct* tasks, for the
+  same failure class and contract, becomes a candidate, reduced to a LibCST
+  rule (the smallest changed expressions plus the imports they add).
+  `mra skills review` lists candidates with their run ids and rule;
+  `mra skills approve <id>` first re-runs the full edge suite and the
+  deterministic Tier-A matrix with the rule on, and promotes it only if both
+  are unchanged; `mra skills revoke <id>` stops a rule and stops it being
+  offered again. Nothing is promoted automatically. With `[skills] enabled =
+  true` or `MRA_SKILLS=on`, `mra run` tries promoted rules in CORRECT before the
+  corrector (so before any model call); the report's timeline and
+  `skills_fired` name the rule. EDIT is already a codemod and calls no model.
+  The benchmark never reads promoted skills (ablation F builds its own).
 
 ## 6. Security rules
 

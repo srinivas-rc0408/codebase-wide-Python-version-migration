@@ -381,7 +381,7 @@ def test_live_model_rows_are_skipped_not_faked(matrix: dict[str, Any]) -> None:
         pytest.skip("a key is configured; the live arms are real rows")
     assert all(config["model"] == "deterministic" for config in matrix["configs"])
     live = [c for c in CONFIGS if c.requires_key]
-    assert live and all(c.ablation in ("C", "E") for c in live)
+    assert live and all(c.ablation in ("C", "E", "F") for c in live)
 
 
 # -- boundaries ------------------------------------------------------------
