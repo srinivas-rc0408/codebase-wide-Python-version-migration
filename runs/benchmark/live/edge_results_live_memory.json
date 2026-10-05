@@ -1,0 +1,1047 @@
+{
+  "agent_version": "0.2.0",
+  "generated_at": "2026-10-05T04:26:16+00:00",
+  "live": true,
+  "live_model": {
+    "provider": "nvidia",
+    "model": "nvidia/nemotron-3-super-120b-a12b",
+    "base_url": "https://integrate.api.nvidia.com/v1"
+  },
+  "repeats": 3,
+  "experience_warmup": {
+    "train_tasks": [
+      {
+        "task": "aliased_class",
+        "learned": 0
+      },
+      {
+        "task": "aliased_module",
+        "learned": 0
+      },
+      {
+        "task": "already_migrated",
+        "learned": 0
+      },
+      {
+        "task": "class_body_and_classmethod",
+        "learned": 0
+      },
+      {
+        "task": "conditional_import",
+        "learned": 0
+      },
+      {
+        "task": "crlf_line_endings",
+        "learned": 0
+      },
+      {
+        "task": "cross_file_recovery",
+        "learned": 1
+      },
+      {
+        "task": "default_argument",
+        "learned": 0
+      },
+      {
+        "task": "empty_and_comment_only_files",
+        "learned": 0
+      },
+      {
+        "task": "encoding_cookie_non_ascii",
+        "learned": 0
+      },
+      {
+        "task": "from_import",
+        "learned": 0
+      },
+      {
+        "task": "half_migrated",
+        "learned": 0
+      },
+      {
+        "task": "import_cycle",
+        "learned": 0
+      },
+      {
+        "task": "inside_decorator_argument",
+        "learned": 0
+      },
+      {
+        "task": "inside_fstring",
+        "learned": 0
+      },
+      {
+        "task": "inside_lambda",
+        "learned": 0
+      },
+      {
+        "task": "module_import",
+        "learned": 0
+      },
+      {
+        "task": "multi_site_one_file",
+        "learned": 0
+      },
+      {
+        "task": "other_object_with_utcnow",
+        "learned": 0
+      },
+      {
+        "task": "reexport_through_init",
+        "learned": 0
+      },
+      {
+        "task": "relative_imports",
+        "learned": 0
+      },
+      {
+        "task": "shadowed_local_name",
+        "learned": 0
+      },
+      {
+        "task": "sites_across_six_files",
+        "learned": 0
+      },
+      {
+        "task": "tab_indentation",
+        "learned": 0
+      },
+      {
+        "task": "utcfromtimestamp_alongside_utcnow",
+        "learned": 0
+      },
+      {
+        "task": "utcnow_in_strings_comments_docstrings",
+        "learned": 0
+      },
+      {
+        "task": "very_long_file",
+        "learned": 0
+      }
+    ],
+    "fixes": 1,
+    "by_class": {
+      "behaviour": 1
+    },
+    "contracts": [
+      "datetime.utcnow -> datetime.now(timezone.utc)"
+    ],
+    "bytes": 28672
+  },
+  "passed": 36,
+  "total": 36,
+  "cases": [
+    {
+      "case": "cross_file_recovery_llm",
+      "category": "common",
+      "repeat": 0,
+      "expected": "GREEN",
+      "actual": "GREEN",
+      "pass": true,
+      "problems": [],
+      "reasons": [],
+      "note": "same break, repaired by the LLM corrector through FakeProvider (offline)",
+      "pdf": "runs/benchmark/live/edge-mem-runs/cross_file_recovery_llm/cross_file_recovery_llm_MigrationReport_v0.2.0_20261005-0955.pdf",
+      "m1_recall": 100.0,
+      "m2_pass_rate": 100.0,
+      "corrections": 1,
+      "tokens": 448,
+      "cost_usd": 0.000238,
+      "llm_requests": 3,
+      "llm_served_by": [
+        "fake-llm:edge-model"
+      ],
+      "key_slots": {
+        "-": 3
+      },
+      "failure_classes": []
+    },
+    {
+      "case": "cross_file_recovery_llm",
+      "category": "common",
+      "repeat": 1,
+      "expected": "GREEN",
+      "actual": "GREEN",
+      "pass": true,
+      "problems": [],
+      "reasons": [],
+      "note": "same break, repaired by the LLM corrector through FakeProvider (offline)",
+      "pdf": "runs/benchmark/live/edge-mem-runs/cross_file_recovery_llm-r1/cross_file_recovery_llm_MigrationReport_v0.2.0_20261005-0955.pdf",
+      "m1_recall": 100.0,
+      "m2_pass_rate": 100.0,
+      "corrections": 1,
+      "tokens": 448,
+      "cost_usd": 0.000238,
+      "llm_requests": 3,
+      "llm_served_by": [
+        "fake-llm:edge-model"
+      ],
+      "key_slots": {
+        "-": 3
+      },
+      "failure_classes": []
+    },
+    {
+      "case": "cross_file_recovery_llm",
+      "category": "common",
+      "repeat": 2,
+      "expected": "GREEN",
+      "actual": "GREEN",
+      "pass": true,
+      "problems": [],
+      "reasons": [],
+      "note": "same break, repaired by the LLM corrector through FakeProvider (offline)",
+      "pdf": "runs/benchmark/live/edge-mem-runs/cross_file_recovery_llm-r2/cross_file_recovery_llm_MigrationReport_v0.2.0_20261005-0955.pdf",
+      "m1_recall": 100.0,
+      "m2_pass_rate": 100.0,
+      "corrections": 1,
+      "tokens": 448,
+      "cost_usd": 0.000238,
+      "llm_requests": 3,
+      "llm_served_by": [
+        "fake-llm:edge-model"
+      ],
+      "key_slots": {
+        "-": 3
+      },
+      "failure_classes": []
+    },
+    {
+      "case": "bare_reference",
+      "category": "twisted",
+      "repeat": 0,
+      "expected": "YELLOW",
+      "actual": "YELLOW",
+      "pass": true,
+      "problems": [],
+      "reasons": [
+        "YELLOW residual: 1 site(s): src/pkg/core.py:3 (bare-reference)"
+      ],
+      "note": "known gap: a reference is not a call",
+      "pdf": "runs/benchmark/live/edge-mem-runs/bare_reference/bare_reference_MigrationReport_v0.2.0_20261005-0955.pdf",
+      "m1_recall": 100.0,
+      "m2_pass_rate": 100.0,
+      "corrections": 0,
+      "tokens": 0,
+      "cost_usd": 0.0,
+      "llm_requests": 0,
+      "llm_served_by": [],
+      "key_slots": {},
+      "failure_classes": []
+    },
+    {
+      "case": "bare_reference",
+      "category": "twisted",
+      "repeat": 1,
+      "expected": "YELLOW",
+      "actual": "YELLOW",
+      "pass": true,
+      "problems": [],
+      "reasons": [
+        "YELLOW residual: 1 site(s): src/pkg/core.py:3 (bare-reference)"
+      ],
+      "note": "known gap: a reference is not a call",
+      "pdf": "runs/benchmark/live/edge-mem-runs/bare_reference-r1/bare_reference_MigrationReport_v0.2.0_20261005-0955.pdf",
+      "m1_recall": 100.0,
+      "m2_pass_rate": 100.0,
+      "corrections": 0,
+      "tokens": 0,
+      "cost_usd": 0.0,
+      "llm_requests": 0,
+      "llm_served_by": [],
+      "key_slots": {},
+      "failure_classes": []
+    },
+    {
+      "case": "bare_reference",
+      "category": "twisted",
+      "repeat": 2,
+      "expected": "YELLOW",
+      "actual": "YELLOW",
+      "pass": true,
+      "problems": [],
+      "reasons": [
+        "YELLOW residual: 1 site(s): src/pkg/core.py:3 (bare-reference)"
+      ],
+      "note": "known gap: a reference is not a call",
+      "pdf": "runs/benchmark/live/edge-mem-runs/bare_reference-r2/bare_reference_MigrationReport_v0.2.0_20261005-0955.pdf",
+      "m1_recall": 100.0,
+      "m2_pass_rate": 100.0,
+      "corrections": 0,
+      "tokens": 0,
+      "cost_usd": 0.0,
+      "llm_requests": 0,
+      "llm_served_by": [],
+      "key_slots": {},
+      "failure_classes": []
+    },
+    {
+      "case": "deprecated_call_in_test_file",
+      "category": "twisted",
+      "repeat": 0,
+      "expected": "YELLOW",
+      "actual": "YELLOW",
+      "pass": true,
+      "problems": [],
+      "reasons": [
+        "YELLOW residual: 1 site(s): tests/test_core.py:7"
+      ],
+      "note": "the test oracle is never edited; its own deprecated call is reported",
+      "pdf": "runs/benchmark/live/edge-mem-runs/deprecated_call_in_test_file/deprecated_call_in_test_file_MigrationReport_v0.2.0_20261005-0955.pdf",
+      "m1_recall": 100.0,
+      "m2_pass_rate": 100.0,
+      "corrections": 0,
+      "tokens": 0,
+      "cost_usd": 0.0,
+      "llm_requests": 0,
+      "llm_served_by": [],
+      "key_slots": {},
+      "failure_classes": []
+    },
+    {
+      "case": "deprecated_call_in_test_file",
+      "category": "twisted",
+      "repeat": 1,
+      "expected": "YELLOW",
+      "actual": "YELLOW",
+      "pass": true,
+      "problems": [],
+      "reasons": [
+        "YELLOW residual: 1 site(s): tests/test_core.py:7"
+      ],
+      "note": "the test oracle is never edited; its own deprecated call is reported",
+      "pdf": "runs/benchmark/live/edge-mem-runs/deprecated_call_in_test_file-r1/deprecated_call_in_test_file_MigrationReport_v0.2.0_20261005-0955.pdf",
+      "m1_recall": 100.0,
+      "m2_pass_rate": 100.0,
+      "corrections": 0,
+      "tokens": 0,
+      "cost_usd": 0.0,
+      "llm_requests": 0,
+      "llm_served_by": [],
+      "key_slots": {},
+      "failure_classes": []
+    },
+    {
+      "case": "deprecated_call_in_test_file",
+      "category": "twisted",
+      "repeat": 2,
+      "expected": "YELLOW",
+      "actual": "YELLOW",
+      "pass": true,
+      "problems": [],
+      "reasons": [
+        "YELLOW residual: 1 site(s): tests/test_core.py:7"
+      ],
+      "note": "the test oracle is never edited; its own deprecated call is reported",
+      "pdf": "runs/benchmark/live/edge-mem-runs/deprecated_call_in_test_file-r2/deprecated_call_in_test_file_MigrationReport_v0.2.0_20261005-0955.pdf",
+      "m1_recall": 100.0,
+      "m2_pass_rate": 100.0,
+      "corrections": 0,
+      "tokens": 0,
+      "cost_usd": 0.0,
+      "llm_requests": 0,
+      "llm_served_by": [],
+      "key_slots": {},
+      "failure_classes": []
+    },
+    {
+      "case": "star_import",
+      "category": "twisted",
+      "repeat": 0,
+      "expected": "YELLOW",
+      "actual": "YELLOW",
+      "pass": true,
+      "problems": [],
+      "reasons": [
+        "YELLOW residual: 1 site(s): src/pkg/legacy.py:1 (star-import)"
+      ],
+      "note": "known gap: names behind a star import are not resolved",
+      "pdf": "runs/benchmark/live/edge-mem-runs/star_import/star_import_MigrationReport_v0.2.0_20261005-0955.pdf",
+      "m1_recall": 100.0,
+      "m2_pass_rate": 100.0,
+      "corrections": 0,
+      "tokens": 0,
+      "cost_usd": 0.0,
+      "llm_requests": 0,
+      "llm_served_by": [],
+      "key_slots": {},
+      "failure_classes": []
+    },
+    {
+      "case": "star_import",
+      "category": "twisted",
+      "repeat": 1,
+      "expected": "YELLOW",
+      "actual": "YELLOW",
+      "pass": true,
+      "problems": [],
+      "reasons": [
+        "YELLOW residual: 1 site(s): src/pkg/legacy.py:1 (star-import)"
+      ],
+      "note": "known gap: names behind a star import are not resolved",
+      "pdf": "runs/benchmark/live/edge-mem-runs/star_import-r1/star_import_MigrationReport_v0.2.0_20261005-0955.pdf",
+      "m1_recall": 100.0,
+      "m2_pass_rate": 100.0,
+      "corrections": 0,
+      "tokens": 0,
+      "cost_usd": 0.0,
+      "llm_requests": 0,
+      "llm_served_by": [],
+      "key_slots": {},
+      "failure_classes": []
+    },
+    {
+      "case": "star_import",
+      "category": "twisted",
+      "repeat": 2,
+      "expected": "YELLOW",
+      "actual": "YELLOW",
+      "pass": true,
+      "problems": [],
+      "reasons": [
+        "YELLOW residual: 1 site(s): src/pkg/legacy.py:1 (star-import)"
+      ],
+      "note": "known gap: names behind a star import are not resolved",
+      "pdf": "runs/benchmark/live/edge-mem-runs/star_import-r2/star_import_MigrationReport_v0.2.0_20261005-0955.pdf",
+      "m1_recall": 100.0,
+      "m2_pass_rate": 100.0,
+      "corrections": 0,
+      "tokens": 0,
+      "cost_usd": 0.0,
+      "llm_requests": 0,
+      "llm_served_by": [],
+      "key_slots": {},
+      "failure_classes": []
+    },
+    {
+      "case": "syntax_error_file",
+      "category": "twisted",
+      "repeat": 0,
+      "expected": "YELLOW",
+      "actual": "YELLOW",
+      "pass": true,
+      "problems": [],
+      "reasons": [
+        "YELLOW unparseable: src/pkg/broken.py"
+      ],
+      "note": "skipped and reported; core.py still migrated",
+      "pdf": "runs/benchmark/live/edge-mem-runs/syntax_error_file/syntax_error_file_MigrationReport_v0.2.0_20261005-0955.pdf",
+      "m1_recall": 100.0,
+      "m2_pass_rate": 100.0,
+      "corrections": 0,
+      "tokens": 0,
+      "cost_usd": 0.0,
+      "llm_requests": 0,
+      "llm_served_by": [],
+      "key_slots": {},
+      "failure_classes": []
+    },
+    {
+      "case": "syntax_error_file",
+      "category": "twisted",
+      "repeat": 1,
+      "expected": "YELLOW",
+      "actual": "YELLOW",
+      "pass": true,
+      "problems": [],
+      "reasons": [
+        "YELLOW unparseable: src/pkg/broken.py"
+      ],
+      "note": "skipped and reported; core.py still migrated",
+      "pdf": "runs/benchmark/live/edge-mem-runs/syntax_error_file-r1/syntax_error_file_MigrationReport_v0.2.0_20261005-0955.pdf",
+      "m1_recall": 100.0,
+      "m2_pass_rate": 100.0,
+      "corrections": 0,
+      "tokens": 0,
+      "cost_usd": 0.0,
+      "llm_requests": 0,
+      "llm_served_by": [],
+      "key_slots": {},
+      "failure_classes": []
+    },
+    {
+      "case": "syntax_error_file",
+      "category": "twisted",
+      "repeat": 2,
+      "expected": "YELLOW",
+      "actual": "YELLOW",
+      "pass": true,
+      "problems": [],
+      "reasons": [
+        "YELLOW unparseable: src/pkg/broken.py"
+      ],
+      "note": "skipped and reported; core.py still migrated",
+      "pdf": "runs/benchmark/live/edge-mem-runs/syntax_error_file-r2/syntax_error_file_MigrationReport_v0.2.0_20261005-0955.pdf",
+      "m1_recall": 100.0,
+      "m2_pass_rate": 100.0,
+      "corrections": 0,
+      "tokens": 0,
+      "cost_usd": 0.0,
+      "llm_requests": 0,
+      "llm_served_by": [],
+      "key_slots": {},
+      "failure_classes": []
+    },
+    {
+      "case": "edit_causes_infinite_loop",
+      "category": "failure",
+      "repeat": 0,
+      "expected": "RED",
+      "actual": "RED",
+      "pass": true,
+      "problems": [],
+      "reasons": [
+        "RED gave_up: metrics.json: outcome=gave_up",
+        "RED suite_red: test_report.json: 0 failed, 1 errors \u2014 <sandbox> (Timeout: pytest exceeded the sandbox timeout)",
+        "YELLOW unexecuted: coverage.json unreadable (FileNotFoundError)"
+      ],
+      "note": "",
+      "pdf": "runs/benchmark/live/edge-mem-runs/edit_causes_infinite_loop/edit_causes_infinite_loop_MigrationReport_v0.2.0_20261005-0955.pdf",
+      "m1_recall": 100.0,
+      "m2_pass_rate": 0.0,
+      "corrections": 1,
+      "tokens": 587,
+      "cost_usd": 0.000302,
+      "llm_requests": 2,
+      "llm_served_by": [
+        "nvidia:nvidia/nemotron-3-super-120b-a12b"
+      ],
+      "key_slots": {
+        "NVIDIA_API_KEY": 2
+      },
+      "failure_classes": [
+        "behaviour"
+      ]
+    },
+    {
+      "case": "edit_causes_infinite_loop",
+      "category": "failure",
+      "repeat": 1,
+      "expected": "RED",
+      "actual": "RED",
+      "pass": true,
+      "problems": [],
+      "reasons": [
+        "RED gave_up: metrics.json: outcome=gave_up",
+        "RED suite_red: test_report.json: 0 failed, 1 errors \u2014 <sandbox> (Timeout: pytest exceeded the sandbox timeout)",
+        "YELLOW unexecuted: coverage.json unreadable (FileNotFoundError)"
+      ],
+      "note": "",
+      "pdf": "runs/benchmark/live/edge-mem-runs/edit_causes_infinite_loop-r1/edit_causes_infinite_loop_MigrationReport_v0.2.0_20261005-0955.pdf",
+      "m1_recall": 100.0,
+      "m2_pass_rate": 0.0,
+      "corrections": 1,
+      "tokens": 562,
+      "cost_usd": 0.000285,
+      "llm_requests": 2,
+      "llm_served_by": [
+        "nvidia:nvidia/nemotron-3-super-120b-a12b"
+      ],
+      "key_slots": {
+        "NVIDIA_API_KEY": 2
+      },
+      "failure_classes": [
+        "behaviour"
+      ]
+    },
+    {
+      "case": "edit_causes_infinite_loop",
+      "category": "failure",
+      "repeat": 2,
+      "expected": "RED",
+      "actual": "RED",
+      "pass": true,
+      "problems": [],
+      "reasons": [
+        "RED gave_up: metrics.json: outcome=gave_up",
+        "RED suite_red: test_report.json: 0 failed, 1 errors \u2014 <sandbox> (Timeout: pytest exceeded the sandbox timeout)",
+        "YELLOW unexecuted: coverage.json unreadable (FileNotFoundError)"
+      ],
+      "note": "",
+      "pdf": "runs/benchmark/live/edge-mem-runs/edit_causes_infinite_loop-r2/edit_causes_infinite_loop_MigrationReport_v0.2.0_20261005-0955.pdf",
+      "m1_recall": 100.0,
+      "m2_pass_rate": 0.0,
+      "corrections": 1,
+      "tokens": 475,
+      "cost_usd": 0.000228,
+      "llm_requests": 2,
+      "llm_served_by": [
+        "nvidia:nvidia/nemotron-3-super-120b-a12b"
+      ],
+      "key_slots": {
+        "NVIDIA_API_KEY": 2
+      },
+      "failure_classes": [
+        "behaviour"
+      ]
+    },
+    {
+      "case": "local_only_with_remote_providers",
+      "category": "failure",
+      "repeat": 0,
+      "expected": "RED",
+      "actual": "RED",
+      "pass": true,
+      "problems": [],
+      "reasons": [
+        "RED refused: PrivacyError: MRA_PRIVACY=local-only: role 'edit' has only remote providers (deepseek (api.deepseek.com)); refusing before any network I/O"
+      ],
+      "note": "",
+      "pdf": "runs/benchmark/live/edge-mem-runs/local_only_with_remote_providers/local_only_with_remote_providers_MigrationReport_v0.2.0_20261005-0955.pdf",
+      "m1_recall": null,
+      "m2_pass_rate": null,
+      "corrections": 0,
+      "tokens": 0,
+      "cost_usd": 0.0,
+      "llm_requests": 0,
+      "llm_served_by": [],
+      "key_slots": {},
+      "failure_classes": []
+    },
+    {
+      "case": "local_only_with_remote_providers",
+      "category": "failure",
+      "repeat": 1,
+      "expected": "RED",
+      "actual": "RED",
+      "pass": true,
+      "problems": [],
+      "reasons": [
+        "RED refused: PrivacyError: MRA_PRIVACY=local-only: role 'edit' has only remote providers (deepseek (api.deepseek.com)); refusing before any network I/O"
+      ],
+      "note": "",
+      "pdf": "runs/benchmark/live/edge-mem-runs/local_only_with_remote_providers-r1/local_only_with_remote_providers_MigrationReport_v0.2.0_20261005-0955.pdf",
+      "m1_recall": null,
+      "m2_pass_rate": null,
+      "corrections": 0,
+      "tokens": 0,
+      "cost_usd": 0.0,
+      "llm_requests": 0,
+      "llm_served_by": [],
+      "key_slots": {},
+      "failure_classes": []
+    },
+    {
+      "case": "local_only_with_remote_providers",
+      "category": "failure",
+      "repeat": 2,
+      "expected": "RED",
+      "actual": "RED",
+      "pass": true,
+      "problems": [],
+      "reasons": [
+        "RED refused: PrivacyError: MRA_PRIVACY=local-only: role 'edit' has only remote providers (deepseek (api.deepseek.com)); refusing before any network I/O"
+      ],
+      "note": "",
+      "pdf": "runs/benchmark/live/edge-mem-runs/local_only_with_remote_providers-r2/local_only_with_remote_providers_MigrationReport_v0.2.0_20261005-0955.pdf",
+      "m1_recall": null,
+      "m2_pass_rate": null,
+      "corrections": 0,
+      "tokens": 0,
+      "cost_usd": 0.0,
+      "llm_requests": 0,
+      "llm_served_by": [],
+      "key_slots": {},
+      "failure_classes": []
+    },
+    {
+      "case": "pre_suite_failing",
+      "category": "failure",
+      "repeat": 0,
+      "expected": "RED",
+      "actual": "RED",
+      "pass": true,
+      "problems": [],
+      "reasons": [
+        "RED precondition: test_report_pre.json: 1/2 passed, 1 failed, 0 errors",
+        "YELLOW residual: 1 site(s): src/pkg/core.py:5"
+      ],
+      "note": "NB-10: refuse to migrate",
+      "pdf": "runs/benchmark/live/edge-mem-runs/pre_suite_failing/pre_suite_failing_MigrationReport_v0.2.0_20261005-0955.pdf",
+      "m1_recall": null,
+      "m2_pass_rate": null,
+      "corrections": 0,
+      "tokens": 0,
+      "cost_usd": 0.0,
+      "llm_requests": 0,
+      "llm_served_by": [],
+      "key_slots": {},
+      "failure_classes": [
+        "assertion"
+      ]
+    },
+    {
+      "case": "pre_suite_failing",
+      "category": "failure",
+      "repeat": 1,
+      "expected": "RED",
+      "actual": "RED",
+      "pass": true,
+      "problems": [],
+      "reasons": [
+        "RED precondition: test_report_pre.json: 1/2 passed, 1 failed, 0 errors",
+        "YELLOW residual: 1 site(s): src/pkg/core.py:5"
+      ],
+      "note": "NB-10: refuse to migrate",
+      "pdf": "runs/benchmark/live/edge-mem-runs/pre_suite_failing-r1/pre_suite_failing_MigrationReport_v0.2.0_20261005-0955.pdf",
+      "m1_recall": null,
+      "m2_pass_rate": null,
+      "corrections": 0,
+      "tokens": 0,
+      "cost_usd": 0.0,
+      "llm_requests": 0,
+      "llm_served_by": [],
+      "key_slots": {},
+      "failure_classes": [
+        "assertion"
+      ]
+    },
+    {
+      "case": "pre_suite_failing",
+      "category": "failure",
+      "repeat": 2,
+      "expected": "RED",
+      "actual": "RED",
+      "pass": true,
+      "problems": [],
+      "reasons": [
+        "RED precondition: test_report_pre.json: 1/2 passed, 1 failed, 0 errors",
+        "YELLOW residual: 1 site(s): src/pkg/core.py:5"
+      ],
+      "note": "NB-10: refuse to migrate",
+      "pdf": "runs/benchmark/live/edge-mem-runs/pre_suite_failing-r2/pre_suite_failing_MigrationReport_v0.2.0_20261005-0955.pdf",
+      "m1_recall": null,
+      "m2_pass_rate": null,
+      "corrections": 0,
+      "tokens": 0,
+      "cost_usd": 0.0,
+      "llm_requests": 0,
+      "llm_served_by": [],
+      "key_slots": {},
+      "failure_classes": [
+        "assertion"
+      ]
+    },
+    {
+      "case": "provider_unreachable",
+      "category": "failure",
+      "repeat": 0,
+      "expected": "RED",
+      "actual": "RED",
+      "pass": true,
+      "problems": [],
+      "reasons": [
+        "RED provider: ProviderError: role 'classify': every provider was unreachable or failed \u2014 local-dead at 127.0.0.1: APIConnectionError: Connection error.",
+        "RED suite_red: test_report.json: 1 failed, 0 errors \u2014 tests/test_report.py::test_age_is_small (TypeError)",
+        "YELLOW residual: 1 site(s): src/pkg/report.py:7"
+      ],
+      "note": "",
+      "pdf": "runs/benchmark/live/edge-mem-runs/provider_unreachable/provider_unreachable_MigrationReport_v0.2.0_20261005-0955.pdf",
+      "m1_recall": null,
+      "m2_pass_rate": null,
+      "corrections": 0,
+      "tokens": 0,
+      "cost_usd": 0.0,
+      "llm_requests": 0,
+      "llm_served_by": [],
+      "key_slots": {},
+      "failure_classes": [
+        "behaviour"
+      ]
+    },
+    {
+      "case": "provider_unreachable",
+      "category": "failure",
+      "repeat": 1,
+      "expected": "RED",
+      "actual": "RED",
+      "pass": true,
+      "problems": [],
+      "reasons": [
+        "RED provider: ProviderError: role 'classify': every provider was unreachable or failed \u2014 local-dead at 127.0.0.1: APIConnectionError: Connection error.",
+        "RED suite_red: test_report.json: 1 failed, 0 errors \u2014 tests/test_report.py::test_age_is_small (TypeError)",
+        "YELLOW residual: 1 site(s): src/pkg/report.py:7"
+      ],
+      "note": "",
+      "pdf": "runs/benchmark/live/edge-mem-runs/provider_unreachable-r1/provider_unreachable_MigrationReport_v0.2.0_20261005-0955.pdf",
+      "m1_recall": null,
+      "m2_pass_rate": null,
+      "corrections": 0,
+      "tokens": 0,
+      "cost_usd": 0.0,
+      "llm_requests": 0,
+      "llm_served_by": [],
+      "key_slots": {},
+      "failure_classes": [
+        "behaviour"
+      ]
+    },
+    {
+      "case": "provider_unreachable",
+      "category": "failure",
+      "repeat": 2,
+      "expected": "RED",
+      "actual": "RED",
+      "pass": true,
+      "problems": [],
+      "reasons": [
+        "RED provider: ProviderError: role 'classify': every provider was unreachable or failed \u2014 local-dead at 127.0.0.1: APIConnectionError: Connection error.",
+        "RED suite_red: test_report.json: 1 failed, 0 errors \u2014 tests/test_report.py::test_age_is_small (TypeError)",
+        "YELLOW residual: 1 site(s): src/pkg/report.py:7"
+      ],
+      "note": "",
+      "pdf": "runs/benchmark/live/edge-mem-runs/provider_unreachable-r2/provider_unreachable_MigrationReport_v0.2.0_20261005-0955.pdf",
+      "m1_recall": null,
+      "m2_pass_rate": null,
+      "corrections": 0,
+      "tokens": 0,
+      "cost_usd": 0.0,
+      "llm_requests": 0,
+      "llm_served_by": [],
+      "key_slots": {},
+      "failure_classes": [
+        "behaviour"
+      ]
+    },
+    {
+      "case": "test_needs_network",
+      "category": "failure",
+      "repeat": 0,
+      "expected": "RED",
+      "actual": "RED",
+      "pass": true,
+      "problems": [],
+      "reasons": [
+        "RED precondition: test_report_pre.json: 1/2 passed, 1 failed, 0 errors; tests/test_core.py::test_fetch need(s) the network, which the sandbox does not have (--network none)",
+        "YELLOW residual: 1 site(s): src/pkg/core.py:5"
+      ],
+      "note": "",
+      "pdf": "runs/benchmark/live/edge-mem-runs/test_needs_network/test_needs_network_MigrationReport_v0.2.0_20261005-0955.pdf",
+      "m1_recall": null,
+      "m2_pass_rate": null,
+      "corrections": 0,
+      "tokens": 0,
+      "cost_usd": 0.0,
+      "llm_requests": 0,
+      "llm_served_by": [],
+      "key_slots": {},
+      "failure_classes": [
+        "behaviour"
+      ]
+    },
+    {
+      "case": "test_needs_network",
+      "category": "failure",
+      "repeat": 1,
+      "expected": "RED",
+      "actual": "RED",
+      "pass": true,
+      "problems": [],
+      "reasons": [
+        "RED precondition: test_report_pre.json: 1/2 passed, 1 failed, 0 errors; tests/test_core.py::test_fetch need(s) the network, which the sandbox does not have (--network none)",
+        "YELLOW residual: 1 site(s): src/pkg/core.py:5"
+      ],
+      "note": "",
+      "pdf": "runs/benchmark/live/edge-mem-runs/test_needs_network-r1/test_needs_network_MigrationReport_v0.2.0_20261005-0955.pdf",
+      "m1_recall": null,
+      "m2_pass_rate": null,
+      "corrections": 0,
+      "tokens": 0,
+      "cost_usd": 0.0,
+      "llm_requests": 0,
+      "llm_served_by": [],
+      "key_slots": {},
+      "failure_classes": [
+        "behaviour"
+      ]
+    },
+    {
+      "case": "test_needs_network",
+      "category": "failure",
+      "repeat": 2,
+      "expected": "RED",
+      "actual": "RED",
+      "pass": true,
+      "problems": [],
+      "reasons": [
+        "RED precondition: test_report_pre.json: 1/2 passed, 1 failed, 0 errors; tests/test_core.py::test_fetch need(s) the network, which the sandbox does not have (--network none)",
+        "YELLOW residual: 1 site(s): src/pkg/core.py:5"
+      ],
+      "note": "",
+      "pdf": "runs/benchmark/live/edge-mem-runs/test_needs_network-r2/test_needs_network_MigrationReport_v0.2.0_20261005-0955.pdf",
+      "m1_recall": null,
+      "m2_pass_rate": null,
+      "corrections": 0,
+      "tokens": 0,
+      "cost_usd": 0.0,
+      "llm_requests": 0,
+      "llm_served_by": [],
+      "key_slots": {},
+      "failure_classes": [
+        "behaviour"
+      ]
+    },
+    {
+      "case": "unfixable_break",
+      "category": "failure",
+      "repeat": 0,
+      "expected": "RED",
+      "actual": "RED",
+      "pass": true,
+      "problems": [],
+      "reasons": [
+        "RED gave_up: metrics.json: outcome=gave_up",
+        "RED suite_red: test_report.json: 1 failed, 0 errors \u2014 tests/test_core.py::test_naive_contract (AssertionError)"
+      ],
+      "note": "the oracle pins naive datetimes; nothing can fix it",
+      "pdf": "runs/benchmark/live/edge-mem-runs/unfixable_break/unfixable_break_MigrationReport_v0.2.0_20261005-0956.pdf",
+      "m1_recall": 100.0,
+      "m2_pass_rate": 0.0,
+      "corrections": 3,
+      "tokens": 2477,
+      "cost_usd": 0.000976,
+      "llm_requests": 6,
+      "llm_served_by": [
+        "nvidia:nvidia/nemotron-3-super-120b-a12b"
+      ],
+      "key_slots": {
+        "NVIDIA_API_KEY": 6
+      },
+      "failure_classes": [
+        "assertion"
+      ]
+    },
+    {
+      "case": "unfixable_break",
+      "category": "failure",
+      "repeat": 1,
+      "expected": "RED",
+      "actual": "RED",
+      "pass": true,
+      "problems": [],
+      "reasons": [
+        "RED gave_up: metrics.json: outcome=gave_up",
+        "RED suite_red: test_report.json: 1 failed, 0 errors \u2014 tests/test_core.py::test_naive_contract (AssertionError)"
+      ],
+      "note": "the oracle pins naive datetimes; nothing can fix it",
+      "pdf": "runs/benchmark/live/edge-mem-runs/unfixable_break-r1/unfixable_break_MigrationReport_v0.2.0_20261005-0956.pdf",
+      "m1_recall": 100.0,
+      "m2_pass_rate": 0.0,
+      "corrections": 3,
+      "tokens": 2318,
+      "cost_usd": 0.000869,
+      "llm_requests": 6,
+      "llm_served_by": [
+        "nvidia:nvidia/nemotron-3-super-120b-a12b"
+      ],
+      "key_slots": {
+        "NVIDIA_API_KEY": 6
+      },
+      "failure_classes": [
+        "assertion"
+      ]
+    },
+    {
+      "case": "unfixable_break",
+      "category": "failure",
+      "repeat": 2,
+      "expected": "RED",
+      "actual": "RED",
+      "pass": true,
+      "problems": [],
+      "reasons": [
+        "RED gave_up: metrics.json: outcome=gave_up",
+        "RED suite_red: test_report.json: 1 failed, 0 errors \u2014 tests/test_core.py::test_naive_contract (AssertionError)"
+      ],
+      "note": "the oracle pins naive datetimes; nothing can fix it",
+      "pdf": "runs/benchmark/live/edge-mem-runs/unfixable_break-r2/unfixable_break_MigrationReport_v0.2.0_20261005-0956.pdf",
+      "m1_recall": 100.0,
+      "m2_pass_rate": 0.0,
+      "corrections": 3,
+      "tokens": 2309,
+      "cost_usd": 0.000867,
+      "llm_requests": 6,
+      "llm_served_by": [
+        "nvidia:nvidia/nemotron-3-super-120b-a12b"
+      ],
+      "key_slots": {
+        "NVIDIA_API_KEY": 6
+      },
+      "failure_classes": [
+        "assertion"
+      ]
+    },
+    {
+      "case": "zero_tests",
+      "category": "failure",
+      "repeat": 0,
+      "expected": "RED",
+      "actual": "RED",
+      "pass": true,
+      "problems": [],
+      "reasons": [
+        "RED precondition: test_report_pre.json: 0/0 passed, 0 failed, 0 errors",
+        "YELLOW residual: 1 site(s): src/pkg/core.py:5"
+      ],
+      "note": "",
+      "pdf": "runs/benchmark/live/edge-mem-runs/zero_tests/zero_tests_MigrationReport_v0.2.0_20261005-0955.pdf",
+      "m1_recall": null,
+      "m2_pass_rate": null,
+      "corrections": 0,
+      "tokens": 0,
+      "cost_usd": 0.0,
+      "llm_requests": 0,
+      "llm_served_by": [],
+      "key_slots": {},
+      "failure_classes": []
+    },
+    {
+      "case": "zero_tests",
+      "category": "failure",
+      "repeat": 1,
+      "expected": "RED",
+      "actual": "RED",
+      "pass": true,
+      "problems": [],
+      "reasons": [
+        "RED precondition: test_report_pre.json: 0/0 passed, 0 failed, 0 errors",
+        "YELLOW residual: 1 site(s): src/pkg/core.py:5"
+      ],
+      "note": "",
+      "pdf": "runs/benchmark/live/edge-mem-runs/zero_tests-r1/zero_tests_MigrationReport_v0.2.0_20261005-0956.pdf",
+      "m1_recall": null,
+      "m2_pass_rate": null,
+      "corrections": 0,
+      "tokens": 0,
+      "cost_usd": 0.0,
+      "llm_requests": 0,
+      "llm_served_by": [],
+      "key_slots": {},
+      "failure_classes": []
+    },
+    {
+      "case": "zero_tests",
+      "category": "failure",
+      "repeat": 2,
+      "expected": "RED",
+      "actual": "RED",
+      "pass": true,
+      "problems": [],
+      "reasons": [
+        "RED precondition: test_report_pre.json: 0/0 passed, 0 failed, 0 errors",
+        "YELLOW residual: 1 site(s): src/pkg/core.py:5"
+      ],
+      "note": "",
+      "pdf": "runs/benchmark/live/edge-mem-runs/zero_tests-r2/zero_tests_MigrationReport_v0.2.0_20261005-0956.pdf",
+      "m1_recall": null,
+      "m2_pass_rate": null,
+      "corrections": 0,
+      "tokens": 0,
+      "cost_usd": 0.0,
+      "llm_requests": 0,
+      "llm_served_by": [],
+      "key_slots": {},
+      "failure_classes": []
+    }
+  ]
+}

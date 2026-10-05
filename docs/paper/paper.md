@@ -508,7 +508,7 @@ two more (ablation C) require an API key.
 |---|---|---|
 | **A** | `baseline`, `no-recovery` | How much does self-correction contribute? |
 | **B** | `order-alphabetical`, `order-fr3-violating` (batch 3); the same two plus `batch-1` at batch size 1; and all three again with the loop off (`*-b1-norecovery`) | Does principled edit order prevent regressions? |
-| **C** | `edit-v4-pro`, `edit-v4-flash` | Capability vs. cost on the live model path. **Not run** — requires `DEEPSEEK_API_KEY`. |
+| **C** | `edit-v4-pro`, `edit-v4-flash` | Capability vs. cost on the live model path. **Not run** — needs two live models; the live runs used one (`nvidia/nemotron-3-super-120b-a12b`). |
 | **D** | `batch-1`, `baseline`, `batch-5` | Effect of batch size on localization and overhead. |
 
 <!-- SOURCE: src/mra/benchmark/runner.py CONFIGS tuple; runs/benchmark/results.md §4 "Configuration key". -->
@@ -530,7 +530,7 @@ path. `MAX_FIX_ATTEMPTS = 3` in every other arm.
 the codemod. It localizes through the same `locate` the LLM corrector uses —
 same trace parsing, same dependency slice, same NB-4 test-file filter — and
 then applies the deterministic transform instead of requesting a file from
-V4-Pro. The loop *mechanics* under test are therefore identical; only the
+the live model (`nvidia/nemotron-3-super-120b-a12b` via NVIDIA's API). The loop *mechanics* under test are therefore identical; only the
 patch generator is reproducible. This is what makes ablation A demonstrable
 without an API key.
 
@@ -846,7 +846,7 @@ them.
 
 ## 7.6 Ablation C — live models
 
-Not run. `edit-v4-pro` and `edit-v4-flash` require `DEEPSEEK_API_KEY`; both
+Not run. `edit-v4-pro` and `edit-v4-flash` need a live key and two models; both
 read *requires key* in `results.md` §2C and are absent from
 `results.json.rows` rather than estimated. 10 (task, config) pairs are
 recorded as skipped. The offline matrix is complete without them.
@@ -909,8 +909,17 @@ corrective edit: `task02`, `task03` and `task04`. The warm store turns two of
 them green — `task03` with 1 corrective edit and `task04` with 2, each run
 served hints. On `task02` the store serves a hint, but the run still gives up
 after 4 corrective edits. `task01` and `task05` need no correction in either
-arm. The live pair, which would measure what hints are worth to a model, needs
-a key and was not run: its 10 (task, config) pairs are recorded as skipped.
+arm. In this matrix the live pair, which measures what hints are worth to a
+model, has no key: its 10 (task, config) pairs are recorded as skipped. It was
+run separately with `nvidia/nemotron-3-super-120b-a12b` via NVIDIA's API for
+every role, 3 repeats, store warmed on the same training split: both arms go
+green on 15 of 15 runs with the same 12 corrective edits, every edit written by
+the model, at 30,023 tokens without hints and 30,850 with. On these tasks memory
+changed neither outcome nor edit count for the live corrector.
+
+<!-- SOURCE: runs/benchmark/live/results_live.json (live_model nvidia/nemotron-3-super-120b-a12b;
+     memory-off-llm / memory-warm-llm rows: 15 success each, corrections sum 12 each,
+     m3_tokens sum 30023 / 30850). -->
 
 <!-- SOURCE: the table above — outcome, corrections and hints served per row;
      runs/benchmark/ablation-e/results.json "skipped" = 10 entries, reason "requires DEEPSEEK_API_KEY". -->
@@ -1095,10 +1104,11 @@ full rather than distributed through the paper.
    is specified in `docs/05` §1.3 but not yet executed. Until it is, nothing
    here is evidence about repositories the authors did not write.
 
-4. **The live-model arms have not been run.** Ablation C and the live pair of
-   ablation E require an API key and are reported as *requires key*, not
-   estimated (§7.6, §7.8). Every number in
-   this paper comes from the deterministic corrector, which shares the loop's
+4. **The live-model arms sit outside the paper's matrix.** Ablation C has not
+   been run: the live runs used one model, `nvidia/nemotron-3-super-120b-a12b`
+   via NVIDIA's API, so it has no second arm (§7.6). The live pair of ablation E
+   was run separately and matched the deterministic outcomes (§7.8). Every
+   number in this paper's tables comes from the deterministic corrector, which shares the loop's
    mechanics with the LLM corrector but not its patch generator. The claim
    this supports is about the *loop*, not about a model's ability to write a
    patch; the two are not interchangeable and no result here should be read

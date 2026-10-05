@@ -50,7 +50,7 @@ Full component diagram and node contracts: [`docs/04_ARCHITECTURE_HLD_LLD.md`](d
 | Verification | `pytest` + `pytest-json-report` + `ruff` |
 | Git / patches | `GitPython` |
 | Sandbox | Docker `python:3.12-slim` (or rootless Podman) |
-| LLM providers | Any OpenAI-compatible endpoint (DeepSeek, OpenAI, GLM, or a local Ollama / vLLM / llama.cpp / LM Studio server) and Anthropic's native SDK, chosen per role in `mra.toml` — default DeepSeek V4-Pro (edits, recovery) and V4-Flash (summaries, classification) |
+| LLM providers | Any OpenAI-compatible endpoint (DeepSeek, OpenAI, GLM, or a local Ollama / vLLM / llama.cpp / LM Studio server) and Anthropic's native SDK, chosen per role in `mra.toml` — default DeepSeek V4-Pro (edits, recovery) and V4-Flash (summaries, classification); the live benchmark runs used `nvidia/nemotron-3-super-120b-a12b` via NVIDIA's API for every role |
 
 Verified current as of Sep 2026. See [`docs/RESOURCE_PACK.md`](docs/RESOURCE_PACK.md) for versions and rationale.
 

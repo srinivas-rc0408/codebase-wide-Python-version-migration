@@ -1,0 +1,2148 @@
+{
+  "schema": "mra:benchmark_results/1",
+  "generated_at": "2026-10-05T04:21:53.874481+00:00",
+  "out_dir": "runs/benchmark/live",
+  "repeats": 3,
+  "tasks": [
+    "task01_datetime",
+    "task02_datetime_aliased",
+    "task03_half_migration",
+    "task04_multimodule",
+    "task05_signature_break"
+  ],
+  "configs": [
+    {
+      "name": "memory-off-llm",
+      "recovery": true,
+      "order": "dependency",
+      "batch_size": 3,
+      "model": "v4-pro",
+      "memory": "off",
+      "rules": "",
+      "ablation": "E",
+      "note": "live corrective edits, no experience hints"
+    },
+    {
+      "name": "memory-warm-llm",
+      "recovery": true,
+      "order": "dependency",
+      "batch_size": 3,
+      "model": "v4-pro",
+      "memory": "warm",
+      "rules": "",
+      "ablation": "E",
+      "note": "live corrective edits with hints from the pre-warmed store"
+    }
+  ],
+  "live_llm_available": true,
+  "live_model": {
+    "provider": "nvidia",
+    "model": "nvidia/nemotron-3-super-120b-a12b",
+    "base_url": "https://integrate.api.nvidia.com/v1"
+  },
+  "rows": [
+    {
+      "config": "memory-off-llm",
+      "ablation": "E",
+      "task_id": "task01_datetime",
+      "repeat": 0,
+      "run_id": "memory-off-llm-task01_datetime-r0-432dc2",
+      "outcome": "success",
+      "m1_recall": 100.0,
+      "m1_precision": 100.0,
+      "m1_f1": 100.0,
+      "m2_pass_rate": 100.0,
+      "m2_regressions": 0,
+      "m3_tokens": 0,
+      "pro_in": 0,
+      "pro_out": 0,
+      "flash_in": 0,
+      "flash_out": 0,
+      "m3_steps": 5,
+      "cost_usd": 0.0,
+      "recovery_used": false,
+      "corrections": 0,
+      "wall_clock_s": 0.69,
+      "batches": [
+        [
+          "src/pkg/core.py"
+        ]
+      ],
+      "changed_files": [
+        "src/pkg/core.py"
+      ],
+      "fix_attempts": {},
+      "failures": [],
+      "stopped_at_batch": "success after batch 1/1",
+      "rules_fired": 0,
+      "llm_requests": 0,
+      "llm_served_by": [],
+      "key_slots": {}
+    },
+    {
+      "config": "memory-off-llm",
+      "ablation": "E",
+      "task_id": "task01_datetime",
+      "repeat": 1,
+      "run_id": "memory-off-llm-task01_datetime-r1-32e9ec",
+      "outcome": "success",
+      "m1_recall": 100.0,
+      "m1_precision": 100.0,
+      "m1_f1": 100.0,
+      "m2_pass_rate": 100.0,
+      "m2_regressions": 0,
+      "m3_tokens": 0,
+      "pro_in": 0,
+      "pro_out": 0,
+      "flash_in": 0,
+      "flash_out": 0,
+      "m3_steps": 5,
+      "cost_usd": 0.0,
+      "recovery_used": false,
+      "corrections": 0,
+      "wall_clock_s": 0.7,
+      "batches": [
+        [
+          "src/pkg/core.py"
+        ]
+      ],
+      "changed_files": [
+        "src/pkg/core.py"
+      ],
+      "fix_attempts": {},
+      "failures": [],
+      "stopped_at_batch": "success after batch 1/1",
+      "rules_fired": 0,
+      "llm_requests": 0,
+      "llm_served_by": [],
+      "key_slots": {}
+    },
+    {
+      "config": "memory-off-llm",
+      "ablation": "E",
+      "task_id": "task01_datetime",
+      "repeat": 2,
+      "run_id": "memory-off-llm-task01_datetime-r2-72aa92",
+      "outcome": "success",
+      "m1_recall": 100.0,
+      "m1_precision": 100.0,
+      "m1_f1": 100.0,
+      "m2_pass_rate": 100.0,
+      "m2_regressions": 0,
+      "m3_tokens": 0,
+      "pro_in": 0,
+      "pro_out": 0,
+      "flash_in": 0,
+      "flash_out": 0,
+      "m3_steps": 5,
+      "cost_usd": 0.0,
+      "recovery_used": false,
+      "corrections": 0,
+      "wall_clock_s": 0.68,
+      "batches": [
+        [
+          "src/pkg/core.py"
+        ]
+      ],
+      "changed_files": [
+        "src/pkg/core.py"
+      ],
+      "fix_attempts": {},
+      "failures": [],
+      "stopped_at_batch": "success after batch 1/1",
+      "rules_fired": 0,
+      "llm_requests": 0,
+      "llm_served_by": [],
+      "key_slots": {}
+    },
+    {
+      "config": "memory-off-llm",
+      "ablation": "E",
+      "task_id": "task02_datetime_aliased",
+      "repeat": 0,
+      "run_id": "memory-off-llm-task02_datetime_aliased-r0-f6e292",
+      "outcome": "success",
+      "m1_recall": 100.0,
+      "m1_precision": 100.0,
+      "m1_f1": 100.0,
+      "m2_pass_rate": 100.0,
+      "m2_regressions": 0,
+      "m3_tokens": 2390,
+      "pro_in": 768,
+      "pro_out": 720,
+      "flash_in": 502,
+      "flash_out": 400,
+      "m3_steps": 9,
+      "cost_usd": 0.002307,
+      "recovery_used": true,
+      "corrections": 1,
+      "wall_clock_s": 9.01,
+      "batches": [
+        [
+          "src/pkg/core.py"
+        ],
+        [
+          "src/pkg/report.py"
+        ]
+      ],
+      "changed_files": [
+        "src/pkg/core.py",
+        "src/pkg/report.py"
+      ],
+      "fix_attempts": {
+        "7769f4e867263e8d": 1
+      },
+      "failures": [],
+      "stopped_at_batch": "success after batch 2/2",
+      "rules_fired": 0,
+      "llm_requests": 3,
+      "llm_served_by": [
+        "nvidia:nvidia/nemotron-3-super-120b-a12b"
+      ],
+      "key_slots": {
+        "NVIDIA_API_KEY": 3
+      }
+    },
+    {
+      "config": "memory-off-llm",
+      "ablation": "E",
+      "task_id": "task02_datetime_aliased",
+      "repeat": 1,
+      "run_id": "memory-off-llm-task02_datetime_aliased-r1-1ca133",
+      "outcome": "success",
+      "m1_recall": 100.0,
+      "m1_precision": 100.0,
+      "m1_f1": 100.0,
+      "m2_pass_rate": 100.0,
+      "m2_regressions": 0,
+      "m3_tokens": 2327,
+      "pro_in": 768,
+      "pro_out": 699,
+      "flash_in": 502,
+      "flash_out": 358,
+      "m3_steps": 9,
+      "cost_usd": 0.002238,
+      "recovery_used": true,
+      "corrections": 1,
+      "wall_clock_s": 19.99,
+      "batches": [
+        [
+          "src/pkg/core.py"
+        ],
+        [
+          "src/pkg/report.py"
+        ]
+      ],
+      "changed_files": [
+        "src/pkg/core.py",
+        "src/pkg/report.py"
+      ],
+      "fix_attempts": {
+        "7769f4e867263e8d": 1
+      },
+      "failures": [],
+      "stopped_at_batch": "success after batch 2/2",
+      "rules_fired": 0,
+      "llm_requests": 3,
+      "llm_served_by": [
+        "nvidia:nvidia/nemotron-3-super-120b-a12b"
+      ],
+      "key_slots": {
+        "NVIDIA_API_KEY": 3
+      }
+    },
+    {
+      "config": "memory-off-llm",
+      "ablation": "E",
+      "task_id": "task02_datetime_aliased",
+      "repeat": 2,
+      "run_id": "memory-off-llm-task02_datetime_aliased-r2-cdc1f3",
+      "outcome": "success",
+      "m1_recall": 100.0,
+      "m1_precision": 100.0,
+      "m1_f1": 100.0,
+      "m2_pass_rate": 100.0,
+      "m2_regressions": 0,
+      "m3_tokens": 2413,
+      "pro_in": 767,
+      "pro_out": 797,
+      "flash_in": 501,
+      "flash_out": 348,
+      "m3_steps": 9,
+      "cost_usd": 0.002424,
+      "recovery_used": true,
+      "corrections": 1,
+      "wall_clock_s": 7.92,
+      "batches": [
+        [
+          "src/pkg/core.py"
+        ],
+        [
+          "src/pkg/report.py"
+        ]
+      ],
+      "changed_files": [
+        "src/pkg/core.py",
+        "src/pkg/report.py"
+      ],
+      "fix_attempts": {
+        "7769f4e867263e8d": 1
+      },
+      "failures": [],
+      "stopped_at_batch": "success after batch 2/2",
+      "rules_fired": 0,
+      "llm_requests": 3,
+      "llm_served_by": [
+        "nvidia:nvidia/nemotron-3-super-120b-a12b"
+      ],
+      "key_slots": {
+        "NVIDIA_API_KEY": 3
+      }
+    },
+    {
+      "config": "memory-off-llm",
+      "ablation": "E",
+      "task_id": "task03_half_migration",
+      "repeat": 0,
+      "run_id": "memory-off-llm-task03_half_migration-r0-20dbf9",
+      "outcome": "success",
+      "m1_recall": 100.0,
+      "m1_precision": 100.0,
+      "m1_f1": 100.0,
+      "m2_pass_rate": 100.0,
+      "m2_regressions": 0,
+      "m3_tokens": 2589,
+      "pro_in": 791,
+      "pro_out": 733,
+      "flash_in": 526,
+      "flash_out": 539,
+      "m3_steps": 9,
+      "cost_usd": 0.002445,
+      "recovery_used": true,
+      "corrections": 1,
+      "wall_clock_s": 9.89,
+      "batches": [
+        [
+          "src/pkg/core.py"
+        ],
+        [
+          "src/pkg/audit.py",
+          "src/pkg/report.py"
+        ]
+      ],
+      "changed_files": [
+        "src/pkg/audit.py",
+        "src/pkg/core.py",
+        "src/pkg/report.py"
+      ],
+      "fix_attempts": {
+        "7769f4e867263e8d": 1
+      },
+      "failures": [],
+      "stopped_at_batch": "success after batch 2/2",
+      "rules_fired": 0,
+      "llm_requests": 3,
+      "llm_served_by": [
+        "nvidia:nvidia/nemotron-3-super-120b-a12b"
+      ],
+      "key_slots": {
+        "NVIDIA_API_KEY": 3
+      }
+    },
+    {
+      "config": "memory-off-llm",
+      "ablation": "E",
+      "task_id": "task03_half_migration",
+      "repeat": 1,
+      "run_id": "memory-off-llm-task03_half_migration-r1-b70ac4",
+      "outcome": "success",
+      "m1_recall": 100.0,
+      "m1_precision": 100.0,
+      "m1_f1": 100.0,
+      "m2_pass_rate": 100.0,
+      "m2_regressions": 0,
+      "m3_tokens": 2475,
+      "pro_in": 791,
+      "pro_out": 760,
+      "flash_in": 526,
+      "flash_out": 398,
+      "m3_steps": 9,
+      "cost_usd": 0.002405,
+      "recovery_used": true,
+      "corrections": 1,
+      "wall_clock_s": 9.88,
+      "batches": [
+        [
+          "src/pkg/core.py"
+        ],
+        [
+          "src/pkg/audit.py",
+          "src/pkg/report.py"
+        ]
+      ],
+      "changed_files": [
+        "src/pkg/audit.py",
+        "src/pkg/core.py",
+        "src/pkg/report.py"
+      ],
+      "fix_attempts": {
+        "7769f4e867263e8d": 1
+      },
+      "failures": [],
+      "stopped_at_batch": "success after batch 2/2",
+      "rules_fired": 0,
+      "llm_requests": 3,
+      "llm_served_by": [
+        "nvidia:nvidia/nemotron-3-super-120b-a12b"
+      ],
+      "key_slots": {
+        "NVIDIA_API_KEY": 3
+      }
+    },
+    {
+      "config": "memory-off-llm",
+      "ablation": "E",
+      "task_id": "task03_half_migration",
+      "repeat": 2,
+      "run_id": "memory-off-llm-task03_half_migration-r2-38fa2f",
+      "outcome": "success",
+      "m1_recall": 100.0,
+      "m1_precision": 100.0,
+      "m1_f1": 100.0,
+      "m2_pass_rate": 100.0,
+      "m2_regressions": 0,
+      "m3_tokens": 2258,
+      "pro_in": 791,
+      "pro_out": 594,
+      "flash_in": 526,
+      "flash_out": 347,
+      "m3_steps": 9,
+      "cost_usd": 0.002043,
+      "recovery_used": true,
+      "corrections": 1,
+      "wall_clock_s": 6.95,
+      "batches": [
+        [
+          "src/pkg/core.py"
+        ],
+        [
+          "src/pkg/audit.py",
+          "src/pkg/report.py"
+        ]
+      ],
+      "changed_files": [
+        "src/pkg/audit.py",
+        "src/pkg/core.py",
+        "src/pkg/report.py"
+      ],
+      "fix_attempts": {
+        "7769f4e867263e8d": 1
+      },
+      "failures": [],
+      "stopped_at_batch": "success after batch 2/2",
+      "rules_fired": 0,
+      "llm_requests": 3,
+      "llm_served_by": [
+        "nvidia:nvidia/nemotron-3-super-120b-a12b"
+      ],
+      "key_slots": {
+        "NVIDIA_API_KEY": 3
+      }
+    },
+    {
+      "config": "memory-off-llm",
+      "ablation": "E",
+      "task_id": "task04_multimodule",
+      "repeat": 0,
+      "run_id": "memory-off-llm-task04_multimodule-r0-d0f4f0",
+      "outcome": "success",
+      "m1_recall": 100.0,
+      "m1_precision": 100.0,
+      "m1_f1": 100.0,
+      "m2_pass_rate": 100.0,
+      "m2_regressions": 0,
+      "m3_tokens": 5304,
+      "pro_in": 1855,
+      "pro_out": 1376,
+      "flash_in": 1370,
+      "flash_out": 703,
+      "m3_steps": 17,
+      "cost_usd": 0.004714,
+      "recovery_used": true,
+      "corrections": 2,
+      "wall_clock_s": 37.84,
+      "batches": [
+        [
+          "src/pkg/clock.py"
+        ],
+        [
+          "src/pkg/audit.py",
+          "src/pkg/ledger.py"
+        ],
+        [
+          "src/pkg/invoice.py"
+        ],
+        [
+          "src/pkg/report.py"
+        ],
+        [
+          "src/pkg/api.py"
+        ]
+      ],
+      "changed_files": [
+        "src/pkg/api.py",
+        "src/pkg/audit.py",
+        "src/pkg/clock.py",
+        "src/pkg/invoice.py",
+        "src/pkg/ledger.py",
+        "src/pkg/report.py"
+      ],
+      "fix_attempts": {
+        "2773f89c64a8ae65": 2
+      },
+      "failures": [],
+      "stopped_at_batch": "success after batch 5/5",
+      "rules_fired": 0,
+      "llm_requests": 6,
+      "llm_served_by": [
+        "nvidia:nvidia/nemotron-3-super-120b-a12b"
+      ],
+      "key_slots": {
+        "NVIDIA_API_KEY": 6
+      }
+    },
+    {
+      "config": "memory-off-llm",
+      "ablation": "E",
+      "task_id": "task04_multimodule",
+      "repeat": 1,
+      "run_id": "memory-off-llm-task04_multimodule-r1-9cccb5",
+      "outcome": "success",
+      "m1_recall": 100.0,
+      "m1_precision": 100.0,
+      "m1_f1": 100.0,
+      "m2_pass_rate": 100.0,
+      "m2_regressions": 0,
+      "m3_tokens": 5165,
+      "pro_in": 1856,
+      "pro_out": 1343,
+      "flash_in": 1371,
+      "flash_out": 595,
+      "m3_steps": 17,
+      "cost_usd": 0.004578,
+      "recovery_used": true,
+      "corrections": 2,
+      "wall_clock_s": 18.0,
+      "batches": [
+        [
+          "src/pkg/clock.py"
+        ],
+        [
+          "src/pkg/audit.py",
+          "src/pkg/ledger.py"
+        ],
+        [
+          "src/pkg/invoice.py"
+        ],
+        [
+          "src/pkg/report.py"
+        ],
+        [
+          "src/pkg/api.py"
+        ]
+      ],
+      "changed_files": [
+        "src/pkg/api.py",
+        "src/pkg/audit.py",
+        "src/pkg/clock.py",
+        "src/pkg/invoice.py",
+        "src/pkg/ledger.py",
+        "src/pkg/report.py"
+      ],
+      "fix_attempts": {
+        "2773f89c64a8ae65": 2
+      },
+      "failures": [],
+      "stopped_at_batch": "success after batch 5/5",
+      "rules_fired": 0,
+      "llm_requests": 6,
+      "llm_served_by": [
+        "nvidia:nvidia/nemotron-3-super-120b-a12b"
+      ],
+      "key_slots": {
+        "NVIDIA_API_KEY": 6
+      }
+    },
+    {
+      "config": "memory-off-llm",
+      "ablation": "E",
+      "task_id": "task04_multimodule",
+      "repeat": 2,
+      "run_id": "memory-off-llm-task04_multimodule-r2-5e9cc8",
+      "outcome": "success",
+      "m1_recall": 100.0,
+      "m1_precision": 100.0,
+      "m1_f1": 100.0,
+      "m2_pass_rate": 100.0,
+      "m2_regressions": 0,
+      "m3_tokens": 5102,
+      "pro_in": 1856,
+      "pro_out": 1303,
+      "flash_in": 1371,
+      "flash_out": 572,
+      "m3_steps": 17,
+      "cost_usd": 0.004484,
+      "recovery_used": true,
+      "corrections": 2,
+      "wall_clock_s": 15.32,
+      "batches": [
+        [
+          "src/pkg/clock.py"
+        ],
+        [
+          "src/pkg/audit.py",
+          "src/pkg/ledger.py"
+        ],
+        [
+          "src/pkg/invoice.py"
+        ],
+        [
+          "src/pkg/report.py"
+        ],
+        [
+          "src/pkg/api.py"
+        ]
+      ],
+      "changed_files": [
+        "src/pkg/api.py",
+        "src/pkg/audit.py",
+        "src/pkg/clock.py",
+        "src/pkg/invoice.py",
+        "src/pkg/ledger.py",
+        "src/pkg/report.py"
+      ],
+      "fix_attempts": {
+        "2773f89c64a8ae65": 2
+      },
+      "failures": [],
+      "stopped_at_batch": "success after batch 5/5",
+      "rules_fired": 0,
+      "llm_requests": 6,
+      "llm_served_by": [
+        "nvidia:nvidia/nemotron-3-super-120b-a12b"
+      ],
+      "key_slots": {
+        "NVIDIA_API_KEY": 6
+      }
+    },
+    {
+      "config": "memory-off-llm",
+      "ablation": "E",
+      "task_id": "task05_signature_break",
+      "repeat": 0,
+      "run_id": "memory-off-llm-task05_signature_break-r0-f2595a",
+      "outcome": "success",
+      "m1_recall": 100.0,
+      "m1_precision": 100.0,
+      "m1_f1": 100.0,
+      "m2_pass_rate": 100.0,
+      "m2_regressions": 0,
+      "m3_tokens": 0,
+      "pro_in": 0,
+      "pro_out": 0,
+      "flash_in": 0,
+      "flash_out": 0,
+      "m3_steps": 11,
+      "cost_usd": 0.0,
+      "recovery_used": false,
+      "corrections": 0,
+      "wall_clock_s": 2.12,
+      "batches": [
+        [
+          "src/pkg/timebase.py"
+        ],
+        [
+          "src/pkg/boot.py",
+          "src/pkg/ledger.py"
+        ],
+        [
+          "src/pkg/handler.py",
+          "src/pkg/metrics.py"
+        ],
+        [
+          "src/pkg/api.py"
+        ]
+      ],
+      "changed_files": [
+        "src/pkg/api.py",
+        "src/pkg/boot.py",
+        "src/pkg/handler.py",
+        "src/pkg/ledger.py",
+        "src/pkg/metrics.py",
+        "src/pkg/timebase.py"
+      ],
+      "fix_attempts": {},
+      "failures": [],
+      "stopped_at_batch": "success after batch 4/4",
+      "rules_fired": 0,
+      "llm_requests": 0,
+      "llm_served_by": [],
+      "key_slots": {}
+    },
+    {
+      "config": "memory-off-llm",
+      "ablation": "E",
+      "task_id": "task05_signature_break",
+      "repeat": 1,
+      "run_id": "memory-off-llm-task05_signature_break-r1-04f924",
+      "outcome": "success",
+      "m1_recall": 100.0,
+      "m1_precision": 100.0,
+      "m1_f1": 100.0,
+      "m2_pass_rate": 100.0,
+      "m2_regressions": 0,
+      "m3_tokens": 0,
+      "pro_in": 0,
+      "pro_out": 0,
+      "flash_in": 0,
+      "flash_out": 0,
+      "m3_steps": 11,
+      "cost_usd": 0.0,
+      "recovery_used": false,
+      "corrections": 0,
+      "wall_clock_s": 2.34,
+      "batches": [
+        [
+          "src/pkg/timebase.py"
+        ],
+        [
+          "src/pkg/boot.py",
+          "src/pkg/ledger.py"
+        ],
+        [
+          "src/pkg/handler.py",
+          "src/pkg/metrics.py"
+        ],
+        [
+          "src/pkg/api.py"
+        ]
+      ],
+      "changed_files": [
+        "src/pkg/api.py",
+        "src/pkg/boot.py",
+        "src/pkg/handler.py",
+        "src/pkg/ledger.py",
+        "src/pkg/metrics.py",
+        "src/pkg/timebase.py"
+      ],
+      "fix_attempts": {},
+      "failures": [],
+      "stopped_at_batch": "success after batch 4/4",
+      "rules_fired": 0,
+      "llm_requests": 0,
+      "llm_served_by": [],
+      "key_slots": {}
+    },
+    {
+      "config": "memory-off-llm",
+      "ablation": "E",
+      "task_id": "task05_signature_break",
+      "repeat": 2,
+      "run_id": "memory-off-llm-task05_signature_break-r2-9b5fe7",
+      "outcome": "success",
+      "m1_recall": 100.0,
+      "m1_precision": 100.0,
+      "m1_f1": 100.0,
+      "m2_pass_rate": 100.0,
+      "m2_regressions": 0,
+      "m3_tokens": 0,
+      "pro_in": 0,
+      "pro_out": 0,
+      "flash_in": 0,
+      "flash_out": 0,
+      "m3_steps": 11,
+      "cost_usd": 0.0,
+      "recovery_used": false,
+      "corrections": 0,
+      "wall_clock_s": 2.16,
+      "batches": [
+        [
+          "src/pkg/timebase.py"
+        ],
+        [
+          "src/pkg/boot.py",
+          "src/pkg/ledger.py"
+        ],
+        [
+          "src/pkg/handler.py",
+          "src/pkg/metrics.py"
+        ],
+        [
+          "src/pkg/api.py"
+        ]
+      ],
+      "changed_files": [
+        "src/pkg/api.py",
+        "src/pkg/boot.py",
+        "src/pkg/handler.py",
+        "src/pkg/ledger.py",
+        "src/pkg/metrics.py",
+        "src/pkg/timebase.py"
+      ],
+      "fix_attempts": {},
+      "failures": [],
+      "stopped_at_batch": "success after batch 4/4",
+      "rules_fired": 0,
+      "llm_requests": 0,
+      "llm_served_by": [],
+      "key_slots": {}
+    },
+    {
+      "config": "memory-warm-llm",
+      "ablation": "E",
+      "task_id": "task01_datetime",
+      "repeat": 0,
+      "run_id": "memory-warm-llm-task01_datetime-r0-00f10a",
+      "outcome": "success",
+      "m1_recall": 100.0,
+      "m1_precision": 100.0,
+      "m1_f1": 100.0,
+      "m2_pass_rate": 100.0,
+      "m2_regressions": 0,
+      "m3_tokens": 0,
+      "pro_in": 0,
+      "pro_out": 0,
+      "flash_in": 0,
+      "flash_out": 0,
+      "m3_steps": 5,
+      "cost_usd": 0.0,
+      "recovery_used": false,
+      "corrections": 0,
+      "wall_clock_s": 0.76,
+      "batches": [
+        [
+          "src/pkg/core.py"
+        ]
+      ],
+      "changed_files": [
+        "src/pkg/core.py"
+      ],
+      "fix_attempts": {},
+      "failures": [],
+      "stopped_at_batch": "success after batch 1/1",
+      "rules_fired": 0,
+      "memory_hints": 0,
+      "llm_requests": 0,
+      "llm_served_by": [],
+      "key_slots": {}
+    },
+    {
+      "config": "memory-warm-llm",
+      "ablation": "E",
+      "task_id": "task01_datetime",
+      "repeat": 1,
+      "run_id": "memory-warm-llm-task01_datetime-r1-62cb43",
+      "outcome": "success",
+      "m1_recall": 100.0,
+      "m1_precision": 100.0,
+      "m1_f1": 100.0,
+      "m2_pass_rate": 100.0,
+      "m2_regressions": 0,
+      "m3_tokens": 0,
+      "pro_in": 0,
+      "pro_out": 0,
+      "flash_in": 0,
+      "flash_out": 0,
+      "m3_steps": 5,
+      "cost_usd": 0.0,
+      "recovery_used": false,
+      "corrections": 0,
+      "wall_clock_s": 0.73,
+      "batches": [
+        [
+          "src/pkg/core.py"
+        ]
+      ],
+      "changed_files": [
+        "src/pkg/core.py"
+      ],
+      "fix_attempts": {},
+      "failures": [],
+      "stopped_at_batch": "success after batch 1/1",
+      "rules_fired": 0,
+      "memory_hints": 0,
+      "llm_requests": 0,
+      "llm_served_by": [],
+      "key_slots": {}
+    },
+    {
+      "config": "memory-warm-llm",
+      "ablation": "E",
+      "task_id": "task01_datetime",
+      "repeat": 2,
+      "run_id": "memory-warm-llm-task01_datetime-r2-6bb8be",
+      "outcome": "success",
+      "m1_recall": 100.0,
+      "m1_precision": 100.0,
+      "m1_f1": 100.0,
+      "m2_pass_rate": 100.0,
+      "m2_regressions": 0,
+      "m3_tokens": 0,
+      "pro_in": 0,
+      "pro_out": 0,
+      "flash_in": 0,
+      "flash_out": 0,
+      "m3_steps": 5,
+      "cost_usd": 0.0,
+      "recovery_used": false,
+      "corrections": 0,
+      "wall_clock_s": 0.74,
+      "batches": [
+        [
+          "src/pkg/core.py"
+        ]
+      ],
+      "changed_files": [
+        "src/pkg/core.py"
+      ],
+      "fix_attempts": {},
+      "failures": [],
+      "stopped_at_batch": "success after batch 1/1",
+      "rules_fired": 0,
+      "memory_hints": 0,
+      "llm_requests": 0,
+      "llm_served_by": [],
+      "key_slots": {}
+    },
+    {
+      "config": "memory-warm-llm",
+      "ablation": "E",
+      "task_id": "task02_datetime_aliased",
+      "repeat": 0,
+      "run_id": "memory-warm-llm-task02_datetime_aliased-r0-83c48f",
+      "outcome": "success",
+      "m1_recall": 100.0,
+      "m1_precision": 100.0,
+      "m1_f1": 100.0,
+      "m2_pass_rate": 100.0,
+      "m2_regressions": 0,
+      "m3_tokens": 2493,
+      "pro_in": 851,
+      "pro_out": 681,
+      "flash_in": 501,
+      "flash_out": 460,
+      "m3_steps": 9,
+      "cost_usd": 0.002324,
+      "recovery_used": true,
+      "corrections": 1,
+      "wall_clock_s": 10.16,
+      "batches": [
+        [
+          "src/pkg/core.py"
+        ],
+        [
+          "src/pkg/report.py"
+        ]
+      ],
+      "changed_files": [
+        "src/pkg/core.py",
+        "src/pkg/report.py"
+      ],
+      "fix_attempts": {
+        "7769f4e867263e8d": 1
+      },
+      "failures": [],
+      "stopped_at_batch": "success after batch 2/2",
+      "rules_fired": 0,
+      "memory_hints": 1,
+      "llm_requests": 3,
+      "llm_served_by": [
+        "nvidia:nvidia/nemotron-3-super-120b-a12b"
+      ],
+      "key_slots": {
+        "NVIDIA_API_KEY": 3
+      }
+    },
+    {
+      "config": "memory-warm-llm",
+      "ablation": "E",
+      "task_id": "task02_datetime_aliased",
+      "repeat": 1,
+      "run_id": "memory-warm-llm-task02_datetime_aliased-r1-f2d390",
+      "outcome": "success",
+      "m1_recall": 100.0,
+      "m1_precision": 100.0,
+      "m1_f1": 100.0,
+      "m2_pass_rate": 100.0,
+      "m2_regressions": 0,
+      "m3_tokens": 3006,
+      "pro_in": 852,
+      "pro_out": 1315,
+      "flash_in": 502,
+      "flash_out": 337,
+      "m3_steps": 9,
+      "cost_usd": 0.003499,
+      "recovery_used": true,
+      "corrections": 1,
+      "wall_clock_s": 10.81,
+      "batches": [
+        [
+          "src/pkg/core.py"
+        ],
+        [
+          "src/pkg/report.py"
+        ]
+      ],
+      "changed_files": [
+        "src/pkg/core.py",
+        "src/pkg/report.py"
+      ],
+      "fix_attempts": {
+        "7769f4e867263e8d": 1
+      },
+      "failures": [],
+      "stopped_at_batch": "success after batch 2/2",
+      "rules_fired": 0,
+      "memory_hints": 1,
+      "llm_requests": 3,
+      "llm_served_by": [
+        "nvidia:nvidia/nemotron-3-super-120b-a12b"
+      ],
+      "key_slots": {
+        "NVIDIA_API_KEY": 3
+      }
+    },
+    {
+      "config": "memory-warm-llm",
+      "ablation": "E",
+      "task_id": "task02_datetime_aliased",
+      "repeat": 2,
+      "run_id": "memory-warm-llm-task02_datetime_aliased-r2-567110",
+      "outcome": "success",
+      "m1_recall": 100.0,
+      "m1_precision": 100.0,
+      "m1_f1": 100.0,
+      "m2_pass_rate": 100.0,
+      "m2_regressions": 0,
+      "m3_tokens": 2789,
+      "pro_in": 851,
+      "pro_out": 1104,
+      "flash_in": 501,
+      "flash_out": 333,
+      "m3_steps": 9,
+      "cost_usd": 0.003078,
+      "recovery_used": true,
+      "corrections": 1,
+      "wall_clock_s": 9.44,
+      "batches": [
+        [
+          "src/pkg/core.py"
+        ],
+        [
+          "src/pkg/report.py"
+        ]
+      ],
+      "changed_files": [
+        "src/pkg/core.py",
+        "src/pkg/report.py"
+      ],
+      "fix_attempts": {
+        "7769f4e867263e8d": 1
+      },
+      "failures": [],
+      "stopped_at_batch": "success after batch 2/2",
+      "rules_fired": 0,
+      "memory_hints": 1,
+      "llm_requests": 3,
+      "llm_served_by": [
+        "nvidia:nvidia/nemotron-3-super-120b-a12b"
+      ],
+      "key_slots": {
+        "NVIDIA_API_KEY": 3
+      }
+    },
+    {
+      "config": "memory-warm-llm",
+      "ablation": "E",
+      "task_id": "task03_half_migration",
+      "repeat": 0,
+      "run_id": "memory-warm-llm-task03_half_migration-r0-c90daa",
+      "outcome": "success",
+      "m1_recall": 100.0,
+      "m1_precision": 100.0,
+      "m1_f1": 100.0,
+      "m2_pass_rate": 100.0,
+      "m2_regressions": 0,
+      "m3_tokens": 2459,
+      "pro_in": 875,
+      "pro_out": 663,
+      "flash_in": 526,
+      "flash_out": 395,
+      "m3_steps": 9,
+      "cost_usd": 0.002267,
+      "recovery_used": true,
+      "corrections": 1,
+      "wall_clock_s": 7.53,
+      "batches": [
+        [
+          "src/pkg/core.py"
+        ],
+        [
+          "src/pkg/audit.py",
+          "src/pkg/report.py"
+        ]
+      ],
+      "changed_files": [
+        "src/pkg/audit.py",
+        "src/pkg/core.py",
+        "src/pkg/report.py"
+      ],
+      "fix_attempts": {
+        "7769f4e867263e8d": 1
+      },
+      "failures": [],
+      "stopped_at_batch": "success after batch 2/2",
+      "rules_fired": 0,
+      "memory_hints": 1,
+      "llm_requests": 3,
+      "llm_served_by": [
+        "nvidia:nvidia/nemotron-3-super-120b-a12b"
+      ],
+      "key_slots": {
+        "NVIDIA_API_KEY": 3
+      }
+    },
+    {
+      "config": "memory-warm-llm",
+      "ablation": "E",
+      "task_id": "task03_half_migration",
+      "repeat": 1,
+      "run_id": "memory-warm-llm-task03_half_migration-r1-d663d0",
+      "outcome": "success",
+      "m1_recall": 100.0,
+      "m1_precision": 100.0,
+      "m1_f1": 100.0,
+      "m2_pass_rate": 100.0,
+      "m2_regressions": 0,
+      "m3_tokens": 2441,
+      "pro_in": 874,
+      "pro_out": 642,
+      "flash_in": 525,
+      "flash_out": 400,
+      "m3_steps": 9,
+      "cost_usd": 0.002228,
+      "recovery_used": true,
+      "corrections": 1,
+      "wall_clock_s": 9.9,
+      "batches": [
+        [
+          "src/pkg/core.py"
+        ],
+        [
+          "src/pkg/audit.py",
+          "src/pkg/report.py"
+        ]
+      ],
+      "changed_files": [
+        "src/pkg/audit.py",
+        "src/pkg/core.py",
+        "src/pkg/report.py"
+      ],
+      "fix_attempts": {
+        "7769f4e867263e8d": 1
+      },
+      "failures": [],
+      "stopped_at_batch": "success after batch 2/2",
+      "rules_fired": 0,
+      "memory_hints": 1,
+      "llm_requests": 3,
+      "llm_served_by": [
+        "nvidia:nvidia/nemotron-3-super-120b-a12b"
+      ],
+      "key_slots": {
+        "NVIDIA_API_KEY": 3
+      }
+    },
+    {
+      "config": "memory-warm-llm",
+      "ablation": "E",
+      "task_id": "task03_half_migration",
+      "repeat": 2,
+      "run_id": "memory-warm-llm-task03_half_migration-r2-c3e8f2",
+      "outcome": "success",
+      "m1_recall": 100.0,
+      "m1_precision": 100.0,
+      "m1_f1": 100.0,
+      "m2_pass_rate": 100.0,
+      "m2_regressions": 0,
+      "m3_tokens": 2041,
+      "pro_in": 875,
+      "pro_out": 258,
+      "flash_in": 526,
+      "flash_out": 382,
+      "m3_steps": 9,
+      "cost_usd": 0.001456,
+      "recovery_used": true,
+      "corrections": 1,
+      "wall_clock_s": 5.46,
+      "batches": [
+        [
+          "src/pkg/core.py"
+        ],
+        [
+          "src/pkg/audit.py",
+          "src/pkg/report.py"
+        ]
+      ],
+      "changed_files": [
+        "src/pkg/audit.py",
+        "src/pkg/core.py",
+        "src/pkg/report.py"
+      ],
+      "fix_attempts": {
+        "7769f4e867263e8d": 1
+      },
+      "failures": [],
+      "stopped_at_batch": "success after batch 2/2",
+      "rules_fired": 0,
+      "memory_hints": 1,
+      "llm_requests": 3,
+      "llm_served_by": [
+        "nvidia:nvidia/nemotron-3-super-120b-a12b"
+      ],
+      "key_slots": {
+        "NVIDIA_API_KEY": 3
+      }
+    },
+    {
+      "config": "memory-warm-llm",
+      "ablation": "E",
+      "task_id": "task04_multimodule",
+      "repeat": 0,
+      "run_id": "memory-warm-llm-task04_multimodule-r0-ce0524",
+      "outcome": "success",
+      "m1_recall": 100.0,
+      "m1_precision": 100.0,
+      "m1_f1": 100.0,
+      "m2_pass_rate": 100.0,
+      "m2_regressions": 0,
+      "m3_tokens": 5393,
+      "pro_in": 2023,
+      "pro_out": 1340,
+      "flash_in": 1370,
+      "flash_out": 660,
+      "m3_steps": 17,
+      "cost_usd": 0.004725,
+      "recovery_used": true,
+      "corrections": 2,
+      "wall_clock_s": 21.23,
+      "batches": [
+        [
+          "src/pkg/clock.py"
+        ],
+        [
+          "src/pkg/audit.py",
+          "src/pkg/ledger.py"
+        ],
+        [
+          "src/pkg/invoice.py"
+        ],
+        [
+          "src/pkg/report.py"
+        ],
+        [
+          "src/pkg/api.py"
+        ]
+      ],
+      "changed_files": [
+        "src/pkg/api.py",
+        "src/pkg/audit.py",
+        "src/pkg/clock.py",
+        "src/pkg/invoice.py",
+        "src/pkg/ledger.py",
+        "src/pkg/report.py"
+      ],
+      "fix_attempts": {
+        "2773f89c64a8ae65": 2
+      },
+      "failures": [],
+      "stopped_at_batch": "success after batch 5/5",
+      "rules_fired": 0,
+      "memory_hints": 2,
+      "llm_requests": 6,
+      "llm_served_by": [
+        "nvidia:nvidia/nemotron-3-super-120b-a12b"
+      ],
+      "key_slots": {
+        "NVIDIA_API_KEY": 6
+      }
+    },
+    {
+      "config": "memory-warm-llm",
+      "ablation": "E",
+      "task_id": "task04_multimodule",
+      "repeat": 1,
+      "run_id": "memory-warm-llm-task04_multimodule-r1-5b3e5d",
+      "outcome": "success",
+      "m1_recall": 100.0,
+      "m1_precision": 100.0,
+      "m1_f1": 100.0,
+      "m2_pass_rate": 100.0,
+      "m2_regressions": 0,
+      "m3_tokens": 4806,
+      "pro_in": 2024,
+      "pro_out": 763,
+      "flash_in": 1371,
+      "flash_out": 648,
+      "m3_steps": 17,
+      "cost_usd": 0.003576,
+      "recovery_used": true,
+      "corrections": 2,
+      "wall_clock_s": 17.54,
+      "batches": [
+        [
+          "src/pkg/clock.py"
+        ],
+        [
+          "src/pkg/audit.py",
+          "src/pkg/ledger.py"
+        ],
+        [
+          "src/pkg/invoice.py"
+        ],
+        [
+          "src/pkg/report.py"
+        ],
+        [
+          "src/pkg/api.py"
+        ]
+      ],
+      "changed_files": [
+        "src/pkg/api.py",
+        "src/pkg/audit.py",
+        "src/pkg/clock.py",
+        "src/pkg/invoice.py",
+        "src/pkg/ledger.py",
+        "src/pkg/report.py"
+      ],
+      "fix_attempts": {
+        "2773f89c64a8ae65": 2
+      },
+      "failures": [],
+      "stopped_at_batch": "success after batch 5/5",
+      "rules_fired": 0,
+      "memory_hints": 2,
+      "llm_requests": 6,
+      "llm_served_by": [
+        "nvidia:nvidia/nemotron-3-super-120b-a12b"
+      ],
+      "key_slots": {
+        "NVIDIA_API_KEY": 6
+      }
+    },
+    {
+      "config": "memory-warm-llm",
+      "ablation": "E",
+      "task_id": "task04_multimodule",
+      "repeat": 2,
+      "run_id": "memory-warm-llm-task04_multimodule-r2-827736",
+      "outcome": "success",
+      "m1_recall": 100.0,
+      "m1_precision": 100.0,
+      "m1_f1": 100.0,
+      "m2_pass_rate": 100.0,
+      "m2_regressions": 0,
+      "m3_tokens": 5422,
+      "pro_in": 2023,
+      "pro_out": 1366,
+      "flash_in": 1370,
+      "flash_out": 663,
+      "m3_steps": 17,
+      "cost_usd": 0.004779,
+      "recovery_used": true,
+      "corrections": 2,
+      "wall_clock_s": 15.54,
+      "batches": [
+        [
+          "src/pkg/clock.py"
+        ],
+        [
+          "src/pkg/audit.py",
+          "src/pkg/ledger.py"
+        ],
+        [
+          "src/pkg/invoice.py"
+        ],
+        [
+          "src/pkg/report.py"
+        ],
+        [
+          "src/pkg/api.py"
+        ]
+      ],
+      "changed_files": [
+        "src/pkg/api.py",
+        "src/pkg/audit.py",
+        "src/pkg/clock.py",
+        "src/pkg/invoice.py",
+        "src/pkg/ledger.py",
+        "src/pkg/report.py"
+      ],
+      "fix_attempts": {
+        "2773f89c64a8ae65": 2
+      },
+      "failures": [],
+      "stopped_at_batch": "success after batch 5/5",
+      "rules_fired": 0,
+      "memory_hints": 2,
+      "llm_requests": 6,
+      "llm_served_by": [
+        "nvidia:nvidia/nemotron-3-super-120b-a12b"
+      ],
+      "key_slots": {
+        "NVIDIA_API_KEY": 6
+      }
+    },
+    {
+      "config": "memory-warm-llm",
+      "ablation": "E",
+      "task_id": "task05_signature_break",
+      "repeat": 0,
+      "run_id": "memory-warm-llm-task05_signature_break-r0-abd3cf",
+      "outcome": "success",
+      "m1_recall": 100.0,
+      "m1_precision": 100.0,
+      "m1_f1": 100.0,
+      "m2_pass_rate": 100.0,
+      "m2_regressions": 0,
+      "m3_tokens": 0,
+      "pro_in": 0,
+      "pro_out": 0,
+      "flash_in": 0,
+      "flash_out": 0,
+      "m3_steps": 11,
+      "cost_usd": 0.0,
+      "recovery_used": false,
+      "corrections": 0,
+      "wall_clock_s": 1.94,
+      "batches": [
+        [
+          "src/pkg/timebase.py"
+        ],
+        [
+          "src/pkg/boot.py",
+          "src/pkg/ledger.py"
+        ],
+        [
+          "src/pkg/handler.py",
+          "src/pkg/metrics.py"
+        ],
+        [
+          "src/pkg/api.py"
+        ]
+      ],
+      "changed_files": [
+        "src/pkg/api.py",
+        "src/pkg/boot.py",
+        "src/pkg/handler.py",
+        "src/pkg/ledger.py",
+        "src/pkg/metrics.py",
+        "src/pkg/timebase.py"
+      ],
+      "fix_attempts": {},
+      "failures": [],
+      "stopped_at_batch": "success after batch 4/4",
+      "rules_fired": 0,
+      "memory_hints": 0,
+      "llm_requests": 0,
+      "llm_served_by": [],
+      "key_slots": {}
+    },
+    {
+      "config": "memory-warm-llm",
+      "ablation": "E",
+      "task_id": "task05_signature_break",
+      "repeat": 1,
+      "run_id": "memory-warm-llm-task05_signature_break-r1-ed7454",
+      "outcome": "success",
+      "m1_recall": 100.0,
+      "m1_precision": 100.0,
+      "m1_f1": 100.0,
+      "m2_pass_rate": 100.0,
+      "m2_regressions": 0,
+      "m3_tokens": 0,
+      "pro_in": 0,
+      "pro_out": 0,
+      "flash_in": 0,
+      "flash_out": 0,
+      "m3_steps": 11,
+      "cost_usd": 0.0,
+      "recovery_used": false,
+      "corrections": 0,
+      "wall_clock_s": 1.94,
+      "batches": [
+        [
+          "src/pkg/timebase.py"
+        ],
+        [
+          "src/pkg/boot.py",
+          "src/pkg/ledger.py"
+        ],
+        [
+          "src/pkg/handler.py",
+          "src/pkg/metrics.py"
+        ],
+        [
+          "src/pkg/api.py"
+        ]
+      ],
+      "changed_files": [
+        "src/pkg/api.py",
+        "src/pkg/boot.py",
+        "src/pkg/handler.py",
+        "src/pkg/ledger.py",
+        "src/pkg/metrics.py",
+        "src/pkg/timebase.py"
+      ],
+      "fix_attempts": {},
+      "failures": [],
+      "stopped_at_batch": "success after batch 4/4",
+      "rules_fired": 0,
+      "memory_hints": 0,
+      "llm_requests": 0,
+      "llm_served_by": [],
+      "key_slots": {}
+    },
+    {
+      "config": "memory-warm-llm",
+      "ablation": "E",
+      "task_id": "task05_signature_break",
+      "repeat": 2,
+      "run_id": "memory-warm-llm-task05_signature_break-r2-5dab7d",
+      "outcome": "success",
+      "m1_recall": 100.0,
+      "m1_precision": 100.0,
+      "m1_f1": 100.0,
+      "m2_pass_rate": 100.0,
+      "m2_regressions": 0,
+      "m3_tokens": 0,
+      "pro_in": 0,
+      "pro_out": 0,
+      "flash_in": 0,
+      "flash_out": 0,
+      "m3_steps": 11,
+      "cost_usd": 0.0,
+      "recovery_used": false,
+      "corrections": 0,
+      "wall_clock_s": 1.94,
+      "batches": [
+        [
+          "src/pkg/timebase.py"
+        ],
+        [
+          "src/pkg/boot.py",
+          "src/pkg/ledger.py"
+        ],
+        [
+          "src/pkg/handler.py",
+          "src/pkg/metrics.py"
+        ],
+        [
+          "src/pkg/api.py"
+        ]
+      ],
+      "changed_files": [
+        "src/pkg/api.py",
+        "src/pkg/boot.py",
+        "src/pkg/handler.py",
+        "src/pkg/ledger.py",
+        "src/pkg/metrics.py",
+        "src/pkg/timebase.py"
+      ],
+      "fix_attempts": {},
+      "failures": [],
+      "stopped_at_batch": "success after batch 4/4",
+      "rules_fired": 0,
+      "memory_hints": 0,
+      "llm_requests": 0,
+      "llm_served_by": [],
+      "key_slots": {}
+    }
+  ],
+  "skipped": [],
+  "aggregates": [
+    {
+      "config": "memory-off-llm",
+      "task_id": "task01_datetime",
+      "ablation": "E",
+      "n": 3,
+      "outcomes": {
+        "success": 3
+      },
+      "recovery_used": false,
+      "m1_recall_mean": 100.0,
+      "m1_recall_spread": 0.0,
+      "m1_precision_mean": 100.0,
+      "m1_precision_spread": 0.0,
+      "m1_f1_mean": 100.0,
+      "m1_f1_spread": 0.0,
+      "m2_pass_rate_mean": 100.0,
+      "m2_pass_rate_spread": 0.0,
+      "m2_regressions_mean": 0.0,
+      "m2_regressions_spread": 0,
+      "corrections_mean": 0.0,
+      "corrections_spread": 0,
+      "m3_tokens_mean": 0.0,
+      "m3_tokens_spread": 0,
+      "m3_steps_mean": 5.0,
+      "m3_steps_spread": 0,
+      "cost_usd_mean": 0.0,
+      "cost_usd_spread": 0.0,
+      "wall_clock_s_mean": 0.69,
+      "wall_clock_s_spread": 0.019999999999999907
+    },
+    {
+      "config": "memory-off-llm",
+      "task_id": "task02_datetime_aliased",
+      "ablation": "E",
+      "n": 3,
+      "outcomes": {
+        "success": 3
+      },
+      "recovery_used": true,
+      "m1_recall_mean": 100.0,
+      "m1_recall_spread": 0.0,
+      "m1_precision_mean": 100.0,
+      "m1_precision_spread": 0.0,
+      "m1_f1_mean": 100.0,
+      "m1_f1_spread": 0.0,
+      "m2_pass_rate_mean": 100.0,
+      "m2_pass_rate_spread": 0.0,
+      "m2_regressions_mean": 0.0,
+      "m2_regressions_spread": 0,
+      "corrections_mean": 1.0,
+      "corrections_spread": 0,
+      "m3_tokens_mean": 2376.6666666666665,
+      "m3_tokens_spread": 86,
+      "m3_steps_mean": 9.0,
+      "m3_steps_spread": 0,
+      "cost_usd_mean": 0.002323,
+      "cost_usd_spread": 0.00018599999999999997,
+      "wall_clock_s_mean": 12.306666666666667,
+      "wall_clock_s_spread": 12.069999999999999
+    },
+    {
+      "config": "memory-off-llm",
+      "task_id": "task03_half_migration",
+      "ablation": "E",
+      "n": 3,
+      "outcomes": {
+        "success": 3
+      },
+      "recovery_used": true,
+      "m1_recall_mean": 100.0,
+      "m1_recall_spread": 0.0,
+      "m1_precision_mean": 100.0,
+      "m1_precision_spread": 0.0,
+      "m1_f1_mean": 100.0,
+      "m1_f1_spread": 0.0,
+      "m2_pass_rate_mean": 100.0,
+      "m2_pass_rate_spread": 0.0,
+      "m2_regressions_mean": 0.0,
+      "m2_regressions_spread": 0,
+      "corrections_mean": 1.0,
+      "corrections_spread": 0,
+      "m3_tokens_mean": 2440.6666666666665,
+      "m3_tokens_spread": 331,
+      "m3_steps_mean": 9.0,
+      "m3_steps_spread": 0,
+      "cost_usd_mean": 0.0022976666666666666,
+      "cost_usd_spread": 0.000402,
+      "wall_clock_s_mean": 8.906666666666668,
+      "wall_clock_s_spread": 2.9400000000000004
+    },
+    {
+      "config": "memory-off-llm",
+      "task_id": "task04_multimodule",
+      "ablation": "E",
+      "n": 3,
+      "outcomes": {
+        "success": 3
+      },
+      "recovery_used": true,
+      "m1_recall_mean": 100.0,
+      "m1_recall_spread": 0.0,
+      "m1_precision_mean": 100.0,
+      "m1_precision_spread": 0.0,
+      "m1_f1_mean": 100.0,
+      "m1_f1_spread": 0.0,
+      "m2_pass_rate_mean": 100.0,
+      "m2_pass_rate_spread": 0.0,
+      "m2_regressions_mean": 0.0,
+      "m2_regressions_spread": 0,
+      "corrections_mean": 2.0,
+      "corrections_spread": 0,
+      "m3_tokens_mean": 5190.333333333333,
+      "m3_tokens_spread": 202,
+      "m3_steps_mean": 17.0,
+      "m3_steps_spread": 0,
+      "cost_usd_mean": 0.004592,
+      "cost_usd_spread": 0.00023000000000000017,
+      "wall_clock_s_mean": 23.72,
+      "wall_clock_s_spread": 22.520000000000003
+    },
+    {
+      "config": "memory-off-llm",
+      "task_id": "task05_signature_break",
+      "ablation": "E",
+      "n": 3,
+      "outcomes": {
+        "success": 3
+      },
+      "recovery_used": false,
+      "m1_recall_mean": 100.0,
+      "m1_recall_spread": 0.0,
+      "m1_precision_mean": 100.0,
+      "m1_precision_spread": 0.0,
+      "m1_f1_mean": 100.0,
+      "m1_f1_spread": 0.0,
+      "m2_pass_rate_mean": 100.0,
+      "m2_pass_rate_spread": 0.0,
+      "m2_regressions_mean": 0.0,
+      "m2_regressions_spread": 0,
+      "corrections_mean": 0.0,
+      "corrections_spread": 0,
+      "m3_tokens_mean": 0.0,
+      "m3_tokens_spread": 0,
+      "m3_steps_mean": 11.0,
+      "m3_steps_spread": 0,
+      "cost_usd_mean": 0.0,
+      "cost_usd_spread": 0.0,
+      "wall_clock_s_mean": 2.2066666666666666,
+      "wall_clock_s_spread": 0.21999999999999975
+    },
+    {
+      "config": "memory-warm-llm",
+      "task_id": "task01_datetime",
+      "ablation": "E",
+      "n": 3,
+      "outcomes": {
+        "success": 3
+      },
+      "recovery_used": false,
+      "m1_recall_mean": 100.0,
+      "m1_recall_spread": 0.0,
+      "m1_precision_mean": 100.0,
+      "m1_precision_spread": 0.0,
+      "m1_f1_mean": 100.0,
+      "m1_f1_spread": 0.0,
+      "m2_pass_rate_mean": 100.0,
+      "m2_pass_rate_spread": 0.0,
+      "m2_regressions_mean": 0.0,
+      "m2_regressions_spread": 0,
+      "corrections_mean": 0.0,
+      "corrections_spread": 0,
+      "m3_tokens_mean": 0.0,
+      "m3_tokens_spread": 0,
+      "m3_steps_mean": 5.0,
+      "m3_steps_spread": 0,
+      "cost_usd_mean": 0.0,
+      "cost_usd_spread": 0.0,
+      "wall_clock_s_mean": 0.7433333333333333,
+      "wall_clock_s_spread": 0.030000000000000027
+    },
+    {
+      "config": "memory-warm-llm",
+      "task_id": "task02_datetime_aliased",
+      "ablation": "E",
+      "n": 3,
+      "outcomes": {
+        "success": 3
+      },
+      "recovery_used": true,
+      "m1_recall_mean": 100.0,
+      "m1_recall_spread": 0.0,
+      "m1_precision_mean": 100.0,
+      "m1_precision_spread": 0.0,
+      "m1_f1_mean": 100.0,
+      "m1_f1_spread": 0.0,
+      "m2_pass_rate_mean": 100.0,
+      "m2_pass_rate_spread": 0.0,
+      "m2_regressions_mean": 0.0,
+      "m2_regressions_spread": 0,
+      "corrections_mean": 1.0,
+      "corrections_spread": 0,
+      "m3_tokens_mean": 2762.6666666666665,
+      "m3_tokens_spread": 513,
+      "m3_steps_mean": 9.0,
+      "m3_steps_spread": 0,
+      "cost_usd_mean": 0.0029669999999999996,
+      "cost_usd_spread": 0.0011749999999999998,
+      "wall_clock_s_mean": 10.136666666666667,
+      "wall_clock_s_spread": 1.370000000000001
+    },
+    {
+      "config": "memory-warm-llm",
+      "task_id": "task03_half_migration",
+      "ablation": "E",
+      "n": 3,
+      "outcomes": {
+        "success": 3
+      },
+      "recovery_used": true,
+      "m1_recall_mean": 100.0,
+      "m1_recall_spread": 0.0,
+      "m1_precision_mean": 100.0,
+      "m1_precision_spread": 0.0,
+      "m1_f1_mean": 100.0,
+      "m1_f1_spread": 0.0,
+      "m2_pass_rate_mean": 100.0,
+      "m2_pass_rate_spread": 0.0,
+      "m2_regressions_mean": 0.0,
+      "m2_regressions_spread": 0,
+      "corrections_mean": 1.0,
+      "corrections_spread": 0,
+      "m3_tokens_mean": 2313.6666666666665,
+      "m3_tokens_spread": 418,
+      "m3_steps_mean": 9.0,
+      "m3_steps_spread": 0,
+      "cost_usd_mean": 0.0019836666666666666,
+      "cost_usd_spread": 0.0008109999999999999,
+      "wall_clock_s_mean": 7.63,
+      "wall_clock_s_spread": 4.44
+    },
+    {
+      "config": "memory-warm-llm",
+      "task_id": "task04_multimodule",
+      "ablation": "E",
+      "n": 3,
+      "outcomes": {
+        "success": 3
+      },
+      "recovery_used": true,
+      "m1_recall_mean": 100.0,
+      "m1_recall_spread": 0.0,
+      "m1_precision_mean": 100.0,
+      "m1_precision_spread": 0.0,
+      "m1_f1_mean": 100.0,
+      "m1_f1_spread": 0.0,
+      "m2_pass_rate_mean": 100.0,
+      "m2_pass_rate_spread": 0.0,
+      "m2_regressions_mean": 0.0,
+      "m2_regressions_spread": 0,
+      "corrections_mean": 2.0,
+      "corrections_spread": 0,
+      "m3_tokens_mean": 5207.0,
+      "m3_tokens_spread": 616,
+      "m3_steps_mean": 17.0,
+      "m3_steps_spread": 0,
+      "cost_usd_mean": 0.00436,
+      "cost_usd_spread": 0.001203,
+      "wall_clock_s_mean": 18.103333333333335,
+      "wall_clock_s_spread": 5.690000000000001
+    },
+    {
+      "config": "memory-warm-llm",
+      "task_id": "task05_signature_break",
+      "ablation": "E",
+      "n": 3,
+      "outcomes": {
+        "success": 3
+      },
+      "recovery_used": false,
+      "m1_recall_mean": 100.0,
+      "m1_recall_spread": 0.0,
+      "m1_precision_mean": 100.0,
+      "m1_precision_spread": 0.0,
+      "m1_f1_mean": 100.0,
+      "m1_f1_spread": 0.0,
+      "m2_pass_rate_mean": 100.0,
+      "m2_pass_rate_spread": 0.0,
+      "m2_regressions_mean": 0.0,
+      "m2_regressions_spread": 0,
+      "corrections_mean": 0.0,
+      "corrections_spread": 0,
+      "m3_tokens_mean": 0.0,
+      "m3_tokens_spread": 0,
+      "m3_steps_mean": 11.0,
+      "m3_steps_spread": 0,
+      "cost_usd_mean": 0.0,
+      "cost_usd_spread": 0.0,
+      "wall_clock_s_mean": 1.9400000000000002,
+      "wall_clock_s_spread": 0.0
+    }
+  ],
+  "experience_warmup": {
+    "train_tasks": [
+      {
+        "task": "aliased_class",
+        "learned": 0
+      },
+      {
+        "task": "aliased_module",
+        "learned": 0
+      },
+      {
+        "task": "already_migrated",
+        "learned": 0
+      },
+      {
+        "task": "class_body_and_classmethod",
+        "learned": 0
+      },
+      {
+        "task": "conditional_import",
+        "learned": 0
+      },
+      {
+        "task": "crlf_line_endings",
+        "learned": 0
+      },
+      {
+        "task": "cross_file_recovery",
+        "learned": 1
+      },
+      {
+        "task": "default_argument",
+        "learned": 0
+      },
+      {
+        "task": "empty_and_comment_only_files",
+        "learned": 0
+      },
+      {
+        "task": "encoding_cookie_non_ascii",
+        "learned": 0
+      },
+      {
+        "task": "from_import",
+        "learned": 0
+      },
+      {
+        "task": "half_migrated",
+        "learned": 0
+      },
+      {
+        "task": "import_cycle",
+        "learned": 0
+      },
+      {
+        "task": "inside_decorator_argument",
+        "learned": 0
+      },
+      {
+        "task": "inside_fstring",
+        "learned": 0
+      },
+      {
+        "task": "inside_lambda",
+        "learned": 0
+      },
+      {
+        "task": "module_import",
+        "learned": 0
+      },
+      {
+        "task": "multi_site_one_file",
+        "learned": 0
+      },
+      {
+        "task": "other_object_with_utcnow",
+        "learned": 0
+      },
+      {
+        "task": "reexport_through_init",
+        "learned": 0
+      },
+      {
+        "task": "relative_imports",
+        "learned": 0
+      },
+      {
+        "task": "shadowed_local_name",
+        "learned": 0
+      },
+      {
+        "task": "sites_across_six_files",
+        "learned": 0
+      },
+      {
+        "task": "tab_indentation",
+        "learned": 0
+      },
+      {
+        "task": "utcfromtimestamp_alongside_utcnow",
+        "learned": 0
+      },
+      {
+        "task": "utcnow_in_strings_comments_docstrings",
+        "learned": 0
+      },
+      {
+        "task": "very_long_file",
+        "learned": 0
+      }
+    ],
+    "fixes": 1,
+    "by_class": {
+      "behaviour": 1
+    },
+    "contracts": [
+      "datetime.utcnow -> datetime.now(timezone.utc)"
+    ],
+    "bytes": 28672,
+    "candidates": []
+  },
+  "baselines": [
+    {
+      "task_id": "task01_datetime",
+      "ground_truth_sites": 1,
+      "tools": [
+        {
+          "tool": "ruff (DTZ)",
+          "detected": 1,
+          "detect_recall": 100.0,
+          "detect_precision": 100.0,
+          "fixed_files": 0,
+          "m1_recall_after_fix": 0.0,
+          "sites_remaining": 1,
+          "suite_after_fix": "5/5 passed",
+          "suite_green": true,
+          "can_repair_cross_file_break": false
+        },
+        {
+          "tool": "pyupgrade",
+          "detected": 0,
+          "detect_recall": 0.0,
+          "detect_precision": 0.0,
+          "fixed_files": 0,
+          "m1_recall_after_fix": 0.0,
+          "sites_remaining": 1,
+          "suite_after_fix": "5/5 passed",
+          "suite_green": true,
+          "can_repair_cross_file_break": false
+        }
+      ]
+    },
+    {
+      "task_id": "task02_datetime_aliased",
+      "ground_truth_sites": 2,
+      "tools": [
+        {
+          "tool": "ruff (DTZ)",
+          "detected": 2,
+          "detect_recall": 100.0,
+          "detect_precision": 100.0,
+          "fixed_files": 0,
+          "m1_recall_after_fix": 0.0,
+          "sites_remaining": 2,
+          "suite_after_fix": "5/5 passed",
+          "suite_green": true,
+          "can_repair_cross_file_break": false
+        },
+        {
+          "tool": "pyupgrade",
+          "detected": 0,
+          "detect_recall": 0.0,
+          "detect_precision": 0.0,
+          "fixed_files": 0,
+          "m1_recall_after_fix": 0.0,
+          "sites_remaining": 2,
+          "suite_after_fix": "5/5 passed",
+          "suite_green": true,
+          "can_repair_cross_file_break": false
+        }
+      ]
+    },
+    {
+      "task_id": "task03_half_migration",
+      "ground_truth_sites": 3,
+      "tools": [
+        {
+          "tool": "ruff (DTZ)",
+          "detected": 3,
+          "detect_recall": 100.0,
+          "detect_precision": 100.0,
+          "fixed_files": 0,
+          "m1_recall_after_fix": 0.0,
+          "sites_remaining": 3,
+          "suite_after_fix": "7/7 passed",
+          "suite_green": true,
+          "can_repair_cross_file_break": false
+        },
+        {
+          "tool": "pyupgrade",
+          "detected": 0,
+          "detect_recall": 0.0,
+          "detect_precision": 0.0,
+          "fixed_files": 0,
+          "m1_recall_after_fix": 0.0,
+          "sites_remaining": 3,
+          "suite_after_fix": "7/7 passed",
+          "suite_green": true,
+          "can_repair_cross_file_break": false
+        }
+      ]
+    },
+    {
+      "task_id": "task04_multimodule",
+      "ground_truth_sites": 6,
+      "tools": [
+        {
+          "tool": "ruff (DTZ)",
+          "detected": 6,
+          "detect_recall": 100.0,
+          "detect_precision": 100.0,
+          "fixed_files": 0,
+          "m1_recall_after_fix": 0.0,
+          "sites_remaining": 6,
+          "suite_after_fix": "11/11 passed",
+          "suite_green": true,
+          "can_repair_cross_file_break": false
+        },
+        {
+          "tool": "pyupgrade",
+          "detected": 0,
+          "detect_recall": 0.0,
+          "detect_precision": 0.0,
+          "fixed_files": 0,
+          "m1_recall_after_fix": 0.0,
+          "sites_remaining": 6,
+          "suite_after_fix": "11/11 passed",
+          "suite_green": true,
+          "can_repair_cross_file_break": false
+        }
+      ]
+    },
+    {
+      "task_id": "task05_signature_break",
+      "ground_truth_sites": 6,
+      "tools": [
+        {
+          "tool": "ruff (DTZ)",
+          "detected": 7,
+          "detect_recall": 100.0,
+          "detect_precision": 85.71428571428571,
+          "fixed_files": 0,
+          "m1_recall_after_fix": 0.0,
+          "sites_remaining": 6,
+          "suite_after_fix": "14/14 passed",
+          "suite_green": true,
+          "can_repair_cross_file_break": false
+        },
+        {
+          "tool": "pyupgrade",
+          "detected": 0,
+          "detect_recall": 0.0,
+          "detect_precision": 0.0,
+          "fixed_files": 0,
+          "m1_recall_after_fix": 0.0,
+          "sites_remaining": 6,
+          "suite_after_fix": "14/14 passed",
+          "suite_green": true,
+          "can_repair_cross_file_break": false
+        }
+      ]
+    }
+  ]
+}
