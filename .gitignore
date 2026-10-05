@@ -46,6 +46,7 @@ dist/
 venv/
 env/
 .python-version
+uv.lock
 
 # ---- Testing / tooling caches ----
 .pytest_cache/
