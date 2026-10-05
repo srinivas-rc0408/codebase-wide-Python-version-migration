@@ -29,6 +29,7 @@ patch on every run is not reproducible, and reproducibility is the deliverable.
 from __future__ import annotations
 
 import os
+import re
 import tomllib
 from dataclasses import dataclass
 from pathlib import Path
@@ -67,6 +68,30 @@ PRICES_USD_PER_MTOK: dict[str, tuple[float, float]] = {
     "pro": (0.66, 1.98),
     "flash": (0.22, 0.66),
 }
+
+
+#: Reasoning blocks some models write into the answer itself. A separate
+#: reasoning field (``reasoning_content``) never gets this far: providers read
+#: only the message content.
+_TAGS = "think|thinking|reasoning"
+_REASONING = re.compile(rf"<({_TAGS})>.*?</\1>", re.S | re.I)
+_LAST_CLOSER = re.compile(rf".*</(?:{_TAGS})>", re.S | re.I)
+_UNCLOSED = re.compile(rf"\s*<(?:{_TAGS})>", re.I)
+
+
+def final_answer(text: str) -> str:
+    """The model's answer with its reasoning removed.
+
+    Closed ``<think>``-style blocks are dropped; with a stray closer (the opener
+    was implicit) only what follows it is kept; an opener never closed — cut
+    off by ``max_tokens`` — means there is no answer at all.
+    """
+    text = _REASONING.sub("", text)
+    if closer := _LAST_CLOSER.match(text):
+        text = text[closer.end() :]
+    elif _UNCLOSED.match(text):
+        return ""
+    return text.strip()
 
 
 class ProviderError(RuntimeError):
@@ -128,6 +153,36 @@ def load_roles(config: dict[str, Any] | None = None) -> Roles:
             raise ValueError(f"roles.{role}: no [providers.{missing[0]}] entry")
         roles[role] = [built[name] for name in chain]
     return roles
+
+
+def live_model(roles: Roles | None = None) -> dict[str, str]:
+    """The one provider + model a live benchmark may use, or ValueError.
+
+    A benchmark compares runs, so every role must resolve to the same single
+    endpoint: no second model, no fallback link to switch to mid-run.
+    """
+    roles = load_roles() if roles is None else roles
+    missing = [role for role in ROLES if not roles.get(role)]
+    if missing:
+        raise ValueError(f"live benchmark: no provider for role(s) {missing}; see mra.toml")
+    served = {(e.provider.name, e.model, e.provider.base_url) for c in roles.values() for e in c}
+    if len(served) != 1 or any(len(chain) != 1 for chain in roles.values()):
+        raise ValueError(
+            "live benchmark: every role must name the same single provider (no fallback); "
+            f"mra.toml gives {sorted(served)}"
+        )
+    [(name, model, base_url)] = served
+    return {"provider": name, "model": model, "base_url": base_url or ""}
+
+
+def live_ready(roles: Roles | None = None) -> bool:
+    """True when the configured live provider exists and has a usable key."""
+    try:
+        roles = load_roles() if roles is None else roles
+        live_model(roles)
+    except ValueError:
+        return False
+    return all(chain[0].provider.available for chain in roles.values())
 
 
 def cost_usd(tokens: Tokens | dict[str, int]) -> float:
@@ -262,8 +317,9 @@ class Router:
             latency_s=result["latency_s"],
             redactions=redactions,
             fallback_from=fallback_from,
+            key_env=result.get("key_env"),
         )
-        return result["text"]
+        return final_answer(result["text"])
 
     def _bill(self, task: Role, model: str, tokens_in: int, tokens_out: int, **detail: Any) -> None:
         tier = TIER[task]

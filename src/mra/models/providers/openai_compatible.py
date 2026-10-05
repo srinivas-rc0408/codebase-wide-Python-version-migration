@@ -20,7 +20,10 @@ class OpenAICompatibleProvider(KeyedProvider):
 
             # The SDK refuses an empty key; a keyless local server ignores this one.
             self._client = OpenAI(
-                api_key=self.api_key or "not-needed", base_url=self.base_url, timeout=self.timeout_s
+                api_key=self.api_key or "not-needed",
+                base_url=self.base_url,
+                timeout=self.timeout_s,
+                max_retries=0,  # KeyedProvider._with_keys owns retries
             )
         return self._client
 
@@ -28,11 +31,13 @@ class OpenAICompatibleProvider(KeyedProvider):
         self, messages: list[Message], model: str, temperature: float, max_tokens: int
     ) -> Completion:
         started = time.perf_counter()
-        response = self.client.chat.completions.create(
-            model=model,
-            messages=messages,
-            temperature=temperature,
-            max_tokens=max_tokens,
+        response, key_env = self._with_keys(
+            lambda client: client.chat.completions.create(
+                model=model,
+                messages=messages,
+                temperature=temperature,
+                max_tokens=max_tokens,
+            )
         )
         usage = getattr(response, "usage", None)
         return Completion(
@@ -42,4 +47,5 @@ class OpenAICompatibleProvider(KeyedProvider):
             provider=self.name,
             model=model,
             latency_s=time.perf_counter() - started,
+            key_env=key_env,
         )

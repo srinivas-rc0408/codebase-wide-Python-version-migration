@@ -22,15 +22,24 @@ git status                # .env must NOT appear as a tracked/staged file
 
 Keys live only in environment variables. Which variable each provider reads is
 set by `api_key_env` in `mra.toml` (§3) — the config holds the variable's
-**name**, never the key.
+**name**, never the key. `api_key_envs = ["A", "B"]` gives an ordered list: B is
+used only when the server refuses A (401/403). A rate limit (429) backs off and
+retries the same key up to `max_retries` times (default 2); a timeout,
+connection error or 5xx is retried once, then the run fails RED `provider`.
+Each call logs the variable name that served it, never its value.
 
 | Variable | Used by (in `mra.example.toml`) | Notes |
 |---|---|---|
-| `DEEPSEEK_API_KEY` | `deepseek-pro`, `deepseek-flash` | Also gates the live benchmark arms (`edit-v4-pro`, `edit-v4-flash`). |
+| `DEEPSEEK_API_KEY` | `deepseek-pro`, `deepseek-flash` | |
+| `NVIDIA_API_KEY`, `NVIDIA_API_KEY_2` | `nvidia` (commented) | Primary and backup key. |
 | `OPENAI_API_KEY` | `openai` | |
 | `ANTHROPIC_API_KEY` | `anthropic` | |
 | `GLM_API_KEY` | `glm` | |
 | *(none)* | `ollama` and other local runtimes | A local server needs no key; omit `api_key_env`. |
+
+The live benchmark arms and the two live tests run when every role in
+`mra.toml` names the same single provider and its key is set; otherwise they
+are skipped, never faked.
 
 No key is required at all for the deterministic path (codemods + deterministic
 corrector). With nothing usable configured, `Router.available` is false and

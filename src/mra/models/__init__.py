@@ -9,6 +9,8 @@ from mra.models.router import (
     Role,
     Router,
     cost_usd,
+    live_model,
+    live_ready,
     load_roles,
     total_tokens,
 )
@@ -22,6 +24,8 @@ __all__ = [
     "Role",
     "Router",
     "cost_usd",
+    "live_model",
+    "live_ready",
     "load_roles",
     "redact_secrets",
     "total_tokens",

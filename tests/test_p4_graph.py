@@ -21,7 +21,6 @@ from __future__ import annotations
 
 import hashlib
 import json
-import os
 import shutil
 import sqlite3
 import subprocess
@@ -52,7 +51,7 @@ from mra.memory import (
     progress_facts,
     summarize,
 )
-from mra.models import ROLES, TIER, Endpoint, Router
+from mra.models import ROLES, TIER, Endpoint, Router, live_ready
 from mra.models.providers import FakeProvider
 from mra.nodes.correct_node import LLMCorrector, is_test_path
 from mra.nodes.plan_node import DEFAULT_EDIT_BATCH_SIZE, cycles, plan_batches, violations
@@ -73,8 +72,8 @@ needs_docker = pytest.mark.skipif(
     reason="needs a working Docker daemon",
 )
 needs_key = pytest.mark.skipif(
-    not os.getenv("DEEPSEEK_API_KEY"),
-    reason="needs DEEPSEEK_API_KEY; the live-LLM path is optional by design",
+    not live_ready(),
+    reason="needs the mra.toml live provider and its key; the live-LLM path is optional",
 )
 
 

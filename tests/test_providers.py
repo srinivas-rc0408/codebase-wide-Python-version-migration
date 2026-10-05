@@ -15,6 +15,7 @@ import json
 import os
 import socket
 import threading
+import time
 from collections.abc import Iterator
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
@@ -39,8 +40,13 @@ FAKE_KEY = "sk-" + "Zq7" * 14  # 45 chars of key-shaped noise, not a real key
 
 @pytest.fixture
 def llm_server() -> Iterator[SimpleNamespace]:
-    """A tiny OpenAI-compatible server on 127.0.0.1. Records every request."""
+    """A tiny OpenAI-compatible server on 127.0.0.1. Records every request.
+
+    ``refuse[auth_header]`` is a queue of error statuses to answer that
+    credential with before it starts succeeding.
+    """
     seen: list[dict[str, Any]] = []
+    refuse: dict[str, list[int]] = {}
 
     class Handler(BaseHTTPRequestHandler):
         def do_POST(self) -> None:  # noqa: N802 - http.server's naming
@@ -48,6 +54,16 @@ def llm_server() -> Iterator[SimpleNamespace]:
             seen.append(
                 {"path": self.path, "body": body, "auth": self.headers.get("Authorization")}
             )
+            queue = refuse.get(self.headers.get("Authorization", ""))
+            if queue:
+                error = json.dumps({"error": {"message": "refused", "type": "test"}}).encode()
+                self.send_response(queue.pop(0))
+                self.send_header("Content-Type", "application/json")
+                self.send_header("Content-Length", str(len(error)))
+                self.send_header("Retry-After", "0")
+                self.end_headers()
+                self.wfile.write(error)
+                return
             reply = json.dumps(
                 {
                     "id": "chatcmpl-fake",
@@ -58,7 +74,12 @@ def llm_server() -> Iterator[SimpleNamespace]:
                         {
                             "index": 0,
                             "finish_reason": "stop",
-                            "message": {"role": "assistant", "content": "pong"},
+                            "message": {
+                                "role": "assistant",
+                                "content": "pong",
+                                # A reasoning model's separate field: must never be read.
+                                "reasoning_content": "thinking about ping...",
+                            },
                         }
                     ],
                     "usage": {"prompt_tokens": 7, "completion_tokens": 1, "total_tokens": 8},
@@ -76,7 +97,9 @@ def llm_server() -> Iterator[SimpleNamespace]:
     server = ThreadingHTTPServer(("127.0.0.1", 0), Handler)
     threading.Thread(target=server.serve_forever, daemon=True).start()
     try:
-        yield SimpleNamespace(base_url=f"http://127.0.0.1:{server.server_port}/v1", seen=seen)
+        yield SimpleNamespace(
+            base_url=f"http://127.0.0.1:{server.server_port}/v1", seen=seen, refuse=refuse
+        )
     finally:
         server.shutdown()
         server.server_close()
@@ -124,6 +147,7 @@ def test_router_through_local_server_logs_provider_model_tokens(llm_server) -> N
             "latency_s": router.calls[0]["latency_s"],
             "redactions": 0,
             "fallback_from": None,
+            "key_env": None,  # keyless local server
         }
     ]
     assert router.tokens["flash_in"] == 7 and router.tokens["tool_calls"] == 1
@@ -356,6 +380,65 @@ def test_providers_check_reports_reachable_and_warns_on_unreachable(
     out = capsys.readouterr().out
     assert "reachable    up" in out
     assert "WARN unreach down" in out
+
+
+def _two_key_router(monkeypatch, llm_server) -> Router:
+    monkeypatch.setenv("KEY_ONE", "key-one")
+    monkeypatch.setenv("KEY_TWO", "key-two")
+    provider = OpenAICompatibleProvider(
+        name="nvidia", base_url=llm_server.base_url, api_key_envs=["KEY_ONE", "KEY_TWO"]
+    )
+    return Router(roles={"recover": [Endpoint(provider, "m")]})
+
+
+def test_auth_failure_moves_to_the_next_key(monkeypatch, llm_server) -> None:
+    llm_server.refuse["Bearer key-one"] = [401]
+    router = _two_key_router(monkeypatch, llm_server)
+    assert router.complete("recover", "s", "u") == "pong"
+    assert [r["auth"] for r in llm_server.seen] == ["Bearer key-one", "Bearer key-two"]
+    assert router.calls[0]["key_env"] == "KEY_TWO"  # the slot's NAME is logged
+    assert "key-two" not in json.dumps(router.calls)  # its value never is
+    router.complete("recover", "s", "u")  # a refused key stays retired
+    assert llm_server.seen[-1]["auth"] == "Bearer key-two"
+
+
+def test_rate_limit_retries_the_same_key_never_rotates(monkeypatch, llm_server) -> None:
+    llm_server.refuse["Bearer key-one"] = [429, 429]
+    router = _two_key_router(monkeypatch, llm_server)
+    assert router.complete("recover", "s", "u") == "pong"
+    assert [r["auth"] for r in llm_server.seen] == ["Bearer key-one"] * 3
+    assert router.calls[0]["key_env"] == "KEY_ONE"
+
+
+def test_every_key_refused_is_an_error_not_a_loop(monkeypatch, llm_server) -> None:
+    llm_server.refuse["Bearer key-one"] = [403]
+    llm_server.refuse["Bearer key-two"] = [401]
+    with pytest.raises(ProviderError, match="nvidia"):
+        _two_key_router(monkeypatch, llm_server).complete("recover", "s", "u")
+    assert len(llm_server.seen) == 2
+
+
+def test_silent_endpoint_fails_fast_and_reads_red(monkeypatch) -> None:
+    """A server that accepts and never answers: one retry, then ProviderError -> RED."""
+    from mra.verdict import _red
+
+    with socket.socket() as silent:
+        silent.bind(("127.0.0.1", 0))
+        silent.listen()  # the kernel accepts; nothing ever replies
+        port = silent.getsockname()[1]
+        provider = OpenAICompatibleProvider(
+            name="nvidia",
+            base_url=f"http://127.0.0.1:{port}/v1",
+            timeout_s=1,
+            max_retries=8,  # 429-only budget: must not stretch a timeout
+        )
+        started = time.perf_counter()
+        with pytest.raises(ProviderError, match="nvidia.*Timeout") as raised:
+            Router(roles={"recover": [Endpoint(provider, "m")]}).complete("recover", "s", "u")
+        elapsed = time.perf_counter() - started
+    assert elapsed < 4, f"two 1 s attempts, not a long hang ({elapsed:.1f}s)"
+    [reason] = _red({"crash": f"ProviderError: {raised.value}"})
+    assert (reason["level"], reason["code"]) == ("RED", "provider")
 
 
 # -- LIVE: one ping per real provider, skipped without its key ----------------

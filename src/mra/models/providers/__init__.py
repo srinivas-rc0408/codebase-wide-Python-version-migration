@@ -34,7 +34,9 @@ def make_provider(name: str, entry: dict[str, Any]) -> Provider:
         name=name,
         base_url=entry["base_url"],
         api_key_env=entry.get("api_key_env"),
+        api_key_envs=entry.get("api_key_envs"),
         timeout_s=float(entry.get("timeout_s", 120)),
+        max_retries=int(entry.get("max_retries", 2)),
     )
 
 

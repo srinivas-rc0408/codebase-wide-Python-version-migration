@@ -42,7 +42,7 @@ def providers_check(path: str | None) -> int:
             print(f"BLOCKED      {where}  (MRA_PRIVACY=local-only)")
             continue
         if not endpoint.provider.available:
-            print(f"WARN no key  {where}  (${endpoint.provider.api_key_env} unset)")
+            print(f"WARN no key  {where}  (${' / $'.join(endpoint.provider.api_key_envs)} unset)")
             continue
         try:
             result = endpoint.provider.complete(
@@ -52,7 +52,8 @@ def providers_check(path: str | None) -> int:
             reason = str(exc).splitlines()[0][:80] if str(exc) else type(exc).__name__
             print(f"WARN unreach {where}  ({reason})")
         else:
-            print(f"reachable    {where}  {result['latency_s']:.2f}s")
+            key = f"  key ${result['key_env']}" if result.get("key_env") else ""
+            print(f"reachable    {where}  {result['latency_s']:.2f}s{key}")
     return 0
 
 

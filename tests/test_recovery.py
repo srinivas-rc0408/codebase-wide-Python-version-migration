@@ -11,8 +11,9 @@ groups below use no LLM at all:
   fires at exactly ``MAX_FIX_ATTEMPTS`` on one stable signature (NFR-1, FR-9).
 * **oracle safety** — a corrector that tries to edit a test file. It proves
   NB-4 is enforced, not merely documented.
-* **live** — real DeepSeek, skipped when ``DEEPSEEK_API_KEY`` is unset. A suite
-  that cannot run without a funded account is a suite nobody runs.
+* **live** — the real model from ``mra.toml``, skipped unless every role has a
+  provider whose key is set. A suite that cannot run without a funded account
+  is a suite nobody runs.
 
 The fixture is ``corpus/tierA/task03_half_migration``: |A| = 3 sites, and the
 run migrates only two of them, leaving the break the loop has to finish.
@@ -21,7 +22,6 @@ run migrates only two of them, leaving the break the loop has to finish.
 from __future__ import annotations
 
 import hashlib
-import os
 import shutil
 import subprocess
 from pathlib import Path
@@ -31,7 +31,7 @@ import pytest
 
 from mra.analysis import call_sites as call_sites_module
 from mra.codemods.datetime_utcnow import TARGET
-from mra.models import Router, total_tokens
+from mra.models import Router, live_ready, total_tokens
 from mra.nodes.correct_node import (
     FAILURE_CLASSES,
     LLMCorrector,
@@ -59,8 +59,8 @@ needs_docker = pytest.mark.skipif(
     reason="needs a working Docker daemon",
 )
 needs_key = pytest.mark.skipif(
-    not os.getenv("DEEPSEEK_API_KEY"),
-    reason="needs DEEPSEEK_API_KEY; the live-LLM path is optional by design",
+    not live_ready(),
+    reason="needs the mra.toml live provider and its key; the live-LLM path is optional",
 )
 
 
@@ -364,6 +364,57 @@ def test_locate_never_proposes_a_test_file(tmp_path: Path) -> None:
     assert "utcnow" in (work / "tests" / "test_clock.py").read_text()
 
 
+def test_reasoning_model_reply_applies_only_the_final_patch(tmp_path: Path) -> None:
+    """A <think> block with its own draft code, then the answer: only the answer lands."""
+    from mra.models import ROLES, Endpoint
+    from mra.models.providers import FakeProvider
+
+    work = tmp_path / "repo"
+    shutil.copytree(TASK / "old", work)
+    before = call_sites_module.find_in_repo(work, TARGET)
+    apply_codemod(work, {f: before[f] for f in FIRST_BATCH})
+    gold = (TASK / "gold" / BROKEN_FILE).read_text()
+
+    def reply(messages: list[dict[str, str]], model: str) -> str:
+        if "one word" in messages[0]["content"]:
+            return "<think>could be import, or signature... no.</think>\nbehaviour"
+        return (
+            "<think>The trace points at report.py. Draft:\n"
+            "```python\nDRAFT = 'never applied'\n```\n"
+            "No, keep the docstrings.</think>\n"
+            f"Here is the corrected file:\n```python\n{gold}```\n"
+        )
+
+    fake = FakeProvider("reasoner", reply=reply)
+    router = Router(roles={role: [Endpoint(fake, "r1")] for role in ROLES})
+    corrector = LLMCorrector(router, TARGET, {"source_api": "a", "target_api": "b"})
+    failure = {
+        "file": BROKEN_FILE,
+        "trace": "src/pkg/report.py:20: TypeError",
+        "exc_type": "TypeError",
+        "message": "can't subtract offset-naive and offset-aware datetimes",
+    }
+    assert corrector(work, failure, {}) == [BROKEN_FILE]
+    assert (work / BROKEN_FILE).read_text() == gold
+    assert corrector.log[-1]["class"] == "behaviour"  # not "import" from the reasoning
+
+
+@pytest.mark.parametrize(
+    ("raw", "answer"),
+    [
+        ("<think>a\nb</think>\n\nok", "ok"),
+        ("<THINKING>x</THINKING>ok", "ok"),
+        ("implicit opener, then</think>ok", "ok"),
+        ("<think>cut off by max_tokens", ""),
+        ("plain answer", "plain answer"),
+    ],
+)
+def test_final_answer_strips_reasoning(raw: str, answer: str) -> None:
+    from mra.models.router import final_answer
+
+    assert final_answer(raw) == answer
+
+
 # -- the router ------------------------------------------------------------
 
 
@@ -394,7 +445,7 @@ def test_router_bills_each_tier_separately() -> None:
     )
 
 
-# -- LIVE: real DeepSeek, skipped without a key ----------------------------
+# -- LIVE: the mra.toml model, skipped without its key ---------------------
 
 
 @needs_docker

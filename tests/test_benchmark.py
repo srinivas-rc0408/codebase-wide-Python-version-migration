@@ -377,8 +377,6 @@ def test_failure_analysis_explains_every_failing_run(matrix: dict[str, Any]) -> 
 
 
 def test_live_model_rows_are_skipped_not_faked(matrix: dict[str, Any]) -> None:
-    if matrix["live_llm_available"]:  # pragma: no cover - only with a key configured
-        pytest.skip("a key is configured; the live arms are real rows")
     assert all(config["model"] == "deterministic" for config in matrix["configs"])
     live = [c for c in CONFIGS if c.requires_key]
     assert live and all(c.ablation in ("C", "E", "F") for c in live)

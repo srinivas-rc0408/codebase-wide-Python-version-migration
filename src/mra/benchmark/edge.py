@@ -23,6 +23,7 @@ import re
 import shutil
 import socket
 import tempfile
+from collections import Counter
 from concurrent.futures import ProcessPoolExecutor
 from datetime import UTC, datetime
 from multiprocessing import get_context
@@ -214,6 +215,7 @@ def run_case(
     metrics = model["metrics"] or {}
     out = result["out_dir"]
     trajectory = _json_or(out / "trajectory.json", [])
+    calls = (_json_or(out / "run_meta.json", {}).get("llm") or {}).get("calls") or []
     return {
         "case": task_dir.name,
         "category": spec["category"],
@@ -231,6 +233,10 @@ def run_case(
         "corrections": sum(1 for e in trajectory if e.get("node") == "CORRECT"),
         "tokens": metrics.get("m3_tokens", 0),
         "cost_usd": metrics.get("m3_cost_usd", 0.0),
+        "llm_requests": len(calls),
+        "llm_served_by": sorted({f"{c.get('provider')}:{c.get('model')}" for c in calls}),
+        # The env var NAME that served each call, never its value.
+        "key_slots": dict(Counter(c.get("key_env") or "-" for c in calls)),
         "failure_classes": sorted(
             {f["failure_class"] for f in _failures(_json_or(out / "test_report.json", {}))}
         ),
@@ -285,6 +291,10 @@ def run_suite(
     the cases *outside* that split: scoring a case the store learnt from is leakage.
     """
     selected = [c for c in cases(edge) if not only or c.name in only]
+    if live:
+        from mra.models import live_model
+
+        model = live_model()  # one provider + model throughout, or refuse to start
     store = None
     warmup: dict[str, Any] = {}
     scratch = None
@@ -321,6 +331,7 @@ def run_suite(
         "agent_version": __version__,
         "generated_at": datetime.now(UTC).isoformat(timespec="seconds"),
         "live": live,
+        "live_model": model if live else None,
         "repeats": repeats,
         "experience_warmup": warmup,
         "passed": sum(r["pass"] for r in rows),
@@ -346,8 +357,10 @@ def render(results: dict[str, Any]) -> str:
     live = results.get("live", False)
     if live:
         lines[-2:] = [
-            "Live: the corrector is the real model from `mra.toml` "
-            f"({results['repeats']} repeat(s) per case).",
+            "Live: the corrector is the real model from `mra.toml`, "
+            f"`{(results.get('live_model') or {}).get('model', '?')}` via "
+            f"`{(results.get('live_model') or {}).get('provider', '?')}` "
+            f"({results['repeats']} repeat(s) per case, no fallback provider).",
             "",
             "| case | rep | expected | actual | pass | M1 | M2 | corr | tokens | cost $ "
             "| failure class | reason / note |",

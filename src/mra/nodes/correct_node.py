@@ -186,8 +186,9 @@ def extract_source(reply: str) -> str:
     A patch that does not parse is worse than no patch: it turns a semantic
     failure into a collection error and hides the original break.
     """
-    match = _CODE_FENCE.search(reply)
-    source = (match.group(1) if match else reply).strip() + "\n"
+    fences = _CODE_FENCE.findall(reply)
+    # The last fence: any earlier one is a draft or quoted code, not the answer.
+    source = (fences[-1] if fences else reply).strip() + "\n"
     cst.parse_module(source)  # raises ParserSyntaxError on garbage
     return source
 

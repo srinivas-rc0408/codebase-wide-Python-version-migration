@@ -37,6 +37,7 @@ import statistics
 import tempfile
 import time
 import uuid
+from collections import Counter
 from collections.abc import Iterator, Sequence
 from dataclasses import asdict, dataclass
 from datetime import UTC, datetime
@@ -89,7 +90,7 @@ class Config:
 
     @property
     def requires_key(self) -> bool:
-        """True when this row cannot be produced without ``DEEPSEEK_API_KEY``."""
+        """True when this row needs the live model from ``mra.toml`` and its key."""
         return self.model != "deterministic"
 
 
@@ -578,6 +579,18 @@ def run_one(
             1 for e in result["trajectory"] if e["node"] == "CORRECT" and e["detail"].get("rule")
         ),
         **_memory_use(corrector),
+        **_llm_use(router),
+    }
+
+
+def _llm_use(router: Any) -> dict[str, Any]:
+    """Requests sent, who served them, and which key slot (the env var NAME)."""
+    if router is None:
+        return {}
+    return {
+        "llm_requests": len(router.calls),
+        "llm_served_by": sorted({f"{c['provider']}:{c['model']}" for c in router.calls}),
+        "key_slots": dict(Counter(c.get("key_env") or "-" for c in router.calls)),
     }
 
 
@@ -650,8 +663,12 @@ def run_matrix(
 
     corpus, out_dir = Path(corpus), Path(out_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
-    have_key = bool(os.getenv("DEEPSEEK_API_KEY"))
+    from mra.models import live_model, live_ready
+
+    have_key = live_ready()
     runnable = [c for c in configs if have_key or not c.requires_key]
+    # One provider + model for every live call and repeat, or refuse to start.
+    model = live_model() if any(c.requires_key for c in runnable) else None
 
     # Ablation E: one throwaway store outside every repo, warmed once on the
     # training split, then frozen read-only for every evaluation run.
@@ -676,7 +693,7 @@ def run_matrix(
         for config in configs:
             if config not in runnable:
                 skipped.extend(
-                    {"config": config.name, "task_id": task, "reason": "requires DEEPSEEK_API_KEY"}
+                    {"config": config.name, "task_id": task, "reason": "requires a live key"}
                     for task in tasks
                 )
                 continue
@@ -704,6 +721,7 @@ def run_matrix(
         "tasks": list(tasks),
         "configs": [asdict(c) for c in configs],
         "live_llm_available": have_key,
+        "live_model": model,
         "rows": rows,
         "skipped": skipped,
         "aggregates": _aggregate(rows),
@@ -766,6 +784,15 @@ def render_markdown(results: dict[str, Any]) -> str:
         f"Generated {results['generated_at']} · {results['repeats']} repeat(s) per "
         f"(task, config) · mean ±spread across repeats.",
         "",
+        *(
+            [
+                f"Live model: `{m['model']}` via `{m['provider']}` ({m['base_url']}), "
+                "every live call and repeat; no fallback provider.",
+                "",
+            ]
+            if (m := results.get("live_model"))
+            else []
+        ),
         "Every row is one agent configuration on one task. `baseline` is the reference "
         "(recovery on, dependency-ordered batches of 3, deterministic corrector); every "
         "other configuration changes exactly one thing about it (docs/05 §3).",
@@ -968,7 +995,8 @@ def _ablation_c(results: dict[str, Any]) -> list[str]:
         lines += [
             "**Requires a key — not run.** "
             + (", ".join(f"`{s}`" for s in sorted(skipped)) or "No live configuration")
-            + " needs `DEEPSEEK_API_KEY`; the offline matrix above is complete without it.",
+            + " needs the live provider's key (mra.toml); the offline matrix above is "
+            "complete without it.",
             "",
             "Caveat for when it does run: `Router.TIER` bills a *recover* call to the pro "
             "tier whatever model serves it, so the cost column for the V4-Flash arm "

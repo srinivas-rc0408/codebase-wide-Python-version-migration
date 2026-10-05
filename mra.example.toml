@@ -72,6 +72,17 @@ base_url = "https://open.bigmodel.cn/api/paas/v4"
 model = "glm-4.6"
 api_key_env = "GLM_API_KEY"
 
+# NVIDIA API catalog (OpenAI-compatible) — verify base URL/model in the provider's docs.
+# api_key_envs: tried in order; the next key is used ONLY when the server refuses
+# the current one (401/403). Rate limits (429) back off and retry the same key.
+# Temperature, max_tokens and timeout_s stay the agent's own (0.1 / per call / 120 s).
+# [providers.nvidia]
+# provider = "openai-compatible"
+# base_url = "https://integrate.api.nvidia.com/v1"
+# model = "nvidia/nemotron-3-super-120b-a12b"
+# api_key_envs = ["NVIDIA_API_KEY", "NVIDIA_API_KEY_2"]
+# max_retries = 8   # 429 only: back off, same key. Timeouts/5xx: 1 retry, then RED.
+
 # Local Ollama (OpenAI-compatible endpoint, no key) — verify base URL/model in
 # the provider's docs. vLLM, llama.cpp server and LM Studio work the same way
 # with their own base_url. Pull the model first: `ollama pull <model>`.

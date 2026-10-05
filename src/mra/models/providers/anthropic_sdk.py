@@ -19,7 +19,10 @@ class AnthropicProvider(KeyedProvider):
             from anthropic import Anthropic  # lazy: the deterministic path never imports it
 
             self._client = Anthropic(
-                api_key=self.api_key, base_url=self.base_url, timeout=self.timeout_s
+                api_key=self.api_key,
+                base_url=self.base_url,
+                timeout=self.timeout_s,
+                max_retries=0,  # KeyedProvider._with_keys owns retries
             )
         return self._client
 
@@ -30,11 +33,13 @@ class AnthropicProvider(KeyedProvider):
         turns = [m for m in messages if m["role"] != "system"]
         started = time.perf_counter()
         extra = {"system": system} if system else {}
-        response = self.client.messages.create(
-            model=model,
-            max_tokens=max_tokens,
-            messages=turns,
-            **extra,
+        response, key_env = self._with_keys(
+            lambda client: client.messages.create(
+                model=model,
+                max_tokens=max_tokens,
+                messages=turns,
+                **extra,
+            )
         )
         return Completion(
             text="".join(getattr(block, "text", "") for block in response.content),
@@ -43,4 +48,5 @@ class AnthropicProvider(KeyedProvider):
             provider=self.name,
             model=model,
             latency_s=time.perf_counter() - started,
+            key_env=key_env,
         )
