@@ -1,0 +1,24 @@
+diff --git a/src/app/clock.py b/src/app/clock.py
+index 69be8ec..b287f4e 100644
+--- a/src/app/clock.py
++++ b/src/app/clock.py
+@@ -1,7 +1,8 @@
+ """The scheduler's wall clock."""
+ 
+ from datetime import datetime as DT
++from datetime import timezone
+ 
+ 
+ def now():
+-    return DT.utcnow()
++    return DT.now(timezone.utc)
+diff --git a/src/app/config.py b/src/app/config.py
+index 6a9c15f..2300e73 100644
+--- a/src/app/config.py
++++ b/src/app/config.py
+@@ -6,4 +6,4 @@ EPOCH = dtm.datetime(2020, 1, 1)
+ 
+ 
+ def boot_time():
+-    return dtm.datetime.utcfromtimestamp(0)
++    return dtm.datetime.fromtimestamp(0, dtm.timezone.utc)

@@ -1,0 +1,40 @@
+{
+  "task_id": "task06_scheduler",
+  "difficulty": "hard",
+  "source_api": "datetime.utcnow",
+  "target_api": "datetime.now(timezone.utc)",
+  "call_sites": [
+    {
+      "file": "src/app/clock.py",
+      "line": 7,
+      "col": 11,
+      "symbol": "datetime.datetime.utcnow",
+      "kind": "call"
+    },
+    {
+      "file": "src/app/config.py",
+      "line": 9,
+      "col": 11,
+      "symbol": "datetime.datetime.utcfromtimestamp",
+      "kind": "call"
+    }
+  ],
+  "expected_import_changes": [
+    {
+      "file": "src/app/clock.py",
+      "add": [
+        "timezone"
+      ],
+      "remove": []
+    },
+    {
+      "file": "src/app/config.py",
+      "add": [],
+      "remove": []
+    }
+  ],
+  "semantic_checks": [
+    "clock.now() returns a timezone-aware datetime (tzinfo is not None)",
+    "config.EPOCH is timezone-aware (tzinfo is not None)"
+  ]
+}

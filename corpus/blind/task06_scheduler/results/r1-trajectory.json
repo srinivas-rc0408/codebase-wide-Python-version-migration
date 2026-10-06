@@ -1,0 +1,178 @@
+[
+  {
+    "seq": 0,
+    "ts": "2026-10-06T07:26:08.057485+00:00",
+    "node": "MAP",
+    "action": "found 2 call site(s) in 2 file(s)",
+    "detail": {
+      "files": [
+        "src/app/clock.py",
+        "src/app/config.py"
+      ],
+      "target": "datetime.datetime.utcnow"
+    }
+  },
+  {
+    "seq": 1,
+    "ts": "2026-10-06T07:26:08.068509+00:00",
+    "node": "PLAN",
+    "action": "planned 1 batch(es) over 2 file(s)",
+    "detail": {
+      "batches": [
+        [
+          "src/app/clock.py",
+          "src/app/config.py"
+        ]
+      ],
+      "cycles_collapsed": [],
+      "batch_size": 3,
+      "fr3_violations": []
+    }
+  },
+  {
+    "seq": 2,
+    "ts": "2026-10-06T07:26:08.091480+00:00",
+    "node": "EDIT",
+    "action": "batch 0: codemod changed 2 of 2 file(s)",
+    "detail": {
+      "batch": 0,
+      "files": [
+        "src/app/clock.py",
+        "src/app/config.py"
+      ],
+      "changed": [
+        "src/app/clock.py",
+        "src/app/config.py"
+      ],
+      "sha": "52e25aea6807d83e79d1bcf39bc5cfcb1e456e4f"
+    }
+  },
+  {
+    "seq": 3,
+    "ts": "2026-10-06T07:26:08.410570+00:00",
+    "node": "TEST",
+    "action": "suite after batch 1: 7/8 passed",
+    "detail": {
+      "phase": "post",
+      "total": 8,
+      "passed": 7,
+      "failed": 1,
+      "errors": 0,
+      "failures": [
+        "tests/test_report.py::test_age_days_is_non_negative_int"
+      ]
+    }
+  },
+  {
+    "seq": 4,
+    "ts": "2026-10-06T07:26:15.670177+00:00",
+    "node": "CORRECT",
+    "action": "attempt 1/3 on tests/test_report.py::test_age_days_is_non_negative_int",
+    "detail": {
+      "rule": null,
+      "signature": "0be79751c957972b",
+      "attempt": 1,
+      "exc_type": "TypeError",
+      "changed": [],
+      "sha": "e0b933747d371e8d0490479998f186809e681d2e",
+      "failure_class": "behaviour",
+      "message": "TypeError: can't subtract offset-naive and offset-aware datetimes"
+    }
+  },
+  {
+    "seq": 5,
+    "ts": "2026-10-06T07:26:16.014998+00:00",
+    "node": "TEST",
+    "action": "suite after batch 1: 7/8 passed",
+    "detail": {
+      "phase": "recovery",
+      "total": 8,
+      "passed": 7,
+      "failed": 1,
+      "errors": 0,
+      "failures": [
+        "tests/test_report.py::test_age_days_is_non_negative_int"
+      ]
+    }
+  },
+  {
+    "seq": 6,
+    "ts": "2026-10-06T07:26:23.993153+00:00",
+    "node": "CORRECT",
+    "action": "attempt 2/3 on tests/test_report.py::test_age_days_is_non_negative_int",
+    "detail": {
+      "rule": null,
+      "signature": "0be79751c957972b",
+      "attempt": 2,
+      "exc_type": "TypeError",
+      "changed": [],
+      "sha": "ad1f03168d8733ddf697b13c61476ec0e428a0e0",
+      "failure_class": "behaviour",
+      "message": "TypeError: can't subtract offset-naive and offset-aware datetimes"
+    }
+  },
+  {
+    "seq": 7,
+    "ts": "2026-10-06T07:26:24.324325+00:00",
+    "node": "TEST",
+    "action": "suite after batch 1: 7/8 passed",
+    "detail": {
+      "phase": "recovery",
+      "total": 8,
+      "passed": 7,
+      "failed": 1,
+      "errors": 0,
+      "failures": [
+        "tests/test_report.py::test_age_days_is_non_negative_int"
+      ]
+    }
+  },
+  {
+    "seq": 8,
+    "ts": "2026-10-06T07:26:28.524973+00:00",
+    "node": "CORRECT",
+    "action": "attempt 3/3 on tests/test_report.py::test_age_days_is_non_negative_int",
+    "detail": {
+      "rule": null,
+      "signature": "0be79751c957972b",
+      "attempt": 3,
+      "exc_type": "TypeError",
+      "changed": [],
+      "sha": "e4f8c033f3064fca85ceb9c176574a80437731f7",
+      "failure_class": "behaviour",
+      "message": "TypeError: can't subtract offset-naive and offset-aware datetimes"
+    }
+  },
+  {
+    "seq": 9,
+    "ts": "2026-10-06T07:26:28.865185+00:00",
+    "node": "TEST",
+    "action": "suite after batch 1: 7/8 passed",
+    "detail": {
+      "phase": "recovery",
+      "total": 8,
+      "passed": 7,
+      "failed": 1,
+      "errors": 0,
+      "failures": [
+        "tests/test_report.py::test_age_days_is_non_negative_int"
+      ]
+    }
+  },
+  {
+    "seq": 10,
+    "ts": "2026-10-06T07:26:28.865573+00:00",
+    "node": "FINISH",
+    "action": "gave_up after batch 1/1",
+    "detail": {
+      "outcome": "gave_up",
+      "flagged": true,
+      "blocked_signatures": [
+        "0be79751c957972b"
+      ],
+      "attempts": {
+        "0be79751c957972b": 3
+      }
+    }
+  }
+]

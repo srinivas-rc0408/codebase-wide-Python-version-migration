@@ -1,0 +1,18 @@
+id: task06_scheduler
+description: >-
+  Blind held-out task, built after the agent was frozen. Same contract as
+  Tier-A (datetime.utcnow -> datetime.now(timezone.utc), utcfromtimestamp ->
+  fromtimestamp(t, timezone.utc)). |A| = 2: an aliased class import in
+  clock.py and a module alias in config.py. The codemod alone leaves the
+  suite red: report.age_days() subtracts the naive constant config.EPOCH
+  (not a call site) from the now-aware clock. The right fix makes EPOCH
+  aware in config.py; editing report.py instead is the wrong fix and fails
+  gold's hidden semantic tests. jobs.py and scheduler.py form a real import
+  cycle; decoys.py holds a FakeClock.utcnow() method and the text
+  "datetime.utcnow()" in a docstring and a log message, none of which may be
+  touched.
+source_api: datetime.utcnow
+target_api: datetime.now(timezone.utc)
+difficulty: hard
+hidden_tests: [tests/test_semantic.py]   # gold/ only; never shown to the agent
+must_not_edit: [src/app/report.py, src/app/jobs.py, src/app/scheduler.py, src/app/decoys.py]
