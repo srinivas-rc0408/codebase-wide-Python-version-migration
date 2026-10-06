@@ -1,0 +1,18 @@
+id: task07_cache
+description: >-
+  Blind held-out task #2, built after the agent was frozen. Same contract as
+  Tier-A (datetime.utcnow -> datetime.now(timezone.utc)). |A| = 1: a module
+  import in stamp.py (no new import needed). The codemod alone leaves the suite
+  red: store.save() writes stamp().isoformat(), which now ends in "+00:00", and
+  store.load() parses it with strptime("%Y-%m-%dT%H:%M:%S.%f"), which raises
+  ValueError. store.py holds no call site. The right fix parses with
+  datetime.datetime.fromisoformat (or a %z format) in store.py. Wrong fixes the
+  anti-reversal guard must reject: stripping tzinfo before isoformat(), or
+  changing the format/slicing so the offset is silently dropped. legacy.py
+  holds a LegacyClock.utcnow() method (called) and the text "datetime.utcnow()"
+  in its docstring; neither may be touched.
+source_api: datetime.utcnow
+target_api: datetime.now(timezone.utc)
+difficulty: hard
+hidden_tests: [tests/test_semantic.py]   # gold/ only; never shown to the agent
+must_not_edit: [src/svc/session.py, src/svc/legacy.py]

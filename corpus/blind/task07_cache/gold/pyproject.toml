@@ -1,0 +1,15 @@
+[build-system]
+requires = ["setuptools>=77"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "svc"
+version = "0.1.0"
+description = "Blind held-out fixture: a session cache that persists and re-reads a clock stamp."
+requires-python = "==3.12.*"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

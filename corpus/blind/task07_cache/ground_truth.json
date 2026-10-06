@@ -1,0 +1,26 @@
+{
+  "task_id": "task07_cache",
+  "difficulty": "hard",
+  "source_api": "datetime.utcnow",
+  "target_api": "datetime.now(timezone.utc)",
+  "call_sites": [
+    {
+      "file": "src/svc/stamp.py",
+      "line": 7,
+      "col": 11,
+      "symbol": "datetime.datetime.utcnow",
+      "kind": "call"
+    }
+  ],
+  "expected_import_changes": [
+    {
+      "file": "src/svc/stamp.py",
+      "add": [],
+      "remove": []
+    }
+  ],
+  "semantic_checks": [
+    "store.load() of a saved stamp is timezone-aware (tzinfo is not None)",
+    "the save/load round trip preserves the UTC offset"
+  ]
+}
