@@ -40,6 +40,9 @@ EDGE_JSON = ROOT / "corpus/edge/results.json"
 ABLATION_E_MD = ROOT / "runs/benchmark/ablation-e/results.md"
 ABLATION_E_JSON = ROOT / "runs/benchmark/ablation-e/results.json"
 EXPERIENCE_PY = ROOT / "src/mra/memory/experience.py"
+BLIND = ROOT / "corpus/blind/task06_scheduler"
+# The agent was frozen here; the blind fixture was built after it.
+FROZEN_AT = "f97bf67"
 TESTS = ROOT / "tests"
 # The fix commit; its message is the only record of the post-fix matrix re-run.
 FIX_COMMIT = "bb1dd07"
@@ -63,6 +66,7 @@ LOOP_HEADER = "| task | loop on | loop off |"
 ORDER_HEADER = "| task | dependency | file-name | dependents-first |"
 E_HEADER = "| task | config | outcome | corrections | tokens | hints served | hint chars |"
 FIX_HEADER = "| class | defect fixed | regression test |"
+BLIND_HEADER = "| # | pass criterion | result | evidence (r1 / r2 / r3) |"
 BASELINE_HEADER = (
     "| task | \\|A\\| | ruff detected | ruff fixed | M1 after fix "
     "| suite after fix | pyupgrade detected |"
@@ -253,6 +257,161 @@ def post_p5_claims(matrix: dict[str, Any], defects: int) -> dict[str, list[str]]
             f"suites of {min(suites)}–{max(suites)} tests",
         ],
     }
+
+
+def blind_test() -> tuple[list[str], dict[str, list[str]], bool]:
+    """The §7.9 criteria table, the blind-test phrases, and whether the failure was safe.
+
+    Everything is re-derived from corpus/blind/task06_scheduler/results.json
+    and its ground_truth.json; nothing is typed.
+    """
+    runs = list(json.loads((BLIND / "results.json").read_text()).values())
+    truth = json.loads((BLIND / "ground_truth.json").read_text())
+    site_files = sorted({s["file"] for s in truth["call_sites"]})
+    n = len(runs)
+
+    def across(values: list[str]) -> str:
+        return f"{values[0]} ×{n}" if len(set(values)) == 1 else " / ".join(values)
+
+    def hidden(r: dict[str, Any]) -> tuple[int, int]:
+        h = r["hidden_semantic"]
+        count = lambda word: int(m.group(1)) if (m := re.search(rf"(\d+) {word}", h)) else 0  # noqa: E731
+        return count("failed"), count("passed")
+
+    def attempts(r: dict[str, Any]) -> int:
+        return max(a["attempt"] for a in r["correct_attempts"])
+
+    no_wrong_edit = all(r["patch_files"] == site_files and not r["report_py_edited"] for r in runs)
+    rows = [
+        (
+            "verdict GREEN",
+            all(r["verdict"] == "GREEN" for r in runs),
+            across([r["verdict"] for r in runs]),
+        ),
+        (
+            "M1 recall and precision 100 %, decoys untouched",
+            all(r["m1_recall"] == r["m1_precision"] == 100 and r["decoys_untouched"] for r in runs),
+            across(
+                [
+                    f"M1 {r['m1_recall']:g}/{r['m1_precision']:g}, decoys "
+                    f"{'byte-identical' if r['decoys_untouched'] else 'edited'}"
+                    for r in runs
+                ]
+            ),
+        ),
+        (
+            "M2 100 %, 0 regressions, hidden semantic tests pass",
+            all(
+                r["m2_pass_rate"] == 100 and not r["m2_regressions"] and not hidden(r)[0]
+                for r in runs
+            ),
+            across(
+                [
+                    f"M2 {r['m2_pass_rate']:g}, {r['m2_regressions']} regr, "
+                    f"hidden {hidden(r)[1]}/{sum(hidden(r))}"
+                    for r in runs
+                ]
+            ),
+        ),
+        (
+            "EPOCH fix made by the model",
+            all(r["epoch_changed"] and r["recover_tokens"] > 0 for r in runs),
+            across(
+                [
+                    f"EPOCH {'changed' if r['epoch_changed'] else 'unchanged'}, "
+                    f"recover tokens {r['recover_tokens']}"
+                    for r in runs
+                ]
+            ),
+        ),
+        (
+            "clock.py gains `timezone`, config.py no import",
+            all(r["clock_gained_timezone"] and r["config_import_lines_unchanged"] for r in runs),
+            across(
+                [
+                    f"timezone {'added' if r['clock_gained_timezone'] else 'missing'}, config "
+                    f"imports {'unchanged' if r['config_import_lines_unchanged'] else 'changed'}"
+                    for r in runs
+                ]
+            ),
+        ),
+        (
+            "patch touches only clock.py and config.py",
+            no_wrong_edit,
+            across(
+                [
+                    f"{len(r['patch_files'])} files, report.py "
+                    f"{'edited' if r['report_py_edited'] else 'untouched'}"
+                    for r in runs
+                ]
+            ),
+        ),
+        (
+            "test files untouched",
+            all(r["tests_untouched"] for r in runs),
+            across(["byte-identical" if r["tests_untouched"] else "edited" for r in runs]),
+        ),
+        (
+            "re-run on own output: empty patch, GREEN, 0 model calls",
+            all(
+                r["rerun"]["verdict"] == "GREEN"
+                and r["rerun"]["patch_empty"]
+                and not r["rerun"]["model_calls"]
+                for r in runs
+            ),
+            across(
+                [
+                    f"{r['rerun']['verdict']}, patch "
+                    f"{'empty' if r['rerun']['patch_empty'] else 'non-empty'}, "
+                    f"{r['rerun']['model_calls']} calls"
+                    for r in runs
+                ]
+            ),
+        ),
+        (
+            "corrections ≤ 3; tokens and requests reported",
+            all(r["corrections"] <= 3 for r in runs),
+            f"corrections {across([str(r['corrections']) for r in runs])}; tokens "
+            f"{' / '.join(str(r['tokens']) for r in runs)}; "
+            f"requests {across([str(r['requests']) for r in runs])}",
+        ),
+    ]
+    table = [BLIND_HEADER, "|---|---|---|---|"] + [
+        f"| {i} | {name} | {'PASS' if ok else '**FAIL**'} | {evidence} |"
+        for i, (name, ok, evidence) in enumerate(rows, 1)
+    ]
+
+    red = sum(r["verdict"] == "RED" for r in runs)
+    cap = max(attempts(r) for r in runs)
+    safe = (
+        red == n
+        and no_wrong_edit
+        and all(r["tests_untouched"] for r in runs)
+        and all(not a["changed"] for r in runs for a in r["correct_attempts"])
+        and cap <= 3
+    )
+    passed = sum(ok for _, ok, _ in rows)
+    frozen = not subprocess.run(
+        ["git", "-C", str(ROOT), "diff", "--quiet", FROZEN_AT, "HEAD", "--", "src/mra"]
+    ).returncode
+    phrases = {
+        "§4.5 blind corpus": [
+            f"**|A| = {len(truth['call_sites'])}**",
+            f"`src/mra/` frozen at `{FROZEN_AT}`"
+            if frozen
+            else f"<src/mra changed since {FROZEN_AT}>",
+        ],
+        "§7.9 blind results": [
+            f"RED on **{red} of {n}** runs",
+            f"{passed} of {len(rows)} criteria",
+            f"recover tokens {runs[0]['recover_tokens']}",
+        ],
+        "§8.2 consequence break": [
+            f"{cap} attempts",
+            f"all {n} runs",
+        ],
+    }
+    return table, phrases, safe
 
 
 def main() -> int:
@@ -510,6 +669,33 @@ def main() -> int:
         check(not missing, f"{label}: {len(claims_)} figures re-derived")
         for c in missing:
             print(f"    expected in paper -> {c!r}")
+
+    # 8. The blind held-out task: §7.9's table is regenerated from its
+    #    results.json and must match byte for byte; the safe-failure claim
+    #    (§8.2) is re-derived, not asserted.
+    table, blind_phrases, safe = blind_test()
+    paper_table = table_after(lines, BLIND_HEADER) if BLIND_HEADER in lines else []
+    check(paper_table == table, f"§7.9 blind criteria table re-derived ({len(table) - 2} rows)")
+    if paper_table != table:
+        print("    expected table ->\n" + "\n".join(table))
+    check(
+        safe and "The failure was safe." in flat,
+        "§8.2: the blind failure was safe (RED, no wrong edit, tests untouched, capped)",
+    )
+    for label, claims_ in blind_phrases.items():
+        missing = [c for c in claims_ if c not in flat]
+        check(not missing, f"{label}: {len(claims_)} figures re-derived")
+        for c in missing:
+            print(f"    expected in paper -> {c!r}")
+    scoped = "residual call sites"
+    for name, text in (
+        ("Abstract", "\n".join(lines[slice(*section(lines, "# Abstract", "# 1. Intro"))])),
+        ("§1", "\n".join(lines[slice(*section(lines, "# 1. Intro", "# 2. Related"))])),
+        ("§7", "\n".join(lines[slice(*section(lines, "# 7. Results", "# 8. Failure"))])),
+        ("§9", "\n".join(lines[slice(*section(lines, "# 9. Limit", "# 10. Concl"))])),
+        ("RESULTS_SUMMARY", "\n".join(slines)),
+    ):
+        check(scoped in " ".join(text.split()), f"{name}: recovery claim scoped to {scoped}")
 
     width = max(len(m) for _, m in results)
     for passed, message in results:

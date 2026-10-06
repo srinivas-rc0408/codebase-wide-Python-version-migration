@@ -20,6 +20,11 @@ finish at M1 100 % / M2 100 % / 0 regressions — and the two tasks that do not
 move are the two where nothing ever breaks, which is what makes them controls
 rather than counter-evidence.
 
+**Scope.** Every corrective edit behind this claim, and every live
+model-written correction, repaired residual call sites. Recovery from a
+consequence break outside any call site is not supported in v0.2.0. See the
+scope note below.
+
 *`results.md` §2A — `baseline` vs `no-recovery`, 3 repeats each:*
 
 | task | loop on | loop off |
@@ -134,6 +139,15 @@ Anyone quoting claim 1 must quote this alongside it.
 ---
 
 ## Scope and honesty notes
+
+- **Recovery repairs residual call sites only.** CORRECT chooses the file to
+  repair by re-scanning for remaining deprecated calls, and stops when there
+  are none. A break the migration causes in code that holds no call site
+  therefore never reaches the model. The blind held-out task
+  `corpus/blind/task06_scheduler` is such a break, a naive `EPOCH` constant
+  subtracted from the newly aware clock. The live agent ends RED on every run
+  there, with no wrong edit, tests untouched, and recovery stopped at the
+  retry cap (`corpus/blind/task06_scheduler/results.json`; paper §7.9, §8.2).
 
 - **Deterministic, not LLM.** Every row above uses the codemod corrector. The
   loop mechanics are what is measured; the model's ability to write a patch is

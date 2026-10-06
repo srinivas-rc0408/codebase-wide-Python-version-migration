@@ -33,5 +33,5 @@ So the gap is structural, not a weakness of the model. Recovery only repairs fil
 still contain a deprecated call site, and a naive constant that the migration made
 incompatible is out of its reach.
 
-Files: `results.json` (scored output), `rN-migration.diff`, `rN-trajectory.json`,
+Files: `../results.json` (scored output), `rN-migration.diff`, `rN-trajectory.json`,
 `rN-report.pdf` (the agent's own PDF run report).

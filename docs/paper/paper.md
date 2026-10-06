@@ -38,7 +38,11 @@ traces. On a five-task benchmark, a deterministic linter (Ruff) detects every
 breaking change but repairs none, while the agent completes all five tasks;
 ablating the recovery loop causes three of the five to fail. These results show
 that for cross-file version migration, a verification-driven repair loop
-succeeds where single-pass code generation does not.
+succeeds where single-pass code generation does not. The repair is scoped:
+every correction measured here repaired residual call sites of the deprecated
+API. On a blind held-out task whose break lies outside any call site, the
+agent stops with a RED verdict and edits nothing it should not; recovery from
+such breaks is not supported in this version.
 
 <!-- SOURCE (Ruff detects every breaking change, repairs none): runs/benchmark/results.md
      §3 "Deterministic baselines — ruff (DTZ) and pyupgrade", the `ruff (DTZ)` row of
@@ -54,6 +58,9 @@ succeeds where single-pass code generation does not.
      task03_half_migration and task04_multimodule, `3× success` on task01 and task05.
      Equivalently results.json aggregates[config="no-recovery"].outcomes. Cross-checked
      against runs/benchmark/RESULTS_SUMMARY.md claim (a). Expanded in §7.2. -->
+<!-- SOURCE (scope; blind held-out task RED): corpus/blind/task06_scheduler/results.json —
+     verdict RED in every run, patch_files = the two call-site files, tests_untouched true.
+     Expanded in §4.5, §7.9 and §8.2. -->
 
 ---
 
@@ -86,7 +93,10 @@ suite, and uses the resulting stack traces to iteratively repair its own edits.
 Across a five-task benchmark, three tasks fail without this recovery loop and
 all five succeed with it. The same experiment shows that edit order changes cost
 and failure risk but never the final outcome once recovery is present — order is
-a cost, not a verdict.
+a cost, not a verdict. What the loop repairs is residual call sites: a break the
+migration causes in code that holds no deprecated call, such as a naive constant
+that the newly aware clock is subtracted from, never reaches the model. On a
+blind held-out task built that way, the agent fails safely (§8.2).
 
 <!-- SOURCE: runs/benchmark/results.md §2A "Recovery loop ON vs OFF" — the
      `no-recovery` arm reads `3× gave_up` on task02_datetime_aliased,
@@ -421,6 +431,30 @@ and §7.7.
 <!-- SOURCE: corpus/edge/results.json — total 39; cases[].category: common 10, rare 15, twisted 7,
      failure 7; cases[].expected: GREEN 28, YELLOW 4, RED 7. Judge criteria: src/mra/benchmark/edge.py
      run_case and commit ab9e267. -->
+
+## 4.5 A blind held-out task
+
+Every Tier-A task and edge case existed while the agent was being built, so
+none of them can show how it does on a repository it was not shaped by.
+`corpus/blind/task06_scheduler` was written after the agent was frozen, with
+`src/mra/` frozen at `f97bf67`, and nothing in the agent was changed or tuned
+against it. It follows the Tier-A layout and contract, with **|A| = 2**: an
+aliased class import in `clock.py` (`DT.utcnow()`, which needs a new
+`timezone` import) and `utcfromtimestamp` through a module alias in
+`config.py` (which needs none). Three features are new to the corpus. A naive
+module constant, `config.EPOCH`, is subtracted from the clock in `report.py`
+but holds no call site, so once the clock is aware the suite breaks in code
+MAP never lists. `jobs.py` and `scheduler.py` import each other at module
+level. `decoys.py` calls a `FakeClock.utcnow()` method and carries the literal
+text `datetime.utcnow()` in a docstring and a log message, both pinned
+byte-for-byte by the suite. The right repair makes `EPOCH` aware in
+`config.py`. Stripping `tzinfo` in `report.py` would also turn the visible
+suite green, but that is the wrong repair, and two hidden semantic tests,
+present only in `gold/`, catch it.
+
+<!-- SOURCE: corpus/blind/task06_scheduler/ground_truth.json (call_sites: 2;
+     expected_import_changes clock add ["timezone"], config add []), task.yaml and README.md;
+     `git diff --quiet f97bf67 HEAD -- src/mra` is empty (checked by verify_paper.py). -->
 ---
 
 # 5. Metrics
@@ -669,6 +703,15 @@ nothing to rescue — so ablation A's effect tracks "is there a break?", not
 "is the task big?". Without it, the correlation between task difficulty and
 loop dependence would be uncontrolled.
 
+**Scope of claim (a).** Every corrective edit behind this claim, and the 12
+model-written ones in §7.8, repaired residual call sites: files that still
+held a deprecated call when the suite went red. Recovery from a consequence
+break outside any call site is not supported in v0.2.0 (§7.9, §8.2).
+
+<!-- SOURCE: src/mra/nodes/correct_node.py locate() — the corrector targets only files
+     re-scanned as still holding a call site; runs/benchmark/live/results_live.json corrections
+     sum 12 per arm; agent_version 0.2.0 from corpus/edge/results.json. -->
+
 ## 7.3 Claim (b) — the existing static tools detect the work and do none of it
 
 **`ruff` (DTZ) reports 100 % of the ground-truth call sites on all five tasks
@@ -860,9 +903,9 @@ arm will be an upper bound, not a quote.
 
 ## 7.7 Edge-case suite — verdict accuracy
 
-Unlike §7.1–§7.6, this subsection and the next draw on
-`corpus/edge/results.json` and `runs/benchmark/ablation-e/results.json`, not on
-the P5 matrix.
+Unlike §7.1–§7.6, this subsection and the two after it draw on
+`corpus/edge/results.json`, `runs/benchmark/ablation-e/results.json` and
+`corpus/blind/task06_scheduler/results.json`, not on the P5 matrix.
 
 The current agent, version 0.2.0, gives the expected verdict for the expected
 reason on **39 of 39** edge cases (generated 2026-10-01T15:09:35Z). Building
@@ -923,6 +966,33 @@ changed neither outcome nor edit count for the live corrector.
 
 <!-- SOURCE: the table above — outcome, corrections and hints served per row;
      runs/benchmark/ablation-e/results.json "skipped" = 10 entries, reason "requires DEEPSEEK_API_KEY". -->
+
+## 7.9 Blind held-out task
+
+The agent was run on the blind task (§4.5) with the live model
+`nvidia/nemotron-3-super-120b-a12b` for every role, memory and promoted
+skills off, three repeats. It ends RED on **3 of 3** runs and meets 5 of 9
+criteria, failing the same way every time. The codemod migrates both call
+sites correctly. The one failing test is the `EPOCH` subtraction in
+`report.py`, and no corrective edit is ever made: with recover tokens 0 in
+every run, the patch-writing role is never called (§8.2).
+
+| # | pass criterion | result | evidence (r1 / r2 / r3) |
+|---|---|---|---|
+| 1 | verdict GREEN | **FAIL** | RED ×3 |
+| 2 | M1 recall and precision 100 %, decoys untouched | PASS | M1 100/100, decoys byte-identical ×3 |
+| 3 | M2 100 %, 0 regressions, hidden semantic tests pass | **FAIL** | M2 87.5, 1 regr, hidden 1/2 ×3 |
+| 4 | EPOCH fix made by the model | **FAIL** | EPOCH unchanged, recover tokens 0 ×3 |
+| 5 | clock.py gains `timezone`, config.py no import | PASS | timezone added, config imports unchanged ×3 |
+| 6 | patch touches only clock.py and config.py | PASS | 2 files, report.py untouched ×3 |
+| 7 | test files untouched | PASS | byte-identical ×3 |
+| 8 | re-run on own output: empty patch, GREEN, 0 model calls | **FAIL** | RED, patch empty, 0 calls ×3 |
+| 9 | corrections ≤ 3; tokens and requests reported | PASS | corrections 3 ×3; tokens 2425 / 2282 / 2216; requests 6 ×3 |
+
+<!-- SOURCE: corpus/blind/task06_scheduler/results.json (scored from runs/blind06-r{1,2,3}
+     and runs/blind06-r{1,2,3}-rerun); the table is regenerated from it by verify_paper.py and
+     must match byte for byte. Criterion 8 fails because the agent's own output starts red
+     (7/8), so NB-10 refuses to migrate; the hidden tests are gold/tests/test_semantic.py. -->
 ---
 
 # 8. Failure Analysis
@@ -1069,11 +1139,43 @@ published.
 <!-- SOURCE: commit bb1dd07 body, "Benchmark matrix re-run: results.json scientific payload
      identical (165/165)". -->
 
+## 8.2 Consequence break off call sites
+
+The blind task (§7.9) exposes a failure class the Tier-A matrix cannot show,
+because every Tier-A break sits in a file that still holds a deprecated call.
+Call it a **consequence break off call sites**: the migration is correct at
+every call site, and the break it causes lies in code that holds none. In
+`task06` the codemod makes `clock.now()` aware, and `report.age_days()` then
+subtracts the naive constant `config.EPOCH` from it.
+
+CORRECT cannot reach this break. Before asking the model for a patch, its
+`locate()` re-runs MAP over the current tree to choose the file to repair, and
+it returns nothing when no residual call site remains. The corrector then
+records "nothing left to migrate" and returns without a patch. Each attempt
+spends one `classify` call and one `summarize` call, makes no `recover` call,
+and changes no file. After 3 attempts on the same failure signature, the loop
+gives up. This happened in all 3 runs. The model's ability is not what is being
+measured here: the failing file is never put in front of it.
+
+**The failure was safe.** The agent made no wrong edit: the patch touches only
+the two call-site files, both migrated correctly, and `report.py`, where a
+wrong fix would land, is untouched. The test files are byte-identical to
+`old/`. Recovery stopped at the retry cap rather than looping, and the verdict
+is RED, so the run reports that it did not finish rather than passing as
+green.
+
+<!-- SOURCE: corpus/blind/task06_scheduler/results.json — correct_attempts: max attempt 3,
+     changed [] in every attempt; tokens_by_role has only classify and summarize; patch_files
+     = [src/app/clock.py, src/app/config.py]; report_py_edited false; tests_untouched true;
+     verdict RED in all 3 runs. Mechanism: src/mra/nodes/correct_node.py locate() returns None
+     when find_in_repo finds no residual site, and LLMCorrector.__call__ returns [] before
+     corrective_patch. Re-derived by verify_paper.py. -->
+
 ---
 
 # 9. Limitations
 
-Six limitations bound what these results support. They are stated here in
+Seven limitations bound what these results support. They are stated here in
 full rather than distributed through the paper.
 
 1. **One migration family.** All five tasks migrate the same contract,
@@ -1137,7 +1239,19 @@ full rather than distributed through the paper.
         deprecated_call_in_test_file: expected YELLOW, actual YELLOW, reason code "residual";
         corpus/edge/<case>/case.json "note" fields. -->
 
-A seventh, smaller caveat: suites of 5–14 tests make M2 coarse. A single
+7. **Recovery repairs residual call sites only.** Every correction this
+   paper reports, deterministic or model-written, repaired residual call
+   sites. A consequence break off call sites, where the migration is right
+   at every call site but breaks code that holds none, never reaches the
+   model, because CORRECT chooses its target by re-scanning for remaining
+   call sites (§8.2). Recovery from such breaks is not supported in v0.2.0.
+   The blind held-out task is one such break, and the agent fails it on
+   every run. It fails safely, though: RED, no wrong edit, tests untouched.
+   One held-out task cannot say how common this class is in real migrations.
+   <!-- SOURCE: corpus/blind/task06_scheduler/results.json (verdict RED in every run);
+        §7.9 table; src/mra/nodes/correct_node.py locate(). -->
+
+An eighth, smaller caveat: suites of 5–14 tests make M2 coarse. A single
 collection error takes out an entire module, which is why regressions are
 reported as a count alongside the percentage (§5.2).
 
