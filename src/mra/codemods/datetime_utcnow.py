@@ -62,6 +62,12 @@ _RENAMES = {"utcnow": "now", "utcfromtimestamp": "fromtimestamp"}
 #: contract mandates.
 EXPECTED_LINT = ["UP017"]
 
+#: Regexes a corrective patch may not *add*: each drops the tzinfo the
+#: migration introduced, which reverses the migration by another route. An
+#: explicit ``tzinfo=None`` (``.replace(tzinfo=None)``, a naive constructor) and
+#: rebuilding a datetime from its ``timetuple()``/``utctimetuple()``.
+FORBIDDEN_PATTERNS = [r"tzinfo\s*=\s*None", r"\.(?:utc)?timetuple\(\)"]
+
 #: What each binding form resolves to, and what it implies about imports.
 _CLASS_BINDING = "datetime.datetime"  # from datetime import datetime [as d]
 _MODULE_BINDING = "datetime"  # import datetime [as dt]

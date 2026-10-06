@@ -101,6 +101,8 @@ def recover(
         ``{outcome, report, rounds, flagged, signature, corrections}`` —
         ``outcome`` is ``"success"`` or ``"gave_up"``.
     """
+    from mra.nodes.correct_node import last_rejection
+
     repo = Path(repo)
     cap = (
         max_attempts
@@ -162,6 +164,8 @@ def recover(
             continue
 
         sha = snapshot(repo, f"correction {rounds} for {signature}")
+        # A patch the anti-reversal guard refused: unapplied, attempt still spent.
+        rejected = {"rejected": reason} if (reason := last_rejection(corrector)) else {}
         trajectory.record(
             "CORRECT",
             f"attempt {attempts[signature]}/{cap} on {failure['nodeid']}",
@@ -170,9 +174,16 @@ def recover(
             exc_type=failure.get("exc_type"),
             files=changed,
             sha=sha,
+            **rejected,
         )
         corrections.append(
-            {"signature": signature, "attempt": attempts[signature], "changed": changed, "sha": sha}
+            {
+                "signature": signature,
+                "attempt": attempts[signature],
+                "changed": changed,
+                "sha": sha,
+                **rejected,
+            }
         )
 
         report = runner.run(repo, task_id=task_id, phase="recovery", run_id=run_id, lint=False)

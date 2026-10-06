@@ -25,6 +25,8 @@ class Contract(TypedDict, total=False):
     guide_excerpt: str
     #: Ruff rule codes the target API itself triggers; the report exempts them.
     expected_lint: list[str]
+    #: Regexes a corrective patch may not add (anti-reversal guard).
+    forbidden_patterns: list[str]
 
 
 class Tokens(TypedDict):

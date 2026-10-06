@@ -75,6 +75,24 @@ PATCH_SYSTEM = (
     "no prose before or after it."
 )
 
+CONSEQUENCE_SYSTEM = (
+    "You finish Python migrations. The migration has already been applied at "
+    "every call site of the old API, yet the test suite still fails: code that "
+    "the migrated values flow into was not adapted to the new contract. You are "
+    "given the failure, the contract, and the only files you may edit.\n"
+    "Rules:\n"
+    "- Fix the root cause so the new contract holds everywhere. Fix a value where "
+    "it is defined, not at each place it is used.\n"
+    "- Never undo the migration: never reintroduce the old API and never add a "
+    "forbidden pattern.\n"
+    "- Edit exactly one of the listed files. Keep all other code, comments, "
+    "docstrings and formatting byte-identical, and add any import the change needs.\n"
+    "- Never modify, add or delete tests.\n"
+    "- Reply with one line `FILE: <path>` naming the file, then the complete "
+    "corrected file inside one ```python fence, and no other prose."
+)
+_FILE_PATCH = re.compile(r"FILE:\s*`?([^\s`]+)`?\s*\n+```(?:python|py)?\s*\n(.*?)```", re.S)
+
 
 # -- (a) classify ----------------------------------------------------------
 
@@ -159,6 +177,33 @@ def locate(
     }
 
 
+def consequence_scope(
+    repo: Path | str, failure: dict[str, Any], migrated: set[str], dep_graph: Any = None
+) -> list[str]:
+    """Files a consequence repair may edit, when :func:`locate` found no residual site.
+
+    The non-test files the failure's trace names, plus their dependency-graph
+    neighbours that are migrated files or import one: the break is downstream
+    of the migration, so the fix lives where a migrated value is defined or
+    consumed. Never a test file (NB-4).
+    """
+    repo = Path(repo)
+    graph = dep_graph if dep_graph is not None else dep_graph_module.build(repo)
+    traced = {f for f in _hinted_files(failure) if (repo / f).is_file()}
+
+    def touches_migration(node: str) -> bool:
+        return node in migrated or any(n in migrated for n in graph.successors(node))
+
+    neighbours = {
+        n
+        for f in traced
+        if graph.has_node(f)
+        for n in (*graph.successors(f), *graph.predecessors(f))
+        if touches_migration(n)
+    }
+    return sorted(f for f in traced | neighbours if not is_test_path(f))
+
+
 # -- (c) generate ----------------------------------------------------------
 
 
@@ -191,6 +236,85 @@ def extract_source(reply: str) -> str:
     source = (fences[-1] if fences else reply).strip() + "\n"
     cst.parse_module(source)  # raises ParserSyntaxError on garbage
     return source
+
+
+def consequence_prompt(
+    failure: dict[str, Any],
+    sources: dict[str, str],
+    contract: dict[str, Any],
+    klass: str,
+    forbidden: list[str],
+    summary: str = "",
+) -> str:
+    """The whole context a consequence repair gets: the trace and the scoped files (NFR-12)."""
+    from mra.memory import SUMMARY_MAX_CHARS, TRACE_MAX_CHARS
+
+    return "\n".join(
+        [
+            f"# migration contract: {contract.get('source_api')} -> {contract.get('target_api')}",
+            f"# forbidden patterns (regex) your edit may not add: {forbidden}",
+            f"# failure class: {klass}",
+            f"# failing test: {failure.get('nodeid')}",
+            f"# exception: {failure.get('exc_type')}: {failure.get('message')}",
+            "",
+            "# progress so far",
+            f"# {summary[:SUMMARY_MAX_CHARS]}" if summary else "# (first correction of this run)",
+            "",
+            "# trace",
+            str(failure.get("trace", ""))[:TRACE_MAX_CHARS],
+            "",
+            "# files you may edit (exactly one)",
+            *(f"FILE: {path}\n```python\n{source}```" for path, source in sources.items()),
+        ]
+    )
+
+
+def extract_patch(reply: str) -> tuple[str, str]:
+    """``(file, source)`` from a ``FILE: <path>`` + fence reply; the source must parse."""
+    matches = _FILE_PATCH.findall(reply)
+    if not matches:
+        raise ValueError("no `FILE: <path>` followed by a python fence")
+    file, source = matches[-1]  # the last one: earlier ones are drafts
+    source = source.strip() + "\n"
+    cst.parse_module(source)
+    return file, source
+
+
+def reversal(
+    repo: Path | str, relative: str, source: str, target: str, forbidden: list[str]
+) -> str | None:
+    """Why ``source`` would reverse the migration in ``relative``, or None if it would not.
+
+    Only what the patch *adds* counts, so a pattern the file already held does
+    not block it. The source API is re-scanned with the analyzer over the whole
+    repo, the one resolver, with the patch written in and then restored.
+    """
+    from mra.codemods.datetime_utcnow import family
+
+    path = Path(repo) / relative
+    before = path.read_bytes()
+    old = before.decode("utf-8", errors="surrogateescape")
+    for pattern in forbidden:
+        if len(re.findall(pattern, source)) > len(re.findall(pattern, old)):
+            return f"adds forbidden pattern {pattern!r}"
+
+    def residual() -> int:
+        return len(call_sites_module.find_in_repo(repo, family(target)).get(relative, []))
+
+    sites = residual()
+    try:
+        path.write_text(source)
+        if residual() > sites:
+            return f"reintroduces the source API ({target}) in {relative}"
+    finally:
+        path.write_bytes(before)
+    return None
+
+
+def last_rejection(corrector: Any) -> str | None:
+    """The reason the corrector's most recent patch was rejected, if it was."""
+    log = getattr(corrector, "log", None)
+    return log[-1].get("rejected") if log else None
 
 
 def corrective_patch(
@@ -229,14 +353,25 @@ class LLMCorrector:
     One call = one repaired file. The loop re-tests after every call, so a
     migration left half-done across several files converges one file per round
     instead of being guessed at in one shot.
+
+    Two modes. **residual**: a file still holds an unmigrated call site, and
+    that file is rewritten. **consequence** (v0.3.0): no residual site is left,
+    so the break is downstream of a correct migration; the model picks one file
+    from :func:`consequence_scope`. In both, a patch that :func:`reversal` flags
+    is rejected unapplied, and the attempt it spent still counts.
     """
 
     def __init__(
         self, router: Router, target: str, contract: dict[str, Any], experience: Any = None
     ) -> None:
+        from mra.codemods.datetime_utcnow import FORBIDDEN_PATTERNS, TARGET
+
         self.router = router
         self.target = target
         self.contract = contract
+        self.forbidden: list[str] = contract.get(
+            "forbidden_patterns", list(FORBIDDEN_PATTERNS) if target == TARGET else []
+        )
         #: Opt-in :class:`mra.memory.experience.ExperienceStore`; None = no hints.
         self.experience = experience
         #: What each round decided, for the trajectory.
@@ -247,10 +382,12 @@ class LLMCorrector:
 
     def __call__(self, repo: Path, failure: dict[str, Any], context: dict[str, Any]) -> list[str]:
         klass = classify(failure, self.router)
-        located = locate(repo, failure, self.target, dep_graph=context.get("graph"))
-        if located is None or klass == "non_fixable":
-            self.log.append({"class": klass, "file": None, "reason": "nothing left to migrate"})
+        if klass == "non_fixable":
+            self.log.append({"class": klass, "file": None, "reason": "non_fixable"})
             return []
+        located = locate(repo, failure, self.target, dep_graph=context.get("graph"))
+        if located is None:
+            return self._consequence(repo, failure, context, klass)
         summary = context.get("summary", "")
         hints = (
             []
@@ -268,10 +405,14 @@ class LLMCorrector:
         source = corrective_patch(
             self.router, failure, located, self.contract, klass, summary, hints
         )
+        reason = reversal(repo, located["file"], source, self.target, self.forbidden)
+        if reason:
+            return self._reject(klass, located["file"], "residual", reason)
         changed = apply_source(repo, located["file"], source)
         self.log.append(
             {
                 "class": klass,
+                "mode": "residual",
                 "file": located["file"],
                 "hinted_by_trace": located["hinted_by_trace"],
                 "memory_hints": len(hints),
@@ -279,6 +420,53 @@ class LLMCorrector:
             }
         )
         return changed
+
+    def _consequence(
+        self, repo: Path, failure: dict[str, Any], context: dict[str, Any], klass: str
+    ) -> list[str]:
+        """Repair a break downstream of a complete migration (no residual call site)."""
+        scope = consequence_scope(
+            repo, failure, set(context.get("call_sites") or {}), context.get("graph")
+        )
+        if not scope:
+            return self._reject(klass, None, "consequence", "no editable file in the trace")
+        prompt = consequence_prompt(
+            failure,
+            {f: (repo / f).read_text() for f in scope},
+            self.contract,
+            klass,
+            self.forbidden,
+            context.get("summary", ""),
+        )
+        self.payload_chars.append(len(prompt))
+        reply = self.router.complete("recover", CONSEQUENCE_SYSTEM, prompt)
+        try:
+            file, source = extract_patch(reply)
+        except (ValueError, cst.ParserSyntaxError) as exc:
+            return self._reject(klass, None, "consequence", f"unusable reply: {exc}")
+        if file not in scope:
+            return self._reject(klass, file, "consequence", f"{file} is outside scope {scope}")
+        reason = reversal(repo, file, source, self.target, self.forbidden)
+        if reason:
+            return self._reject(klass, file, "consequence", reason)
+        changed = apply_source(repo, file, source)
+        self.log.append(
+            {
+                "class": klass,
+                "mode": "consequence",
+                "file": file,
+                "scope": scope,
+                "changed": changed,
+            }
+        )
+        return changed
+
+    def _reject(self, klass: str, file: str | None, mode: str, reason: str) -> list[str]:
+        """Record a patch that was not applied. The loop has already counted the attempt."""
+        self.log.append(
+            {"class": klass, "mode": mode, "file": file, "rejected": reason, "changed": []}
+        )
+        return []
 
 
 def make_correct_node(
@@ -380,6 +568,11 @@ def make_correct_node(
                     # Store and lookup key on the offline class: stable across runs.
                     "failure_class": classify_offline(failure),
                     "message": failure.get("message", ""),
+                    **(
+                        {"rejected": reason}
+                        if fired is None and (reason := last_rejection(corrector))
+                        else {}
+                    ),
                 },
             },
         }
